@@ -1,5 +1,28 @@
 # 변경 기록
 
+## 1.1.0 - 2026-07-18
+
+### 안정성과 공정성
+
+- 사다리 목표 순열을 보안 난수로 먼저 선택하고 인접 교환으로 정확히 구성하도록 개선
+- 사다리 round snapshot, 편집 확인, 부분 공개 masking, 전체 공개 전 mapping·복사·라운드 ID 잠금 추가
+- 탁구 TOI 다중 충돌, 배구 연속 충돌 분리, 반응속도 event timestamp·동점·부정 출발 판정 하드닝
+- 룰렛·사다리의 보안 난수가 없을 때 비보안 fallback 대신 실패하도록 변경
+
+### 모바일과 접근성
+
+- 높이 500px 이하 가로 폰에서 HUD·점수·경기 영역·양쪽 조작을 한 visual viewport에 배치
+- pointer ID별 동시 입력과 cancel·blur·visibility·reset·destroy 정리, 핀볼 compatibility click 중복 방지
+- coarse pointer 오목에 좌표 선택–확정–취소, 키보드 조작, 무르기 확인, 규칙 badge 추가
+- 로비 카드·게임 상태의 semantic DOM, 44px 조작, 축소 모션·포커스 순서·Axe 검증 보강
+
+### 배포와 QA
+
+- Pages 하위 경로를 사용한 프로덕션 E2E와 `main` 배포 후 live smoke job 추가
+- raster Open Graph 커버, 192/512/maskable PWA icon, Apple touch icon과 Twitter metadata 추가
+- chunk 로딩 재시도 UI, 로비 링크 공유, Clipboard fallback, 탭 사운드 throttle, 프로덕션 source map 비활성화
+- 생산 자산·direct hash route·lifecycle·멀티터치·접근성을 다루는 Playwright·Axe 회귀 테스트와 QA 문서 확장
+
 ## 1.0.0 - 2026-07-18
 
 ### 추가
