@@ -1,5 +1,25 @@
 # 변경 기록
 
+## 1.2.0 - 2026-07-19
+
+### 정적 콘텐츠와 검색 구조
+
+- JavaScript 없이 읽히는 랜딩, 8개 고유 게임 가이드, About·사용법·공정성·Privacy·Terms·Contact를 clean URL의 Vite MPA로 추가
+- `/play/`로 인터랙티브 앱을 분리하고 기존 루트 hash 링크를 같은 게임으로 replace 이동
+- 페이지별 canonical·Open Graph·Twitter·JSON-LD, 15개 clean URL sitemap, 실제 runtime 스크린샷과 게임별 deterministic OG 추가
+
+### 호스팅과 광고 안전성
+
+- project Pages와 root/custom-domain base를 분리하고 profile별 PWA identity, CNAME·robots·ads.txt root 소유권을 검증
+- AdSense를 기본 off로 유지하면서 실제 ID·custom root·동의를 요구하는 콘텐츠 전용 hook과 격리된 mock E2E 추가
+- Search Console, 호스팅 수익화, AdSense 승인·CMP, 자산 provenance 운영 문서 추가
+
+### 게임 아이콘과 제품 완성도
+
+- ImageGen으로 만든 8개 RGBA master와 Sharp 기반 320px AVIF·WebP·PNG 최적화, 기존 glyph fallback 추가
+- 카드에 플레이·가이드 CTA를 분리하고 clean guide 공유, 최근 게임 다시 열기, 3단계 시작법, 정책 footer와 공정성 링크 추가
+- dual-base SEO, metadata, 광고 network 차단, 이미지 budget·CLS·fallback을 Chromium·WebKit production E2E로 보강
+
 ## 1.1.0 - 2026-07-18
 
 ### 안정성과 공정성

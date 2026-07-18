@@ -38,7 +38,7 @@ const PLAYER_CONTROLS: Record<ActionGame, readonly [string, string]> = {
 };
 
 async function openGame(page: Page, game: ActionGame | 'omok'): Promise<void> {
-  await page.goto(`./#game/${game}`);
+  await page.goto(`./play/#game/${game}`);
   await expect(page.locator(GAME_ROOT[game])).toBeVisible();
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
 }
@@ -401,7 +401,7 @@ test('탁구와 배구는 양쪽 pointer hold를 동시에 처리하고 모든 �
     await expect(first).toHaveAttribute('data-pressed', 'false');
 
     await dispatchPointer(first, 'pointerdown', 606);
-    await page.goto('./#lobby');
+    await page.goto('./play/#lobby');
     await openGame(page, game);
     await expect(page.locator(`${PLAYER_CONTROLS[game][0]} button`).first()).toHaveAttribute(
       'data-pressed',
@@ -526,7 +526,7 @@ test('탭 배틀은 동시 pointer와 빠른 연타 수를 정확히 세고 정�
 
   await page.locator('#game-start').click();
   await dispatchPointer(first, 'pointerdown', 701);
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await openGame(page, 'tap-battle');
   await expect(page.locator('[data-zone="1"]')).not.toHaveAttribute('data-pressed', 'true');
 });
@@ -625,7 +625,7 @@ test('반응속도 대결은 양쪽 pointer를 동시 처리하고 종료 경로
   await page.locator('[data-action="reset"]').click();
   await expect(first).toHaveAttribute('data-pressed', 'false');
   await dispatchPointer(first, 'pointerdown', 1002);
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await openGame(page, 'reaction-duel');
   await expect(page.locator('[data-reaction-zone="1"]')).toHaveAttribute('data-pressed', 'false');
 });

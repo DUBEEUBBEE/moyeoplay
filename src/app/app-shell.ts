@@ -41,6 +41,17 @@ const PHASE_LABELS: Record<GamePhase, string> = {
   matchOver: '경기 종료',
 };
 
+function sitePath(path = ''): string {
+  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+}
+
+function cleanAbsoluteSiteUrl(path = ''): string {
+  const url = new URL(sitePath(path), window.location.origin);
+  url.search = '';
+  url.hash = '';
+  return url.href;
+}
+
 export class AppShell {
   readonly #root: HTMLElement;
   readonly #settings = new SettingsStore();
@@ -143,7 +154,7 @@ export class AppShell {
             <span><strong>모여<span>PLAY</span></strong><small>모이면 바로 한 판</small></span>
             <span class="visually-hidden">로비로 이동</span>
           </button>
-          <p class="privacy-pill"><span aria-hidden="true"></span> 로그인 없음 · 이 기기에만 저장</p>
+          <p class="privacy-pill"><span aria-hidden="true"></span> 로그인 없음 · 게임 설정과 전적은 브라우저 저장</p>
           <div class="header-actions">
             <button class="icon-button" id="sound-toggle" type="button" aria-label="사운드 끄기" title="사운드 켜기/끄기">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4Zm12.4-.9a4 4 0 0 1 0 5.8M18.8 6.7a7.5 7.5 0 0 1 0 10.6"/></svg>
@@ -170,7 +181,7 @@ export class AppShell {
                 <ul class="trust-list" aria-label="서비스 특징">
                   <li><strong>2번</strong><span>이내로 게임 시작</span></li>
                   <li><strong>8개</strong><span>완성된 로컬 게임</span></li>
-                  <li><strong>0개</strong><span>계정 · 설치 · 서버 전송</span></li>
+                  <li><strong>로컬</strong><span>설정 · 최근 전적 브라우저 저장</span></li>
                 </ul>
               </div>
               <aside class="session-card" aria-labelledby="session-title">
@@ -190,6 +201,18 @@ export class AppShell {
               </aside>
             </div>
 
+            <section class="play-steps" aria-labelledby="play-steps-title">
+              <div class="play-steps__heading">
+                <p class="eyebrow">HOW TO PLAY</p>
+                <h2 id="play-steps-title">세 단계면 바로 시작</h2>
+              </div>
+              <ol>
+                <li><span aria-hidden="true">01</span><div><strong>게임을 고르세요</strong><p>카드에서 게임 시작을 누르거나 랜덤 선택을 사용하세요.</p></div></li>
+                <li><span aria-hidden="true">02</span><div><strong>한 기기를 가운데 두세요</strong><p>양쪽 터치 영역 또는 키보드를 각 플레이어가 함께 사용합니다.</p></div></li>
+                <li><span aria-hidden="true">03</span><div><strong>시작을 누르고 승부하세요</strong><p>규칙을 확인한 뒤 플레이하고, 결과는 오늘의 전적에 자동 기록됩니다.</p></div></li>
+              </ol>
+            </section>
+
             <section class="game-section" id="games" aria-labelledby="games-title">
               <div class="section-heading">
                 <div><p class="eyebrow">CHOOSE A GAME</p><h2 id="games-title" tabindex="-1">지금 분위기에 맞는 한 판</h2></div>
@@ -200,7 +223,7 @@ export class AppShell {
 
             <section class="promise-panel" aria-label="모여PLAY 데이터 안내">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2"/></svg>
-              <div><strong>친구들과 놀기 위한 정보만, 이 기기에만.</strong><p>플레이어 이름·사운드·모션 설정과 최근 전적만 브라우저 저장소에 남습니다. 서버 전송과 분석 추적은 없습니다.</p></div>
+              <div><strong>게임 설정과 최근 전적은 현재 브라우저에 저장합니다.</strong><p>이 정보는 운영 서버로 업로드하지 않습니다. 광고 기능이 활성화되는 경우의 데이터 처리는 <a class="inline-policy-link" href="${sitePath('privacy/')}">별도 개인정보 안내</a>를 따릅니다.</p></div>
               <button class="secondary-button" type="button" data-action="settings">이름과 설정 바꾸기</button>
             </section>
           </section>
@@ -213,6 +236,9 @@ export class AppShell {
                 <button class="hud-button" type="button" data-action="rules">규칙</button>
                 <button class="hud-button hud-button--primary" id="game-start" type="button">시작</button>
                 <button class="hud-button" type="button" data-action="reset">다시 시작</button>
+                <button class="icon-button" type="button" data-action="share" aria-label="현재 게임 가이드 공유">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.7 12.8 15.3 16.6M15.3 7.4 8.7 11.2M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                </button>
                 <button class="icon-button" id="game-fullscreen" type="button" data-action="fullscreen" aria-label="전체 화면">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/></svg>
                 </button>
@@ -226,7 +252,18 @@ export class AppShell {
           </section>
         </main>
 
-        <footer class="site-footer"><strong>모여PLAY</strong><p>로그인 없음 · 설치 없음 · 데이터는 이 기기에만 저장</p><button class="text-button" type="button" data-action="scroll-games">게임 목록</button></footer>
+        <footer class="site-footer">
+          <div class="site-footer__summary"><a class="site-footer__home" href="${sitePath('')}"><strong>모여PLAY</strong></a><p>게임 설정과 최근 전적은 현재 브라우저에 저장되며 운영 서버로 업로드하지 않습니다.</p></div>
+          <nav class="site-footer__nav" aria-label="사이트 정책과 안내">
+            <a href="${sitePath('')}">게임</a>
+            <a href="${sitePath('how-to-play/')}">이용 방법</a>
+            <a href="${sitePath('fairness/')}">공정성</a>
+            <a href="${sitePath('privacy/')}">개인정보</a>
+            <a href="${sitePath('terms/')}">이용약관</a>
+            <a href="${sitePath('contact/')}">문의</a>
+            <a href="https://github.com/DUBEEUBBEE/moyeoplay" rel="noopener noreferrer">GitHub</a>
+          </nav>
+        </footer>
       </div>
       <div class="visually-hidden" id="app-announcer" role="status" aria-live="polite" aria-atomic="true"></div>
     `;
@@ -531,11 +568,19 @@ export class AppShell {
   }
 
   async #shareCurrentPage(): Promise<void> {
-    const shareData = {
-      title: '모여PLAY — 친구들이 모이면 바로 한 판',
-      text: '로그인과 설치 없이 한 기기에서 즐기는 로컬 파티 아케이드',
-      url: window.location.href,
-    };
+    const route = parseHash(location.hash);
+    const game = route?.kind === 'game' ? getGameDefinition(route.gameId) : undefined;
+    const shareData = game
+      ? {
+          title: `${game.title} 게임 가이드 · 모여PLAY`,
+          text: `${game.description} 규칙과 조작법을 확인하고 바로 플레이하세요.`,
+          url: cleanAbsoluteSiteUrl(`games/${game.guideSlug}/`),
+        }
+      : {
+          title: '모여PLAY — 친구들이 모이면 바로 한 판',
+          text: '로그인과 설치 없이 한 기기에서 즐기는 로컬 파티 아케이드',
+          url: cleanAbsoluteSiteUrl(),
+        };
     try {
       if (typeof navigator.share === 'function') {
         await navigator.share(shareData);
@@ -594,6 +639,14 @@ export class AppShell {
     controls.className = 'key-guide';
     controls.textContent = `조작: ${game.controls}`;
     this.#rulesModal.body.append(intro, list, controls);
+    if (game.id === 'ladder' || game.id === 'roulette') {
+      const fairnessLink = document.createElement('a');
+      fairnessLink.className = 'modal-resource-link';
+      fairnessLink.href = sitePath('fairness/');
+      fairnessLink.textContent = '공정성 설계 자세히 보기 →';
+      fairnessLink.setAttribute('aria-label', `${game.title} 공정성 설계 자세히 보기`);
+      this.#rulesModal.body.append(fairnessLink);
+    }
     this.#rulesModal.open(trigger);
   }
 
@@ -609,7 +662,7 @@ export class AppShell {
           <label><span>효과음 크기</span><input name="volume" type="range" min="0" max="1" step="0.05" /></label>
           <label><span>모션 효과</span><select name="motion"><option value="system">기기 설정 따르기</option><option value="reduced">효과 줄이기</option><option value="full">전체 효과</option></select></label>
         </fieldset>
-        <p class="storage-note">설정은 서버로 보내지 않고 현재 브라우저에만 저장합니다.</p>
+        <p class="storage-note">게임 설정은 운영 서버로 업로드하지 않고 현재 브라우저에 저장합니다. 광고 기능 활성화 시 <a class="inline-policy-link" href="${sitePath('privacy/')}">별도 개인정보 안내</a>를 확인하세요.</p>
         <div class="modal-actions"><button class="primary-button" type="submit">설정 저장</button><button class="secondary-button" type="button" data-settings-reset>기본값 복원</button></div>
       </form>
     `;
@@ -702,6 +755,8 @@ export class AppShell {
       const game = getGameDefinition(match.gameId);
       if (!game) continue;
       const item = document.createElement('li');
+      const copy = document.createElement('div');
+      copy.className = 'recent-play__copy';
       const title = document.createElement('strong');
       title.textContent = game.shortTitle;
       const result = document.createElement('span');
@@ -715,7 +770,14 @@ export class AppShell {
       score.textContent = match.score
         ? `${String(match.score[0])} : ${String(match.score[1])}`
         : '완료';
-      item.append(title, result, score);
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'recent-play__open';
+      openButton.dataset.gameId = game.id;
+      openButton.textContent = '열기';
+      openButton.setAttribute('aria-label', `${game.title} 다시 열기`);
+      copy.append(title, result);
+      item.append(copy, score, openButton);
       this.#recentList.append(item);
     }
   }

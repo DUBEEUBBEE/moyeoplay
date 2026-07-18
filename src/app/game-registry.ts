@@ -1,5 +1,9 @@
 import type { GameDefinition, GameId, GameModule } from '../core/game-controller';
 
+function publicPath(path: string): string {
+  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+}
+
 const RETRY_GAME_LOADERS = import.meta.glob<GameModule>('../games/*/index.ts', {
   query: { moyeoplayRetry: '1' },
 });
@@ -23,6 +27,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: '터치 · 클릭',
     accent: '#ffd447',
     symbol: '五',
+    guideSlug: 'omok',
+    icon: {
+      avif: publicPath('assets/game-icons/omok.avif'),
+      webp: publicPath('assets/game-icons/omok.webp'),
+      png: publicPath('assets/game-icons/omok.png'),
+      width: 320,
+      height: 320,
+    },
     rules: [
       '15×15 교차점에 흑과 백이 번갈아 돌을 놓습니다.',
       '가로, 세로, 양 대각선 중 같은 돌 5개 이상을 먼저 이으면 승리합니다.',
@@ -42,6 +54,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: 'W/S · ↑/↓ · 터치',
     accent: '#45e4e0',
     symbol: '↔',
+    guideSlug: 'pong',
+    icon: {
+      avif: publicPath('assets/game-icons/pong.avif'),
+      webp: publicPath('assets/game-icons/pong.webp'),
+      png: publicPath('assets/game-icons/pong.png'),
+      width: 320,
+      height: 320,
+    },
     landscapePreferred: true,
     rules: [
       'P1은 W/S, P2는 ↑/↓ 또는 각자의 터치 버튼으로 움직입니다.',
@@ -62,6 +82,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: 'A/D/W · 방향키 · 터치',
     accent: '#ff5d9e',
     symbol: '↑',
+    guideSlug: 'volleyball',
+    icon: {
+      avif: publicPath('assets/game-icons/volleyball.avif'),
+      webp: publicPath('assets/game-icons/volleyball.webp'),
+      png: publicPath('assets/game-icons/volleyball.png'),
+      width: 320,
+      height: 320,
+    },
     landscapePreferred: true,
     rules: [
       'P1은 A/D/W, P2는 ←/→/↑ 또는 각자의 터치 버튼을 사용합니다.',
@@ -82,6 +110,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: 'A · L · 터치',
     accent: '#a675ff',
     symbol: '●',
+    guideSlug: 'pinball-drop',
+    icon: {
+      avif: publicPath('assets/game-icons/pinball-drop.avif'),
+      webp: publicPath('assets/game-icons/pinball-drop.webp'),
+      png: publicPath('assets/game-icons/pinball-drop.png'),
+      width: 320,
+      height: 320,
+    },
     landscapePreferred: true,
     rules: [
       '두 레인의 핀 배치는 완전히 대칭이고 두 공은 동시에 출발합니다.',
@@ -102,6 +138,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: '터치 · 클릭',
     accent: '#58e6a9',
     symbol: 'H',
+    guideSlug: 'ladder',
+    icon: {
+      avif: publicPath('assets/game-icons/ladder.avif'),
+      webp: publicPath('assets/game-icons/ladder.webp'),
+      png: publicPath('assets/game-icons/ladder.png'),
+      width: 320,
+      height: 320,
+    },
     rules: [
       '참가자 이름과 결과를 편집한 뒤 사다리를 생성합니다.',
       '각 출발 버튼은 정확히 하나의 서로 다른 결과로 이어집니다.',
@@ -121,6 +165,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: 'F · J · 화면 절반',
     accent: '#ff8a4c',
     symbol: '!',
+    guideSlug: 'reaction-duel',
+    icon: {
+      avif: publicPath('assets/game-icons/reaction-duel.avif'),
+      webp: publicPath('assets/game-icons/reaction-duel.webp'),
+      png: publicPath('assets/game-icons/reaction-duel.png'),
+      width: 320,
+      height: 320,
+    },
     rules: [
       'P1은 F, P2는 J 또는 각자의 화면 영역을 누릅니다.',
       '신호 전에 누르면 해당 라운드는 부정 출발 패배입니다.',
@@ -140,6 +192,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: 'F · J · 멀티터치',
     accent: '#6aa8ff',
     symbol: '+',
+    guideSlug: 'tap-battle',
+    icon: {
+      avif: publicPath('assets/game-icons/tap-battle.avif'),
+      webp: publicPath('assets/game-icons/tap-battle.webp'),
+      png: publicPath('assets/game-icons/tap-battle.png'),
+      width: 320,
+      height: 320,
+    },
     rules: [
       'P1은 F, P2는 J 또는 각자의 화면 영역을 연타합니다.',
       '키 자동 반복과 중복 포인터 이벤트는 점수에 포함되지 않습니다.',
@@ -159,6 +219,14 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     controls: '터치 · 클릭',
     accent: '#f4c56a',
     symbol: '◒',
+    guideSlug: 'roulette',
+    icon: {
+      avif: publicPath('assets/game-icons/roulette.avif'),
+      webp: publicPath('assets/game-icons/roulette.webp'),
+      png: publicPath('assets/game-icons/roulette.png'),
+      width: 320,
+      height: 320,
+    },
     rules: [
       '2–12개의 항목을 입력하면 모든 칸에 같은 확률이 적용됩니다.',
       '회전을 시작할 때 결과를 먼저 정하고 바늘이 그 칸에 정확히 멈춥니다.',

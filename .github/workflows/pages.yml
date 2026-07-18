@@ -46,6 +46,40 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Root-base and AdSense mock end-to-end tests
+        run: npm run test:e2e:root
+
+      - name: Resolve host-agnostic deployment profile
+        env:
+          SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
+          CUSTOM_DOMAIN_VALUE: ${{ vars.CUSTOM_DOMAIN }}
+          PUBLIC_CONTACT_EMAIL_VALUE: ${{ vars.PUBLIC_CONTACT_EMAIL }}
+          ADSENSE_ENABLED_VALUE: ${{ vars.ADSENSE_ENABLED || 'false' }}
+          ADSENSE_CLIENT_ID_VALUE: ${{ vars.ADSENSE_CLIENT_ID }}
+          ADSENSE_PUBLISHER_ID_VALUE: ${{ vars.ADSENSE_PUBLISHER_ID }}
+          ADSENSE_CONTENT_SLOT_ID_VALUE: ${{ vars.ADSENSE_CONTENT_SLOT_ID }}
+        run: |
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          owner_lower="${GITHUB_REPOSITORY_OWNER,,}"
+          if [[ -n "${CUSTOM_DOMAIN_VALUE}" ]]; then
+            resolved_base="/"
+            resolved_site_url="${SITE_URL_OVERRIDE:-https://${CUSTOM_DOMAIN_VALUE}/}"
+          elif [[ "${repository_name,,}" == "${owner_lower}.github.io" ]]; then
+            resolved_base="/"
+            resolved_site_url="${SITE_URL_OVERRIDE:-https://${owner_lower}.github.io/}"
+          else
+            resolved_base="/${repository_name}/"
+            resolved_site_url="${SITE_URL_OVERRIDE:-https://${owner_lower}.github.io/${repository_name}/}"
+          fi
+          echo "PAGES_BASE_PATH=${resolved_base}" >> "$GITHUB_ENV"
+          echo "SITE_URL=${resolved_site_url}" >> "$GITHUB_ENV"
+          echo "CUSTOM_DOMAIN=${CUSTOM_DOMAIN_VALUE}" >> "$GITHUB_ENV"
+          echo "PUBLIC_CONTACT_EMAIL=${PUBLIC_CONTACT_EMAIL_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_ENABLED=${ADSENSE_ENABLED_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_CLIENT_ID=${ADSENSE_CLIENT_ID_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_PUBLISHER_ID=${ADSENSE_PUBLISHER_ID_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_CONTENT_SLOT_ID=${ADSENSE_CONTENT_SLOT_ID_VALUE}" >> "$GITHUB_ENV"
+
       - name: Configure GitHub Pages
         id: pages
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -53,9 +87,6 @@ jobs:
 
       - name: Production build
         run: npm run build
-        env:
-          PAGES_BASE_PATH: /moyeoplay/
-          SITE_URL: https://dubeeubbee.github.io/moyeoplay/
 
       - name: Verify production artifact
         run: npm run verify:dist
@@ -125,7 +156,7 @@ jobs:
       - name: Verify live GitHub Pages
         run: npm run test:e2e:live
         env:
-          E2E_LIVE_URL: ${{ needs.deploy.outputs.page_url }}
+          E2E_LIVE_URL: ${{ vars.SITE_URL || needs.deploy.outputs.page_url }}
 
       - name: Upload live smoke failure artifacts
         if: failure()

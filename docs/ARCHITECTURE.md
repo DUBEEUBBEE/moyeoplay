@@ -2,12 +2,13 @@
 
 ## 경계
 
-모여PLAY는 서버가 없는 Vite 정적 사이트다. 앱 셸은 라우팅·설정·세션·공통 HUD만 소유하고 게임 코드는 `src/games/<id>`의 동적 chunk로 분리한다.
+모여PLAY는 서버가 없는 Vite 정적 MPA다. `site/site-content.mjs`의 한국어 콘텐츠에서 루트, 8개 게임 가이드, 6개 신뢰 페이지를 build time에 만들고, 실제 게임 앱만 `/play/`에서 실행한다. 앱 셸은 라우팅·설정·세션·공통 HUD만 소유하고 게임 코드는 `src/games/<id>`의 동적 chunk로 분리한다.
 
 ```text
-hash route
-   ↓
-AppShell ─── SettingsStore / SessionStore
+site-content ── generate-site ── 15개 indexable HTML + sitemap
+                                  └─ /play/index.html
+                                            ↓ hash route
+                                         AppShell ─── SettingsStore / SessionStore
    │                 │
    │                 └─ versioned SafeStorage → localStorage or memory fallback
    ├─ common HUD / Modal / Toast / aria-live
@@ -21,7 +22,9 @@ AppShell ─── SettingsStore / SessionStore
 
 ## 라우팅과 코드 분할
 
-- 로비는 `#lobby`, 게임은 `#game/<id>`다.
+- 문서 주소는 `/`, `/games/<slug>/`, 6개 trust URL이며 fragment를 검색 대상 주소로 쓰지 않는다.
+- 플레이 로비는 `/play/#lobby`, 게임은 `/play/#game/<id>`다.
+- 옛 루트 `/#lobby`, `/#game/<id>`는 허용된 8개 id만 inline `location.replace`로 같은 `/play/` 상태에 연결한다.
 - `hashchange` 하나가 뒤로/앞으로 이동과 직접 URL 진입을 처리한다.
 - 등록되지 않은 ID나 옛 `#omok` 형태는 로비로 교정한다.
 - `GameDefinition.load()`가 게임별 `import()`를 수행한다. 새 로딩이 시작되면 token을 올려 늦게 끝난 이전 import가 다시 mount되지 않게 한다.
@@ -77,8 +80,19 @@ idle → countdown → playing ↔ paused → roundOver → matchOver
 
 Web Audio context는 사용자 조작 이후에만 만들어진다. 모든 게임은 hit, score, countdown, win 의미를 공유하지만 API가 없거나 음소거여도 로직은 바뀌지 않는다. Canvas의 차례·점수·승패는 인접 DOM HUD와 공통 `aria-live`로 중복 제공한다. modal은 focus trap, Escape, backdrop close, trigger focus 복귀를 제공한다.
 
+## 콘텐츠와 광고 경계
+
+- `/play/`는 `noindex,follow`이며 광고 slot과 광고 tag가 없다.
+- AdSense는 기본 off다. 실제 형식의 client/publisher/slot, custom root domain, 명시적 활성화가 없으면 광고 DOM도 생성하지 않는다.
+- 활성화 profile도 루트와 게임 가이드에만 수동 slot을 만들고 consent gate 이벤트 전에는 외부 Google script를 요청하지 않는다. 이 hook은 CMP 자체가 아니므로 운영 전 Google 인증 CMP 연결이 별도로 필요하다.
+- project Pages는 host root를 소유하지 않으므로 project-path `robots.txt`와 `ads.txt`를 만들지 않는다. base `/` profile만 root `robots.txt`를 만들며 publisher ID가 있을 때만 `ads.txt`를 만든다. `CNAME`은 custom domain에서만 생성한다.
+
+## 이미지 파이프라인
+
+`design/game-icons/source/<id>.png`의 1254×1254 RGBA master를 Sharp가 320×320 AVIF·WebP·PNG와 1200×630 OG로 만든다. 카드 `<picture>`는 고정 크기를 예약하고 이미지 로드 성공 전까지 기존 glyph를 fallback으로 유지한다. 게임 가이드의 1280×720 WebP는 Playwright가 고정 viewport·난수·모션 설정으로 실제 `/play/` 런타임을 캡처한다.
+
 ## Pages 빌드
 
-로컬 기본 build는 상대 base `./`를 사용한다. PR·`main`의 Pages 프로덕션 빌드는 `PAGES_BASE_PATH=/moyeoplay/`와 확정된 `SITE_URL=https://dubeeubbee.github.io/moyeoplay/`를 주입한다. Vite plugin은 canonical, `og:url`, raster `og:image`·Twitter image, `sitemap.xml`, robots Sitemap 항목을 실제 URL로 만든다. PWA manifest의 id·start·scope·icon은 문서 기준 상대 경로를 사용해 하위 경로 배포에서도 유효하다. 프로덕션 source map은 생성하지 않는다.
+기본 build는 현재 project Pages profile인 `PAGES_BASE_PATH=/moyeoplay/`, `SITE_URL=https://dubeeubbee.github.io/moyeoplay/`를 사용한다. 로컬 `npm run dev`는 root `/` profile을 명시한다. workflow는 repository 이름 또는 `CUSTOM_DOMAIN`/`SITE_URL` 변수로 base를 계산한다. generator가 canonical, Open Graph·Twitter, JSON-LD와 `sitemap.xml`을 실제 URL로 만들고, Vite의 profile manifest 단계가 PWA `id`·`start_url`·`scope`·icon을 `/moyeoplay/` 또는 `/` 절대 path로 고정한다. 프로덕션 source map은 생성하지 않는다.
 
-CI는 동일한 `/moyeoplay/` `dist`를 `vite preview`에서 Chromium·WebKit으로 검사한다. `main` 배포 뒤에는 deploy job이 낸 `page_url`을 별도 live smoke job으로 넘겨 정적 자산·메타데이터·Canvas 시작을 한 번 더 검증한다. 품질 job은 읽기 권한만, 배포 job은 `pages: write`와 `id-token: write`만 사용한다.
+CI는 먼저 격리된 root `/` + AdSense mock profile을 검사하고, 실제 배포 profile의 `dist`를 `vite preview`에서 Chromium·WebKit으로 검사한다. `main` 배포 뒤에는 deploy job이 낸 `page_url`을 별도 live smoke job으로 넘겨 정적 자산·메타데이터·Canvas 시작을 한 번 더 검증한다. 품질 job은 읽기 권한만, 배포 job은 `pages: write`와 `id-token: write`만 사용한다.

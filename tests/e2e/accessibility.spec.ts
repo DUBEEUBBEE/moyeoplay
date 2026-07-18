@@ -21,7 +21,7 @@ async function expectNoSeriousAxeViolations(page: Page): Promise<void> {
 }
 
 test('로비, 설정, 규칙과 8개 게임 idle 상태에 serious axe 위반이 없다', async ({ page }) => {
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await expect(page.locator('article.game-card')).toHaveCount(8);
   await expect(page.getByRole('button', { name: '오목 시작', exact: true })).toBeVisible();
   await expectNoSeriousAxeViolations(page);
@@ -34,7 +34,7 @@ test('로비, 설정, 규칙과 8개 게임 idle 상태에 serious axe 위반이
   await expect(settingsTrigger).toBeFocused();
 
   for (const gameId of games) {
-    await page.goto(`./#game/${gameId}`);
+    await page.goto(`./play/#game/${gameId}`);
     await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
     if (gameId === 'pong' || gameId === 'volleyball' || gameId === 'pinball-drop') {
       await expect(page.locator('#game-host canvas[role="img"]')).not.toHaveAttribute(
@@ -45,7 +45,7 @@ test('로비, 설정, 규칙과 8개 게임 idle 상태에 serious axe 위반이
     await expectNoSeriousAxeViolations(page);
   }
 
-  await page.goto('./#game/pong');
+  await page.goto('./play/#game/pong');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   const rulesTrigger = page.locator('[data-action="rules"]');
   await rulesTrigger.click();
@@ -56,7 +56,7 @@ test('로비, 설정, 규칙과 8개 게임 idle 상태에 serious axe 위반이
 });
 
 test('playing, paused, and result dialog states remain accessible', async ({ page }) => {
-  await page.goto('./#game/pong');
+  await page.goto('./play/#game/pong');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
   await expectNoSeriousAxeViolations(page);
@@ -64,7 +64,7 @@ test('playing, paused, and result dialog states remain accessible', async ({ pag
   await expect(page.locator('#game-phase')).toHaveText('일시정지');
   await expectNoSeriousAxeViolations(page);
 
-  await page.goto('./#game/ladder');
+  await page.goto('./play/#game/ladder');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
   await page.locator('[data-action="show-all"]').click();
@@ -74,14 +74,14 @@ test('playing, paused, and result dialog states remain accessible', async ({ pag
 
 test('header touch target and visible game HUD labels meet minimum sizes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   const settingsBounds = await page.locator('.header-button[data-action="settings"]').boundingBox();
   expect(settingsBounds).not.toBeNull();
   expect(settingsBounds?.width).toBeGreaterThanOrEqual(44);
   expect(settingsBounds?.height).toBeGreaterThanOrEqual(44);
 
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('./#game/pong');
+  await page.goto('./play/#game/pong');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   for (const selector of ['#stage-eyebrow', '#game-phase']) {
     const fontSize = await page
@@ -92,7 +92,7 @@ test('header touch target and visible game HUD labels meet minimum sizes', async
 });
 
 test('핀볼 live status는 진행 시간 tick을 반복 공지하지 않는다', async ({ page }) => {
-  await page.goto('./#game/pinball-drop');
+  await page.goto('./play/#game/pinball-drop');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
   await expect(page.locator('#game-phase')).toHaveText('경기 중', { timeout: 6_000 });

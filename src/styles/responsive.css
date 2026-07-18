@@ -67,6 +67,11 @@
     max-width: none;
   }
 
+  .play-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
   .game-section {
     padding: 72px 0;
   }
@@ -99,13 +104,12 @@
   }
 
   .site-footer {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 
-  .site-footer p {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding-bottom: 22px;
+  .site-footer__nav {
+    justify-content: flex-start;
   }
 }
 
@@ -165,6 +169,14 @@
   .trust-list span {
     max-width: 78px;
     font-size: 11px;
+  }
+
+  .play-steps {
+    padding: 42px 0;
+  }
+
+  .play-steps ol {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .session-card {
@@ -235,7 +247,7 @@
 
   .game-hud__actions {
     display: grid;
-    grid-template-columns: repeat(3, 1fr) 44px 44px;
+    grid-template-columns: repeat(3, 1fr) repeat(3, 44px);
     gap: 5px;
   }
 
@@ -319,6 +331,15 @@
 
   .site-footer {
     min-height: 100px;
+  }
+
+  .site-footer__nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-footer__nav a {
+    justify-content: center;
   }
 }
 

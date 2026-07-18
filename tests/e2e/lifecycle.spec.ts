@@ -226,7 +226,7 @@ test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', 
     'tap-battle',
     'roulette',
   ] as const;
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await page.waitForTimeout(100);
   const baseline = await page.evaluate(() =>
     (window as ResourceProbeWindow).__moyeoplayResourceProbe(),
@@ -234,7 +234,7 @@ test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', 
   const exerciseGames = async (count: number): Promise<void> => {
     for (let index = 0; index < count; index += 1) {
       const gameId = sequence[index % sequence.length] ?? 'pong';
-      await page.goto(`./#game/${gameId}`);
+      await page.goto(`./play/#game/${gameId}`);
       await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
       expect(await page.locator('#game-host > *').count()).toBe(1);
       await page.locator('#game-start').click();
@@ -251,7 +251,7 @@ test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', 
   // Warm every lazy game chunk once so persistent module-preload listeners are
   // part of the comparison baseline rather than mistaken for controller leaks.
   await exerciseGames(sequence.length);
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await page.waitForTimeout(100);
   const warmed = await page.evaluate(() =>
     (window as ResourceProbeWindow).__moyeoplayResourceProbe(),
@@ -261,7 +261,7 @@ test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', 
   expect(warmed.timeouts).toBeLessThanOrEqual(baseline.timeouts);
 
   await exerciseGames(24);
-  await page.goto('./#lobby');
+  await page.goto('./play/#lobby');
   await page.waitForTimeout(100);
   const after = await page.evaluate(() =>
     (window as ResourceProbeWindow).__moyeoplayResourceProbe(),
@@ -276,7 +276,7 @@ test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', 
 });
 
 test('visibility hidden은 진행 중 게임을 멈추고 복귀만으로 재개하지 않는다', async ({ page }) => {
-  await page.goto('./#game/pong');
+  await page.goto('./play/#game/pong');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
   await page.evaluate(() => {
@@ -294,7 +294,7 @@ test('visibility hidden은 진행 중 게임을 멈추고 복귀만으로 재개
 
 test('reduced motion에서도 사다리 전체 공개 정보가 사라지지 않는다', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('./#game/ladder');
+  await page.goto('./play/#game/ladder');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
   await page.locator('[data-action="show-all"]').click();

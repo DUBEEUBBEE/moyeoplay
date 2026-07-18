@@ -22,11 +22,22 @@ npm run format:check
 npm run test
 npm run build:pages
 npm run verify:dist
+npm run test:e2e:root
 npm run test:e2e:prod
 npm audit --omit=dev
 ```
 
-`test:e2e:prod`는 `PAGES_BASE_PATH=/moyeoplay/`와 실제 공개 URL metadata로 `dist`를 만든 뒤 `vite preview`를 검사한다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
+`test:e2e:root`는 배포되지 않는 `dist-root-test`에 base `/`, mock AdSense ID, test mode를 적용해 custom root 파일과 consent gate를 Chromium·WebKit에서 검사한다. `test:e2e:prod`는 실제 배포 profile의 `dist`를 다시 만든 뒤 `vite preview`를 검사한다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
+
+## 정적 콘텐츠·SEO·광고 검사
+
+- JavaScript를 끈 별도 browser context에서 루트, 8개 가이드, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
+- sitemap은 15개 clean canonical만 포함하고 `/play/`와 hash URL을 제외한다.
+- 모든 OG·Twitter image alt는 페이지당 정확히 하나이며 모든 콘텐츠 이미지에 width·height가 있다.
+- project-path profile에는 host-root `robots.txt`·`ads.txt`·`CNAME`이 없어야 한다. base `/`에는 `robots.txt`, custom domain에는 `CNAME`, root publisher가 있을 때에만 `ads.txt`가 있어야 한다.
+- 기본 off profile은 광고 DOM·tag·Google 요청이 모두 0이다. mock-on test profile도 consent 전후 실제 Google 요청을 만들지 않으며 `/play/`와 trust 페이지의 slot은 0이다.
+- 아이콘은 320×320 AVIF·WebP·PNG, OG는 1200×630, 실제 화면은 1280×720이어야 하고 각 AVIF·WebP는 40KiB 이하여야 한다.
+- Chromium 성능 budget은 정적 루트의 LCP, CLS, TBT 대체 지표와 JS·이미지 전송량을 수집한다. Axe serious/critical 0과 SEO 구조 검사는 별도 hard assertion으로 유지한다.
 
 ## 공정성 설계
 
@@ -95,9 +106,9 @@ npm audit --omit=dev
 ## GitHub Pages production smoke
 
 1. `npm run build:pages` 후 `npm run test:e2e:prod:run`을 실행한다.
-2. `/moyeoplay/`가 200인지, 8개 카드와 모든 direct hash route가 열리는지 확인한다.
+2. `/moyeoplay/` 정적 루트, `/moyeoplay/play/`, 8개 가이드와 6개 trust URL이 200인지 확인하고 모든 direct gameplay hash route를 연다.
 3. HTML에 `/src/main.ts`가 없고 JS/CSS가 도메인 루트 `/assets/`가 아니라 `/moyeoplay/assets/`에서 로드되는지 확인한다.
-4. favicon, manifest, apple icon, 192/512/maskable icon, raster OG image가 모두 200인지 확인한다.
+4. favicon, manifest, apple icon, 192/512/maskable icon, 게임 아이콘·스크린샷·raster OG image가 모두 200인지 확인한다. manifest `id`·`scope`·`start_url`과 icon path가 실제 deploy base를 사용해야 한다.
 5. canonical, `og:url`, `og:image`, Twitter image가 실제 HTTPS Pages URL인지 확인한다.
 6. main 배포 뒤 workflow의 live smoke job이 배포 URL에서 8개 카드, landscape 모바일, Canvas 게임 시작, console/page error 0개를 다시 검사한다.
 

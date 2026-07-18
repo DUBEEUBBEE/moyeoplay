@@ -10,6 +10,10 @@ function appendMeta(container: HTMLElement, label: string, value: string): void 
   container.append(item);
 }
 
+function sitePath(path: string): string {
+  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+}
+
 export function createGameCard(game: GameDefinition, index: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'game-card';
@@ -28,11 +32,34 @@ export function createGameCard(game: GameDefinition, index: number): HTMLElement
   const art = document.createElement('span');
   art.className = 'game-card__art';
   art.setAttribute('aria-hidden', 'true');
+  const picture = document.createElement('picture');
+  picture.className = 'game-card__picture';
+  const avif = document.createElement('source');
+  avif.type = 'image/avif';
+  avif.srcset = game.icon.avif;
+  const webp = document.createElement('source');
+  webp.type = 'image/webp';
+  webp.srcset = game.icon.webp;
+  const image = document.createElement('img');
+  image.className = 'game-card__icon';
+  image.alt = '';
+  image.width = game.icon.width;
+  image.height = game.icon.height;
+  image.loading = 'lazy';
+  image.decoding = 'async';
+  const markLoaded = (): void => {
+    if (image.naturalWidth > 0) art.dataset.iconLoaded = 'true';
+  };
+  image.addEventListener('load', markLoaded, { once: true });
+  image.addEventListener('error', () => delete art.dataset.iconLoaded, { once: true });
+  image.src = game.icon.png;
+  picture.append(avif, webp, image);
   const glyph = document.createElement('span');
   glyph.className = 'game-card__glyph';
   glyph.textContent = game.symbol;
   const orbit = document.createElement('i');
-  art.append(glyph, orbit);
+  art.append(picture, glyph, orbit);
+  if (image.complete) markLoaded();
 
   const title = document.createElement('h3');
   title.id = `game-card-${game.id}-title`;
@@ -46,24 +73,25 @@ export function createGameCard(game: GameDefinition, index: number): HTMLElement
   appendMeta(meta, '시간', game.duration);
   appendMeta(meta, '조작', game.controls);
 
-  const action = document.createElement('span');
-  action.className = 'game-card__action';
-  action.textContent = '게임 열기';
-  const arrow = document.createElement('b');
+  const actions = document.createElement('div');
+  actions.className = 'game-card__actions';
+  const startButton = document.createElement('button');
+  startButton.type = 'button';
+  startButton.className = 'game-card__start';
+  startButton.dataset.gameId = game.id;
+  startButton.setAttribute('aria-label', `${game.title} 시작`);
+  startButton.append('게임 시작');
+  const arrow = document.createElement('span');
   arrow.textContent = '→';
   arrow.setAttribute('aria-hidden', 'true');
-  action.append(arrow);
+  startButton.append(arrow);
+  const guideLink = document.createElement('a');
+  guideLink.className = 'game-card__guide';
+  guideLink.href = sitePath(`games/${game.guideSlug}/`);
+  guideLink.textContent = '게임 가이드';
+  guideLink.setAttribute('aria-label', `${game.title} 게임 가이드`);
+  actions.append(startButton, guideLink);
 
-  const openButton = document.createElement('button');
-  openButton.type = 'button';
-  openButton.className = 'game-card__open';
-  openButton.dataset.gameId = game.id;
-  openButton.setAttribute('aria-label', `${game.title} 시작`);
-  const openLabel = document.createElement('span');
-  openLabel.className = 'visually-hidden';
-  openLabel.textContent = `${game.title} 시작`;
-  openButton.append(openLabel);
-
-  card.append(top, art, title, description, meta, action, openButton);
+  card.append(top, art, title, description, meta, actions);
   return card;
 }

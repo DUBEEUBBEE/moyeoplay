@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const e2eMode =
+const processEnv =
   (Reflect.get(globalThis, 'process') as { env?: Record<string, string | undefined> } | undefined)
-    ?.env?.E2E_MODE ?? 'dev';
+    ?.env ?? {};
+const e2eMode = processEnv.E2E_MODE ?? 'dev';
 
 const games = [
   'omok',
@@ -14,7 +15,7 @@ const games = [
   'tap-battle',
   'roulette',
 ] as const;
-const deployedSite = 'https://dubeeubbee.github.io/moyeoplay/';
+const deployedSite = processEnv.SITE_URL ?? 'https://dubeeubbee.github.io/moyeoplay/';
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -36,9 +37,9 @@ test.describe('production Pages build', () => {
 
   test('serves the project base, metadata, and every static asset', async ({ page, request }) => {
     const errors = collectErrors(page);
-    const response = await page.goto('./#lobby');
+    const response = await page.goto('./');
     expect(response?.status()).toBe(200);
-    await expect(page.locator('[data-game-id]')).toHaveCount(8);
+    await expect(page.locator('article.static-game-card')).toHaveCount(8);
 
     const markup = await response?.text();
     expect(markup).toBeTruthy();
@@ -74,7 +75,6 @@ test.describe('production Pages build', () => {
     expect(metadata.styles.length).toBeGreaterThan(0);
     const assetUrls = [
       `${previewRoot}og-cover.png`,
-      `${previewRoot}robots.txt`,
       `${previewRoot}sitemap.xml`,
       manifestUrl,
       iconUrl,
@@ -88,17 +88,30 @@ test.describe('production Pages build', () => {
       expect(asset.status(), url).toBe(200);
       const pathname = new URL(url).pathname;
       expect(pathname, url).not.toMatch(/^\/assets\//);
-      expect(pathname, url).toContain('/moyeoplay/');
+      expect(pathname.startsWith(new URL(previewRoot).pathname), url).toBe(true);
     }
+    const controlsHostRoot = new URL(previewRoot).pathname === '/';
+    expect((await request.get(`${previewRoot}robots.txt`)).status()).toBe(
+      controlsHostRoot ? 200 : 404,
+    );
+    expect((await request.get(`${previewRoot}ads.txt`)).status()).toBe(
+      controlsHostRoot && processEnv.ADSENSE_PUBLISHER_ID ? 200 : 404,
+    );
 
     const manifestResponse = await request.get(manifestUrl);
     const manifest = (await manifestResponse.json()) as {
+      id?: string;
       start_url?: string;
       scope?: string;
       icons?: { src?: string; sizes?: string; purpose?: string }[];
     };
-    expect(manifest.start_url).toBe('./#lobby');
-    expect(manifest.scope).toBe('./');
+    const expectedBasePath = new URL(previewRoot).pathname;
+    expect(manifest.id).toBe(expectedBasePath);
+    expect(manifest.start_url).toBe(`${expectedBasePath}play/#lobby`);
+    expect(manifest.scope).toBe(expectedBasePath);
+    expect(new URL(requireAssetUrl(manifest.id, 'manifest id'), manifestUrl).href).toBe(
+      new URL(expectedBasePath, previewRoot).href,
+    );
     const manifestIcons = manifest.icons ?? [];
     expect(manifestIcons).toEqual(
       expect.arrayContaining([
@@ -109,6 +122,7 @@ test.describe('production Pages build', () => {
     );
     for (const icon of manifestIcons) {
       const manifestIconUrl = new URL(requireAssetUrl(icon.src, 'manifest icon'), manifestUrl).href;
+      expect(new URL(manifestIconUrl).pathname.startsWith(expectedBasePath)).toBe(true);
       expect((await request.get(manifestIconUrl)).status(), manifestIconUrl).toBe(200);
     }
     expect(errors).toEqual([]);
@@ -119,7 +133,7 @@ test.describe('production Pages build', () => {
   }) => {
     const errors = collectErrors(page);
     for (const gameId of games) {
-      await page.goto(`./#game/${gameId}`);
+      await page.goto(`./play/#game/${gameId}`);
       await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
       const response = await page.reload();
       if (!response) throw new Error(`Cold route did not return a response: ${gameId}`);
@@ -128,7 +142,7 @@ test.describe('production Pages build', () => {
       await expect(page.locator('#stage-title')).toBeVisible();
     }
 
-    await page.goto('./#game/pong');
+    await page.goto('./play/#game/pong');
     await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
     await page.locator('#game-start').click();
     await expect(page.locator('.pong-game canvas')).toBeVisible();
@@ -142,9 +156,9 @@ test.describe('production Pages build', () => {
     await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
     await expect(page).toHaveURL(/#game\/pong$/);
 
-    await page.goto('./#game/not-a-game');
+    await page.goto('./play/#game/not-a-game');
     await expect(page).toHaveURL(/#lobby$/);
-    await expect(page.locator('[data-game-id]')).toHaveCount(8);
+    await expect(page.locator('button.game-card__start[data-game-id]')).toHaveCount(8);
     expect(errors).toEqual([]);
   });
 
@@ -162,7 +176,7 @@ test.describe('production Pages build', () => {
         await route.continue();
       }
     });
-    await page.goto('./#game/pong');
+    await page.goto('./play/#game/pong');
     const error = page.getByRole('alert');
     await expect(error).toContainText('네온 탁구를 불러오지 못했습니다');
     await expect(error.getByRole('button', { name: '다시 시도' })).toBeFocused();
@@ -185,7 +199,7 @@ test.describe('production Pages build', () => {
         body: 'throw new Error("repeated chunk failure")',
       });
     });
-    await page.goto('./#game/pong');
+    await page.goto('./play/#game/pong');
     const firstError = page.getByRole('alert');
     await firstError.getByRole('button', { name: '다시 시도' }).click();
 
@@ -207,7 +221,7 @@ test.describe('production Pages build', () => {
       });
     });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('./#game/roulette');
+    await page.goto('./play/#game/roulette');
     await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
     await page.locator('#game-start').click();
     const result = page.locator('[data-result-text]');
