@@ -1,0 +1,505 @@
+.omok-game {
+  --omok-yellow: var(--color-accent, #ffd447);
+  --omok-cyan: var(--color-player-one, #45e4e0);
+  --omok-pink: var(--color-player-two, #ff5d9e);
+  --omok-panel: rgba(13, 22, 36, 0.86);
+  width: min(100%, 1080px);
+  margin-inline: auto;
+  color: var(--color-text, #f7f8fa);
+}
+
+.omok-game,
+.omok-game * {
+  box-sizing: border-box;
+}
+
+.omok-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.omok-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.65rem;
+  margin-block-end: 0.75rem;
+}
+
+.omok-player-card,
+.omok-round-copy,
+.omok-panel,
+.omok-status {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--omok-panel);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.omok-player-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.9rem;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.omok-player-card--white {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.omok-player-card[data-active='true'] {
+  border-color: color-mix(in srgb, var(--omok-yellow) 72%, white 8%);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--omok-yellow) 25%, transparent),
+    0 16px 40px rgba(0, 0, 0, 0.22);
+  transform: translateY(-1px);
+}
+
+.omok-player-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.omok-player-name {
+  overflow: hidden;
+  font-size: clamp(0.78rem, 1.8vw, 0.94rem);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omok-player-stone {
+  margin-block-start: 0.2rem;
+  color: var(--color-text-muted, #a9b2c2);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.omok-stone-icon {
+  width: 1.9rem;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 5px 11px rgba(0, 0, 0, 0.42);
+}
+
+.omok-stone-icon--black {
+  border: 1px solid #45515d;
+  background: radial-gradient(circle at 35% 28%, #687681 0 5%, #1d2730 31%, #04070a 78%);
+}
+
+.omok-stone-icon--white {
+  border: 1px solid #aeb7bf;
+  background: radial-gradient(circle at 35% 28%, #fff 0 14%, #e9edef 55%, #aeb8bf 100%);
+}
+
+.omok-score {
+  margin-inline-start: auto;
+  color: var(--omok-yellow);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.omok-player-card--white .omok-score {
+  margin-inline: 0 auto;
+}
+
+.omok-round-copy {
+  display: flex;
+  min-width: 7.7rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.9rem;
+  color: var(--color-text-muted, #a9b2c2);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.omok-round-copy strong {
+  margin-block-start: 0.18rem;
+  color: var(--color-text, #f7f8fa);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
+.omok-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 18.5rem);
+  align-items: start;
+  gap: 0.85rem;
+}
+
+.omok-board-column {
+  min-width: 0;
+}
+
+.omok-board-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid rgba(255, 221, 94, 0.28);
+  border-radius: 1.1rem;
+  background: #b97438;
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.omok-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: inherit;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.omok-canvas:focus-visible {
+  box-shadow:
+    0 0 0 4px var(--omok-yellow) inset,
+    0 0 0 2px #08111f;
+}
+
+.omok-pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  background: rgba(6, 12, 22, 0.78);
+  text-align: center;
+  backdrop-filter: blur(7px);
+}
+
+.omok-pause-overlay[hidden] {
+  display: none;
+}
+
+.omok-pause-overlay strong {
+  color: var(--omok-yellow);
+  font-size: clamp(1.4rem, 5vw, 2.4rem);
+}
+
+.omok-pause-overlay span {
+  color: #d4dae3;
+  font-size: 0.85rem;
+}
+
+.omok-status {
+  min-height: 3.15rem;
+  margin: 0.65rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.8rem;
+  color: var(--color-text-muted, #c4cbd6);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.omok-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+}
+
+.omok-turn-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 212, 71, 0.22);
+  border-radius: 0.75rem;
+  background: rgba(255, 212, 71, 0.06);
+}
+
+.omok-panel-label {
+  color: var(--omok-yellow);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.omok-turn-panel strong {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.omok-turn-panel > span:last-child {
+  color: var(--color-text-muted, #a9b2c2);
+  font-size: 0.76rem;
+}
+
+.omok-settings {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+}
+
+.omok-settings legend {
+  padding-inline: 0.25rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.omok-settings label {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-text-muted, #c0c7d1);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.omok-settings select,
+.omok-coordinate-controls select {
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.42rem 1.7rem 0.42rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.55rem;
+  background: #101a2a;
+  color: #f7f8fa;
+  font: inherit;
+}
+
+.omok-settings select:disabled,
+.omok-coordinate-controls select:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.omok-settings p {
+  margin: 0;
+  color: var(--color-text-muted, #8e99a9);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.omok-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.omok-button {
+  min-height: 2.75rem;
+  padding: 0.58rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f7f8fa;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.omok-button:hover:not(:disabled) {
+  border-color: rgba(255, 212, 71, 0.5);
+  background: rgba(255, 212, 71, 0.12);
+  transform: translateY(-1px);
+}
+
+.omok-button:focus-visible,
+.omok-settings select:focus-visible,
+.omok-coordinate-controls select:focus-visible,
+.omok-keyboard-controls summary:focus-visible,
+.omok-history summary:focus-visible {
+  outline: 3px solid var(--omok-yellow);
+  outline-offset: 2px;
+}
+
+.omok-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.omok-button--primary {
+  border-color: color-mix(in srgb, var(--omok-yellow) 70%, transparent);
+  background: var(--omok-yellow);
+  color: #171204;
+}
+
+.omok-button--primary:hover:not(:disabled) {
+  background: #ffe274;
+}
+
+.omok-button[hidden] {
+  display: none;
+}
+
+.omok-actions:has(.omok-button--primary[hidden]) {
+  grid-template-columns: 1fr;
+}
+
+.omok-keyboard-controls,
+.omok-history {
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding-block-start: 0.65rem;
+}
+
+.omok-keyboard-controls summary,
+.omok-history summary {
+  color: var(--color-text-muted, #c4cbd6);
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.omok-keyboard-controls > p {
+  margin: 0.55rem 0;
+  color: var(--color-text-muted, #8e99a9);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.omok-coordinate-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.omok-coordinate-controls label {
+  display: grid;
+  gap: 0.24rem;
+  color: var(--color-text-muted, #a9b2c2);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.omok-button--compact {
+  grid-column: 1 / -1;
+}
+
+.omok-history summary {
+  display: flex;
+  justify-content: space-between;
+}
+
+.omok-history ol {
+  overflow: auto;
+  max-height: 10rem;
+  margin: 0.55rem 0 0;
+  padding: 0 0.25rem 0 1.5rem;
+  color: var(--color-text-muted, #b3bdca);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 800px) {
+  .omok-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .omok-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .omok-turn-panel,
+  .omok-actions {
+    align-self: stretch;
+  }
+
+  .omok-keyboard-controls,
+  .omok-history {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .omok-scoreboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .omok-round-copy {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    flex-direction: row;
+    gap: 0.55rem;
+    padding-block: 0.45rem;
+  }
+
+  .omok-round-copy strong {
+    margin: 0;
+  }
+
+  .omok-player-card {
+    gap: 0.45rem;
+    padding: 0.58rem 0.65rem;
+  }
+
+  .omok-stone-icon {
+    width: 1.45rem;
+  }
+
+  .omok-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .omok-keyboard-controls,
+  .omok-history {
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omok-player-card,
+  .omok-button {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .omok-player-card,
+  .omok-round-copy,
+  .omok-panel,
+  .omok-status,
+  .omok-board-frame {
+    border-color: currentColor;
+  }
+
+  .omok-player-card[data-active='true'] {
+    outline: 3px solid var(--omok-yellow);
+  }
+}
