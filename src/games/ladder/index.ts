@@ -10,6 +10,7 @@ import {
   traceLadder,
   type LadderLayout,
 } from './logic';
+import './ladder.css';
 
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 620;
@@ -37,139 +38,6 @@ const DEFAULT_OUTCOMES = [
 ] as const;
 
 const STATIC_MARKUP = `
-  <style>
-    .ladder-game {
-      --ladder-panel: rgba(10, 25, 42, .88);
-      --ladder-line: rgba(255, 255, 255, .13);
-      display: grid;
-      gap: 16px;
-      width: min(100%, 1120px);
-      margin-inline: auto;
-      color: #f6fbff;
-    }
-    .ladder-game *, .ladder-game *::before, .ladder-game *::after { box-sizing: border-box; }
-    .ladder-setup {
-      display: grid;
-      gap: 14px;
-      padding: clamp(14px, 2.2vw, 22px);
-      border: 1px solid var(--ladder-line);
-      border-radius: 18px;
-      background: var(--ladder-panel);
-    }
-    .ladder-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .ladder-count-control { display: inline-flex; align-items: center; gap: 9px; }
-    .ladder-count-control output {
-      min-width: 3.4rem;
-      text-align: center;
-      font-weight: 900;
-      font-variant-numeric: tabular-nums;
-    }
-    .ladder-game button, .ladder-game input {
-      min-height: 44px;
-      border-radius: 11px;
-      font: inherit;
-    }
-    .ladder-game button {
-      border: 1px solid rgba(255, 255, 255, .16);
-      padding: 9px 14px;
-      color: #f7fbff;
-      background: rgba(255, 255, 255, .07);
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-    .ladder-game button:hover:not(:disabled) { border-color: rgba(88, 230, 169, .72); background: rgba(88, 230, 169, .12); }
-    .ladder-game button:focus-visible, .ladder-game input:focus-visible { outline: 3px solid #ffd447; outline-offset: 2px; }
-    .ladder-game button:disabled, .ladder-game input:disabled { cursor: not-allowed; opacity: .48; }
-    .ladder-count-control button { width: 44px; padding: 0; font-size: 1.25rem; font-weight: 900; }
-    .ladder-editors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .ladder-editors fieldset {
-      min-width: 0;
-      margin: 0;
-      padding: 12px;
-      border: 1px solid var(--ladder-line);
-      border-radius: 14px;
-    }
-    .ladder-editors legend { padding-inline: 5px; color: #bcd0df; font-size: .83rem; font-weight: 800; }
-    .ladder-input-list { display: grid; gap: 8px; }
-    .ladder-input-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: 7px; }
-    .ladder-input-row span { color: #91a8b9; text-align: center; font-size: .78rem; font-weight: 800; }
-    .ladder-game input {
-      width: 100%;
-      min-width: 0;
-      border: 1px solid rgba(255, 255, 255, .16);
-      padding: 9px 11px;
-      color: #f7fbff;
-      background: rgba(2, 12, 23, .68);
-    }
-    .ladder-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .ladder-actions [data-action="generate"] { border-color: rgba(88, 230, 169, .55); background: rgba(88, 230, 169, .16); font-weight: 900; }
-    .ladder-seed { margin: 0; color: #8fa8ba; font-size: .75rem; overflow-wrap: anywhere; }
-    .ladder-stage {
-      position: relative;
-      overflow: hidden;
-      min-height: 210px;
-      border: 1px solid var(--ladder-line);
-      border-radius: 20px;
-      background: rgba(4, 14, 26, .66);
-    }
-    .ladder-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 48 / 31; touch-action: pan-y; }
-    .ladder-empty {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      margin: 0;
-      padding: 24px;
-      color: #a9bdcb;
-      text-align: center;
-      pointer-events: none;
-    }
-    .ladder-empty[hidden] { display: none; }
-    .ladder-status {
-      min-height: 3.2rem;
-      margin: 0;
-      padding: 13px 15px;
-      border: 1px solid rgba(88, 230, 169, .22);
-      border-radius: 13px;
-      color: #dff9ed;
-      background: rgba(88, 230, 169, .07);
-      line-height: 1.45;
-    }
-    .ladder-run-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 9px; }
-    .ladder-run-buttons button { border-color: color-mix(in srgb, var(--run-color) 52%, transparent); font-weight: 850; }
-    .ladder-run-buttons button.revealed { color: var(--run-color); background: color-mix(in srgb, var(--run-color) 10%, transparent); }
-    .ladder-result-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .ladder-results {
-      padding: 15px;
-      border: 1px solid rgba(255, 212, 71, .25);
-      border-radius: 15px;
-      background: rgba(255, 212, 71, .06);
-    }
-    .ladder-results[hidden] { display: none; }
-    .ladder-results h3 { margin: 0 0 10px; font-size: .88rem; letter-spacing: .08em; color: #ffd447; }
-    .ladder-results ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-    .ladder-results li { display: grid; gap: 3px; padding: 10px 11px; border-radius: 10px; background: rgba(255, 255, 255, .055); }
-    .ladder-results strong { color: var(--result-color); font-size: .82rem; }
-    .ladder-results span { color: #f5f8fb; overflow-wrap: anywhere; }
-    .ladder-game[data-locked="true"] .ladder-stage { box-shadow: 0 0 0 1px rgba(88, 230, 169, .22), 0 15px 45px rgba(0, 0, 0, .22); }
-    @media (max-width: 620px) {
-      .ladder-editors { grid-template-columns: minmax(0, 1fr); }
-      .ladder-toolbar { align-items: stretch; }
-      .ladder-count-control { justify-content: space-between; width: 100%; }
-      .ladder-actions button, .ladder-result-actions button { flex: 1 1 135px; }
-      .ladder-stage { margin-inline: -2px; border-radius: 15px; }
-      .ladder-run-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .ladder-game *, .ladder-game *::before, .ladder-game *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-    }
-  </style>
   <section class="ladder-setup" aria-label="사다리 설정">
     <div class="ladder-toolbar">
       <strong>참가자 수</strong>
@@ -191,9 +59,10 @@ const STATIC_MARKUP = `
     </div>
     <div class="ladder-actions">
       <button type="button" data-action="shuffle">결과 순서 섞기</button>
-      <button type="button" data-action="generate">사다리 다시 만들기</button>
+      <button type="button" data-action="generate">사다리 만들기</button>
+      <button type="button" data-action="edit" hidden>설정 다시 편집</button>
     </div>
-    <p class="ladder-seed">현재 시드: <span data-seed>미생성</span></p>
+    <p class="ladder-audit" data-audit hidden>감사용 생성 ID: <span data-round-id></span></p>
   </section>
   <div class="ladder-stage">
     <canvas data-canvas role="img" aria-label="사다리가 아직 생성되지 않았습니다" aria-describedby="ladder-live-status"></canvas>
@@ -203,7 +72,7 @@ const STATIC_MARKUP = `
   <div class="ladder-run-buttons" data-run-buttons aria-label="참가자별 경로 실행"></div>
   <div class="ladder-result-actions">
     <button type="button" data-action="show-all" disabled>전체 결과 보기</button>
-    <button type="button" data-action="copy" disabled>결과 복사</button>
+    <button type="button" data-action="copy" disabled>전체 결과 복사</button>
   </div>
   <section class="ladder-results" data-results hidden aria-label="공개된 사다리 결과">
     <h3>RESULTS</h3>
@@ -224,6 +93,18 @@ interface PathAnimation {
   lastTimestamp: number | null;
 }
 
+type LadderRoundState = 'editing' | 'committed' | 'revealing' | 'completed';
+
+interface LadderRoundSnapshot {
+  readonly participantCount: number;
+  readonly names: readonly string[];
+  readonly outcomes: readonly string[];
+  readonly targetPermutation: readonly number[];
+  readonly layout: LadderLayout;
+  /** Opaque audit identifier only; it cannot reproduce or predict the round. */
+  readonly roundId: string;
+}
+
 interface LadderElements {
   readonly root: HTMLElement;
   readonly count: HTMLOutputElement;
@@ -231,7 +112,8 @@ interface LadderElements {
   readonly outcomeFieldset: HTMLFieldSetElement;
   readonly nameInputs: HTMLElement;
   readonly outcomeInputs: HTMLElement;
-  readonly seed: HTMLElement;
+  readonly audit: HTMLElement;
+  readonly roundId: HTMLElement;
   readonly canvas: HTMLCanvasElement;
   readonly empty: HTMLElement;
   readonly status: HTMLElement;
@@ -242,11 +124,13 @@ interface LadderElements {
   readonly increaseButton: HTMLButtonElement;
   readonly shuffleButton: HTMLButtonElement;
   readonly generateButton: HTMLButtonElement;
+  readonly editButton: HTMLButtonElement;
+  readonly externalResetButton: HTMLButtonElement | null;
   readonly results: HTMLElement;
   readonly resultList: HTMLUListElement;
 }
 
-function runtimeSeed(sequence: number): string {
+function runtimeRoundId(sequence: number): string {
   if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
     const sample = new Uint32Array(2);
     crypto.getRandomValues(sample);
@@ -277,16 +161,20 @@ class LadderController implements MiniGameController {
   private participantCount = 4;
   private names: string[] = [];
   private outcomes: string[] = [];
-  private layout: LadderLayout | null = null;
+  private round: LadderRoundSnapshot | null = null;
+  private roundState: LadderRoundState = 'editing';
   private readonly revealed = new Set<number>();
   private animation: PathAnimation | null = null;
   private animationFrame: number | null = null;
   private phase: GamePhase = 'idle';
   private active = false;
-  private seedSequence = 0;
-  private completed = false;
+  private roundSequence = 0;
 
   public constructor(private readonly services: GameServices) {}
+
+  private get layout(): LadderLayout | null {
+    return this.round?.layout ?? null;
+  }
 
   public mount(container: HTMLElement): void {
     this.destroy();
@@ -305,7 +193,8 @@ class LadderController implements MiniGameController {
       outcomeFieldset: queryRequired<HTMLFieldSetElement>(root, '[data-outcome-fieldset]'),
       nameInputs: queryRequired<HTMLElement>(root, '[data-name-inputs]'),
       outcomeInputs: queryRequired<HTMLElement>(root, '[data-outcome-inputs]'),
-      seed: queryRequired<HTMLElement>(root, '[data-seed]'),
+      audit: queryRequired<HTMLElement>(root, '[data-audit]'),
+      roundId: queryRequired<HTMLElement>(root, '[data-round-id]'),
       canvas,
       empty: queryRequired<HTMLElement>(root, '[data-empty]'),
       status: queryRequired<HTMLElement>(root, '[data-status]'),
@@ -316,6 +205,11 @@ class LadderController implements MiniGameController {
       increaseButton: queryRequired<HTMLButtonElement>(root, '[data-action="increase"]'),
       shuffleButton: queryRequired<HTMLButtonElement>(root, '[data-action="shuffle"]'),
       generateButton: queryRequired<HTMLButtonElement>(root, '[data-action="generate"]'),
+      editButton: queryRequired<HTMLButtonElement>(root, '[data-action="edit"]'),
+      externalResetButton:
+        container
+          .closest<HTMLElement>('.game-view')
+          ?.querySelector<HTMLButtonElement>('[data-action="reset"]') ?? null,
       results: queryRequired<HTMLElement>(root, '[data-results]'),
       resultList: queryRequired<HTMLUListElement>(root, '[data-result-list]'),
     };
@@ -336,7 +230,7 @@ class LadderController implements MiniGameController {
     document.addEventListener('visibilitychange', this.handleVisibilityChange, { signal });
 
     this.renderEditors();
-    this.regenerate('사다리가 준비되었습니다. 참가자를 골라 출발하세요.', 'idle', false);
+    this.returnToEditing('이름과 결과를 확인한 뒤 사다리를 만들어 주세요.', false);
   }
 
   public enter(): void {
@@ -351,12 +245,8 @@ class LadderController implements MiniGameController {
   public start(): void {
     if (!this.elements) return;
     this.active = true;
-    if (this.phase === 'matchOver' || this.completed) {
-      this.regenerate('새 사다리를 만들었습니다. 참가자를 골라 출발하세요.', 'playing');
-      return;
-    }
-    if (!this.layout) {
-      this.regenerate('사다리를 만들었습니다. 참가자를 골라 출발하세요.', 'playing');
+    if (this.roundState === 'editing' || this.roundState === 'completed' || !this.round) {
+      this.commitRound('새 사다리를 확정했습니다. 참가자를 골라 출발하세요.', 'playing');
       return;
     }
     this.phase = 'playing';
@@ -389,9 +279,16 @@ class LadderController implements MiniGameController {
     if (this.animation) this.requestFrame();
   }
 
-  public reset(): void {
-    if (!this.elements) return;
-    this.regenerate('새 사다리를 만들었습니다. 참가자를 골라 출발하세요.', 'idle');
+  public reset(): boolean {
+    if (!this.elements) return false;
+    if (this.roundState === 'completed') {
+      this.commitRound('새 사다리를 확정했습니다. 참가자를 골라 출발하세요.', 'idle');
+    } else if (this.roundState === 'editing') {
+      this.returnToEditing('이름과 결과를 확인한 뒤 사다리를 만들어 주세요.');
+    } else {
+      return this.requestEdit(true);
+    }
+    return true;
   }
 
   public destroy(): void {
@@ -399,14 +296,15 @@ class LadderController implements MiniGameController {
     this.animation = null;
     this.abortController?.abort();
     this.abortController = null;
+    if (this.elements?.externalResetButton) this.elements.externalResetButton.disabled = false;
     this.elements?.root.remove();
     this.elements = null;
     this.surface = null;
-    this.layout = null;
+    this.round = null;
+    this.roundState = 'editing';
     this.revealed.clear();
     this.phase = 'idle';
     this.active = false;
-    this.completed = false;
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
@@ -433,7 +331,10 @@ class LadderController implements MiniGameController {
         this.shuffleOutcomes();
         break;
       case 'generate':
-        this.regenerate('새 사다리를 만들었습니다. 참가자를 골라 출발하세요.', 'playing');
+        this.commitRound('사다리를 확정했습니다. 참가자를 골라 출발하세요.', 'playing');
+        break;
+      case 'edit':
+        this.requestEdit();
         break;
       case 'show-all':
         this.showAllResults();
@@ -446,25 +347,18 @@ class LadderController implements MiniGameController {
 
   private readonly handleInput = (event: Event): void => {
     const target = event.target;
-    if (!(target instanceof HTMLInputElement) || this.isInteractionLocked()) return;
+    if (
+      !(target instanceof HTMLInputElement) ||
+      this.roundState !== 'editing' ||
+      this.isInteractionLocked()
+    ) {
+      return;
+    }
     const index = Number(target.dataset.index);
     if (!Number.isInteger(index) || index < 0 || index >= this.participantCount) return;
     if (target.dataset.kind === 'name') this.names[index] = target.value;
     else if (target.dataset.kind === 'outcome') this.outcomes[index] = target.value;
     else return;
-
-    if (this.layout) {
-      if (this.completed) {
-        this.completed = false;
-        this.revealed.clear();
-        this.phase = 'playing';
-        this.services.setPhase('playing', '입력이 바뀌어 경로 공개를 초기화했습니다.');
-        this.setStatus('입력이 바뀌었습니다. 참가자별 경로를 다시 공개해 주세요.');
-      }
-      this.renderRunButtons();
-      this.renderRevealedResults();
-      this.draw();
-    }
   };
 
   private readonly handleResize = (): void => {
@@ -477,11 +371,15 @@ class LadderController implements MiniGameController {
   };
 
   private displayNames(): string[] {
-    return normalizeEntries(this.names, this.participantCount, defaultName);
+    return this.round
+      ? [...this.round.names]
+      : normalizeEntries(this.names, this.participantCount, defaultName);
   }
 
   private displayOutcomes(): string[] {
-    return normalizeEntries(this.outcomes, this.participantCount, defaultOutcome);
+    return this.round
+      ? [...this.round.outcomes]
+      : normalizeEntries(this.outcomes, this.participantCount, defaultOutcome);
   }
 
   private renderEditors(): void {
@@ -549,7 +447,7 @@ class LadderController implements MiniGameController {
   }
 
   private changeParticipantCount(delta: -1 | 1): void {
-    if (this.isInteractionLocked()) return;
+    if (this.roundState !== 'editing' || this.isInteractionLocked()) return;
     const next = clamp(this.participantCount + delta, MIN_PARTICIPANTS, MAX_PARTICIPANTS);
     if (next === this.participantCount) {
       this.setStatus(
@@ -559,28 +457,55 @@ class LadderController implements MiniGameController {
     }
     this.participantCount = next;
     this.renderEditors();
-    this.invalidateLadder(`${String(next)}명으로 바꿨습니다. 사다리를 다시 만들어 주세요.`);
+    this.setStatus(`${String(next)}명으로 바꿨습니다. 사다리를 만들어 주세요.`);
+    this.updateControls();
+    this.draw();
   }
 
   private shuffleOutcomes(): void {
-    if (this.isInteractionLocked()) return;
-    this.seedSequence += 1;
+    if (this.roundState !== 'editing' || this.isInteractionLocked()) return;
     const normalized = this.displayOutcomes();
-    this.outcomes = shuffleEntries(normalized, runtimeSeed(this.seedSequence));
+    this.outcomes = shuffleEntries(normalized);
     this.renderEditors();
-    this.invalidateLadder('결과 순서를 섞었습니다. 사다리를 다시 만들어 주세요.');
+    this.setStatus('화면에 보이는 결과 순서를 섞었습니다. 사다리를 만들어 주세요.');
+    this.updateControls();
+    this.draw();
     this.services.audio.hit(0.45);
   }
 
-  private invalidateLadder(message: string): void {
+  private requestEdit(allowPaused = false): boolean {
+    if (
+      this.roundState === 'editing' ||
+      !this.round ||
+      Boolean(this.animation) ||
+      (!allowPaused && this.phase === 'paused')
+    ) {
+      return false;
+    }
+    const confirmed = globalThis.confirm(
+      '확정된 사다리와 지금까지 공개한 결과를 버리고 설정을 다시 편집할까요?',
+    );
+    if (!confirmed) {
+      this.setStatus('설정 편집을 취소했습니다. 기존 사다리를 그대로 유지합니다.');
+      return false;
+    }
+    this.returnToEditing(
+      '기존 사다리와 공개 상태를 폐기했습니다. 설정을 바꾼 뒤 사다리를 다시 만들어 주세요.',
+    );
+    return true;
+  }
+
+  private returnToEditing(message: string, announce = true): void {
     this.cancelFrame();
     this.animation = null;
-    this.layout = null;
+    this.round = null;
+    this.roundState = 'editing';
     this.revealed.clear();
-    this.completed = false;
     this.phase = 'idle';
     if (this.elements) {
-      setText(this.elements.seed, '미생성');
+      this.elements.root.dataset.roundState = this.roundState;
+      setText(this.elements.roundId, '');
+      this.elements.audit.hidden = true;
       this.elements.empty.hidden = false;
       this.elements.results.hidden = true;
       this.elements.resultList.replaceChildren();
@@ -588,31 +513,42 @@ class LadderController implements MiniGameController {
       this.elements.canvas.setAttribute('aria-label', '사다리가 아직 생성되지 않았습니다');
     }
     this.services.setPhase('idle', message);
-    this.setStatus(message);
+    this.setStatus(message, announce);
     this.updateControls();
     this.draw();
   }
 
-  private regenerate(message: string, phase: 'idle' | 'playing', announce = true): void {
+  private commitRound(message: string, phase: 'idle' | 'playing', announce = true): void {
     if (!this.elements || this.isInteractionLocked()) return;
     this.cancelFrame();
     this.animation = null;
-    this.names = this.displayNames();
-    this.outcomes = this.displayOutcomes();
+    this.round = null;
+    this.names = normalizeEntries(this.names, this.participantCount, defaultName);
+    this.outcomes = normalizeEntries(this.outcomes, this.participantCount, defaultOutcome);
     this.renderEditors();
-    this.seedSequence += 1;
-    const seed = runtimeSeed(this.seedSequence);
-    this.layout = generateLadder(this.participantCount, seed);
+    this.roundSequence += 1;
+    const roundId = runtimeRoundId(this.roundSequence);
+    const layout = generateLadder(this.participantCount);
+    this.round = Object.freeze({
+      participantCount: this.participantCount,
+      names: Object.freeze([...this.names]),
+      outcomes: Object.freeze([...this.outcomes]),
+      targetPermutation: layout.mapping,
+      layout,
+      roundId,
+    });
+    this.roundState = 'committed';
     this.revealed.clear();
-    this.completed = false;
     this.phase = phase;
-    setText(this.elements.seed, this.layout.seed);
+    this.elements.root.dataset.roundState = this.roundState;
+    setText(this.elements.roundId, '');
+    this.elements.audit.hidden = true;
     this.elements.empty.hidden = true;
     this.elements.results.hidden = true;
     this.elements.resultList.replaceChildren();
     this.elements.canvas.setAttribute(
       'aria-label',
-      `${String(this.participantCount)}명이 참여하는 ${String(this.layout.rowCount)}단 사다리. 참가자별 출발 버튼으로 경로를 확인할 수 있습니다.`,
+      `${String(this.participantCount)}명의 결과가 확정된 사다리. 참가자별 출발 버튼으로 한 경로씩 공개할 수 있습니다.`,
     );
     this.renderRunButtons();
     this.updateControls();
@@ -628,7 +564,8 @@ class LadderController implements MiniGameController {
     elements.runButtons.replaceChildren();
     const names = this.displayNames();
     const outcomes = this.displayOutcomes();
-    for (let index = 0; index < this.participantCount; index += 1) {
+    const participantCount = this.round?.participantCount ?? this.participantCount;
+    for (let index = 0; index < participantCount; index += 1) {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.runIndex = String(index);
@@ -644,7 +581,8 @@ class LadderController implements MiniGameController {
         button.textContent = `${participantName} 출발`;
         button.setAttribute('aria-label', `${participantName}의 사다리 경로 실행`);
       }
-      button.disabled = !this.layout || this.isInteractionLocked();
+      button.disabled =
+        !this.layout || this.roundState === 'completed' || this.isInteractionLocked();
       elements.runButtons.append(button);
     }
   }
@@ -652,18 +590,24 @@ class LadderController implements MiniGameController {
   private startRun(participantIndex: number): void {
     if (
       !this.layout ||
+      this.roundState === 'editing' ||
+      this.roundState === 'completed' ||
       this.isInteractionLocked() ||
       participantIndex < 0 ||
-      participantIndex >= this.participantCount
+      participantIndex >= (this.round?.participantCount ?? this.participantCount)
     ) {
       return;
     }
     this.active = true;
     if (this.revealed.has(participantIndex)) {
-      this.renderResults([participantIndex]);
+      this.renderRevealedResults();
       return;
     }
 
+    if (this.roundState === 'committed') {
+      this.roundState = 'revealing';
+      if (this.elements) this.elements.root.dataset.roundState = this.roundState;
+    }
     const points = this.pathPoints(participantIndex);
     this.phase = 'playing';
     this.services.setPhase('playing', '사다리 경로를 따라가는 중입니다.');
@@ -720,36 +664,55 @@ class LadderController implements MiniGameController {
     const name = names[participantIndex] ?? defaultName(participantIndex);
     const outcome = outcomes[outcomeIndex] ?? defaultOutcome(outcomeIndex);
     this.renderRunButtons();
-    this.renderResults([participantIndex]);
+    this.renderRevealedResults();
     this.updateControls();
     this.draw();
     this.setStatus(`${name}의 결과는 ‘${outcome}’입니다.`);
     this.services.audio.score();
-    if (this.revealed.size === this.participantCount) this.completeLadder();
+    if (this.revealed.size === (this.round?.participantCount ?? this.participantCount)) {
+      this.completeLadder();
+    }
   }
 
   private showAllResults(): void {
-    if (!this.layout || this.isInteractionLocked()) return;
-    for (let index = 0; index < this.participantCount; index += 1) this.revealed.add(index);
-    this.renderRunButtons();
-    this.renderRevealedResults();
-    this.updateControls();
-    this.draw();
+    if (
+      !this.layout ||
+      this.roundState === 'editing' ||
+      this.roundState === 'completed' ||
+      this.isInteractionLocked()
+    ) {
+      return;
+    }
+    const participantCount = this.round?.participantCount ?? this.participantCount;
+    for (let index = 0; index < participantCount; index += 1) this.revealed.add(index);
     this.completeLadder();
   }
 
   private completeLadder(): void {
-    if (!this.layout || this.completed) return;
-    this.completed = true;
+    const round = this.round;
+    if (!round || this.roundState === 'completed') return;
+    this.roundState = 'completed';
+    if (this.elements) {
+      this.elements.root.dataset.roundState = this.roundState;
+      setText(this.elements.roundId, round.roundId);
+      this.elements.audit.hidden = false;
+      this.elements.canvas.setAttribute(
+        'aria-label',
+        `${String(round.participantCount)}명의 모든 경로와 결과가 공개된 사다리입니다.`,
+      );
+    }
+    this.renderRevealedResults();
     this.setStatus('모든 사다리 결과를 공개했습니다.');
     this.phase = 'matchOver';
     this.services.setPhase('matchOver', '모든 사다리 결과를 공개했습니다.');
-    const names = this.displayNames();
-    const outcomes = this.displayOutcomes();
-    const detail = names
-      .map((name, index) => `${name} → ${outcomes[this.layout?.mapping[index] ?? index] ?? ''}`)
+    const detail = round.names
+      .map(
+        (name, index) =>
+          `${name} → ${round.outcomes[round.targetPermutation[index] ?? index] ?? ''}`,
+      )
       .join(' · ');
     this.updateControls();
+    this.draw();
     this.services.complete({ winner: 0, headline: '사다리 결과가 완성됐어요', detail });
   }
 
@@ -779,12 +742,13 @@ class LadderController implements MiniGameController {
   }
 
   private async copyResults(): Promise<void> {
-    const layout = this.layout;
-    if (!layout || this.isInteractionLocked()) return;
-    const names = this.displayNames();
-    const outcomes = this.displayOutcomes();
-    const text = names
-      .map((name, index) => `${name} → ${outcomes[layout.mapping[index] ?? index] ?? ''}`)
+    const round = this.round;
+    if (!round || this.roundState !== 'completed' || this.isInteractionLocked()) return;
+    const text = round.names
+      .map(
+        (name, index) =>
+          `${name} → ${round.outcomes[round.targetPermutation[index] ?? index] ?? ''}`,
+      )
       .join('\n');
     try {
       const clipboard = (
@@ -798,6 +762,8 @@ class LadderController implements MiniGameController {
       if (this.elements) this.setStatus('전체 결과를 클립보드에 복사했습니다.');
     } catch {
       if (!this.copyWithTemporaryInput(text)) {
+        this.elements?.resultList.setAttribute('tabindex', '0');
+        this.elements?.resultList.focus();
         this.setStatus('복사하지 못했습니다. 전체 결과 보기에서 직접 선택해 주세요.');
       } else {
         this.setStatus('전체 결과를 클립보드에 복사했습니다.');
@@ -819,24 +785,38 @@ class LadderController implements MiniGameController {
     input.style.opacity = '0';
     root.append(input);
     input.select();
-    const copied = legacyDocument.execCommand('copy');
-    input.remove();
-    return copied;
+    try {
+      return legacyDocument.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      input.remove();
+    }
   }
 
   private updateControls(): void {
     const elements = this.elements;
     if (!elements) return;
-    const locked = this.isInteractionLocked();
-    elements.root.dataset.locked = String(Boolean(this.animation));
-    elements.nameFieldset.disabled = locked;
-    elements.outcomeFieldset.disabled = locked;
-    elements.decreaseButton.disabled = locked || this.participantCount <= MIN_PARTICIPANTS;
-    elements.increaseButton.disabled = locked || this.participantCount >= MAX_PARTICIPANTS;
-    elements.shuffleButton.disabled = locked;
-    elements.generateButton.disabled = locked;
-    elements.showAllButton.disabled = locked || !this.layout || this.completed;
-    elements.copyButton.disabled = locked || !this.layout;
+    const busy = this.isInteractionLocked();
+    const editing = this.roundState === 'editing';
+    const completed = this.roundState === 'completed';
+    elements.root.dataset.busy = String(Boolean(this.animation));
+    elements.root.dataset.roundState = this.roundState;
+    elements.nameFieldset.disabled = !editing || busy;
+    elements.outcomeFieldset.disabled = !editing || busy;
+    elements.decreaseButton.disabled =
+      !editing || busy || this.participantCount <= MIN_PARTICIPANTS;
+    elements.increaseButton.disabled =
+      !editing || busy || this.participantCount >= MAX_PARTICIPANTS;
+    elements.shuffleButton.disabled = !editing || busy;
+    elements.generateButton.disabled = !editing || busy;
+    elements.editButton.hidden = editing;
+    elements.editButton.disabled = editing || busy;
+    elements.showAllButton.disabled = busy || !this.layout || completed;
+    elements.copyButton.disabled = busy || !this.layout || !completed;
+    if (elements.externalResetButton) {
+      elements.externalResetButton.disabled = this.roundState === 'revealing';
+    }
     this.renderRunButtons();
   }
 
@@ -871,6 +851,8 @@ class LadderController implements MiniGameController {
     const layout = this.layout;
     if (!layout) return [];
     const xPositions = this.xPositions();
+    // Before full reveal we draw only the selected participant's truthful trace.
+    // Keeping the other rungs out of the canvas preserves their sealed mappings.
     const trace = traceLadder(
       participantIndex,
       this.participantCount,
@@ -907,11 +889,13 @@ class LadderController implements MiniGameController {
       context.lineTo(x, BOTTOM_Y);
       context.stroke();
     }
-    for (const rung of layout.rungs) {
-      context.beginPath();
-      context.moveTo(xPositions[rung.left] ?? 0, this.rowY(rung.row));
-      context.lineTo(xPositions[rung.left + 1] ?? 0, this.rowY(rung.row));
-      context.stroke();
+    if (this.roundState === 'completed') {
+      for (const rung of layout.rungs) {
+        context.beginPath();
+        context.moveTo(xPositions[rung.left] ?? 0, this.rowY(rung.row));
+        context.lineTo(xPositions[rung.left + 1] ?? 0, this.rowY(rung.row));
+        context.stroke();
+      }
     }
     context.restore();
 
@@ -932,19 +916,22 @@ class LadderController implements MiniGameController {
 
     const names = this.displayNames();
     const outcomes = this.displayOutcomes();
-    for (let index = 0; index < this.participantCount; index += 1) {
+    const participantCount = this.round?.participantCount ?? this.participantCount;
+    for (let index = 0; index < participantCount; index += 1) {
       const x = xPositions[index] ?? 0;
       const color = PALETTE[index] ?? '#58e6a9';
       this.drawEndpoint(context, x, TOP_Y, color);
       this.drawEndpoint(context, x, BOTTOM_Y, color);
       this.drawLabel(context, x, TOP_Y - 14, names[index] ?? '', color, false);
       const source = layout.mapping.indexOf(index);
+      const outcomeRevealed =
+        this.roundState === 'completed' || (source >= 0 && this.revealed.has(source));
       this.drawLabel(
         context,
         x,
         BOTTOM_Y + 14,
-        outcomes[index] ?? '',
-        PALETTE[source >= 0 ? source : index] ?? color,
+        outcomeRevealed ? (outcomes[index] ?? '') : '비공개',
+        outcomeRevealed && source >= 0 ? (PALETTE[source] ?? '#ffd447') : '#8fa8ba',
         true,
       );
     }

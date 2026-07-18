@@ -65,13 +65,20 @@ const MARKUP = `
             width="720"
             height="720"
             tabindex="0"
-            role="application"
+            role="group"
             aria-describedby="omok-status omok-keyboard-help"
-            aria-label="15행 15열 오목판"
+            aria-label="15행 15열 오목판 키보드 조작 영역"
           ></canvas>
           <div class="omok-pause-overlay" data-role="pause-overlay" hidden>
             <strong>일시정지</strong>
             <span>공통 게임 HUD에서 재개를 눌러주세요.</span>
+          </div>
+        </div>
+        <div class="omok-placement-controls" data-role="placement-controls" hidden>
+          <p><strong data-role="pending-coordinate">H8</strong><span data-role="pending-description">빈 교차점</span></p>
+          <div>
+            <button class="omok-button omok-button--primary" type="button" data-role="confirm-placement">이 위치에 놓기</button>
+            <button class="omok-button" type="button" data-role="cancel-placement">선택 취소</button>
           </div>
         </div>
         <p class="omok-status" id="omok-status" data-role="status" role="status" aria-live="polite" aria-atomic="true">
@@ -84,6 +91,7 @@ const MARKUP = `
           <span class="omok-panel-label">CURRENT TURN</span>
           <strong data-role="turn-label">흑돌 차례</strong>
           <span data-role="coordinate-label">선택 위치 · H8</span>
+          <span class="omok-rule-badge">자유룰 · 5개 이상 연결</span>
         </section>
 
         <fieldset class="omok-settings">
@@ -150,6 +158,11 @@ interface OmokView {
   readonly coordinateLabel: HTMLElement;
   readonly status: HTMLElement;
   readonly pauseOverlay: HTMLElement;
+  readonly placementControls: HTMLElement;
+  readonly pendingCoordinate: HTMLElement;
+  readonly pendingDescription: HTMLElement;
+  readonly confirmPlacementButton: HTMLButtonElement;
+  readonly cancelPlacementButton: HTMLButtonElement;
   readonly undoButton: HTMLButtonElement;
   readonly nextRoundButton: HTMLButtonElement;
   readonly bestOfSelect: HTMLSelectElement;
@@ -177,6 +190,11 @@ function getView(root: HTMLElement): OmokView {
     coordinateLabel: queryRequired(root, '[data-role="coordinate-label"]'),
     status: queryRequired(root, '[data-role="status"]'),
     pauseOverlay: queryRequired(root, '[data-role="pause-overlay"]'),
+    placementControls: queryRequired(root, '[data-role="placement-controls"]'),
+    pendingCoordinate: queryRequired(root, '[data-role="pending-coordinate"]'),
+    pendingDescription: queryRequired(root, '[data-role="pending-description"]'),
+    confirmPlacementButton: queryRequired(root, '[data-role="confirm-placement"]'),
+    cancelPlacementButton: queryRequired(root, '[data-role="cancel-placement"]'),
     undoButton: queryRequired(root, '[data-role="undo"]'),
     nextRoundButton: queryRequired(root, '[data-role="next-round"]'),
     bestOfSelect: queryRequired(root, '[data-role="best-of"]'),
@@ -191,6 +209,10 @@ function getView(root: HTMLElement): OmokView {
 
 function coordinateName(coordinate: Coordinate): string {
   return `${COLUMN_LABELS[coordinate.col] ?? '?'}${String(coordinate.row + 1)}`;
+}
+
+function sameCoordinate(left: Coordinate | null, right: Coordinate | null): boolean {
+  return left !== null && right !== null && left.row === right.row && left.col === right.col;
 }
 
 function matchLabel(bestOf: MatchLength): string {
@@ -212,6 +234,7 @@ export function createGame(services: GameServices): MiniGameController {
   let starterRule: StarterRule = 'alternate';
   let roundNumber = 1;
   let hoverCell: Coordinate | null = null;
+  let pendingCell: Coordinate | null = null;
   let keyboardCell: Coordinate = { row: 7, col: 7 };
   let keyboardCursorVisible = false;
   let completionSent = false;
@@ -225,6 +248,12 @@ export function createGame(services: GameServices): MiniGameController {
 
   const isInteractive = (): boolean => phase === 'playing' && roundState.status === 'playing';
 
+  const usesConfirmPlacement = (): boolean =>
+    matchMedia('(pointer: coarse)').matches || window.innerWidth <= 560;
+
+  const isEmptyCoordinate = (coordinate: Coordinate): boolean =>
+    roundState.board[coordinate.row]?.[coordinate.col] === 0;
+
   const settingsLocked = (): boolean =>
     roundNumber !== 1 ||
     scores[0] !== 0 ||
@@ -232,9 +261,8 @@ export function createGame(services: GameServices): MiniGameController {
     roundState.history.length !== 0 ||
     roundState.status !== 'playing';
 
-  const setStatus = (message: string, announce = true): void => {
+  const setStatus = (message: string): void => {
     if (view) view.status.textContent = message;
-    if (announce) services.announce(message);
   };
 
   const setPhase = (nextPhase: GamePhase, message?: string): void => {
@@ -249,6 +277,7 @@ export function createGame(services: GameServices): MiniGameController {
 
   const activePreview = (): Coordinate | null => {
     if (!isInteractive()) return null;
+    if (pendingCell) return pendingCell;
     if (hoverCell) return hoverCell;
     return keyboardCursorVisible ? keyboardCell : null;
   };
@@ -397,14 +426,33 @@ export function createGame(services: GameServices): MiniGameController {
     context.restore();
 
     const preview = activePreview();
-    if (preview && roundState.board[preview.row]?.[preview.col] === 0) {
+    if (preview && isEmptyCoordinate(preview)) {
       const point = pointForCell(preview);
       drawStone(context, point.col, point.row, roundState.turn, 0.38);
       context.save();
-      context.strokeStyle = 'rgba(255, 244, 176, 0.88)';
-      context.lineWidth = 2;
+      context.strokeStyle = pendingCell ? '#fff5a8' : 'rgba(255, 244, 176, 0.88)';
+      context.lineWidth = pendingCell ? 5 : 2;
       context.beginPath();
-      context.arc(point.col, point.row, 22, 0, Math.PI * 2);
+      context.arc(point.col, point.row, pendingCell ? 27 : 22, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+
+    if (pendingCell) {
+      const point = pointForCell(pendingCell);
+      context.save();
+      context.strokeStyle = isEmptyCoordinate(pendingCell) ? '#fff5a8' : '#ff5d9e';
+      context.lineWidth = 4;
+      context.lineCap = 'round';
+      context.beginPath();
+      context.moveTo(point.col - 34, point.row);
+      context.lineTo(point.col - 15, point.row);
+      context.moveTo(point.col + 15, point.row);
+      context.lineTo(point.col + 34, point.row);
+      context.moveTo(point.col, point.row - 34);
+      context.lineTo(point.col, point.row - 15);
+      context.moveTo(point.col, point.row + 15);
+      context.lineTo(point.col, point.row + 34);
       context.stroke();
       context.restore();
     }
@@ -504,17 +552,31 @@ export function createGame(services: GameServices): MiniGameController {
     view.nextRoundButton.hidden = phase !== 'roundOver' && phase !== 'matchOver';
     view.nextRoundButton.textContent = phase === 'matchOver' ? '새 매치' : '다음 라운드';
     view.pauseOverlay.hidden = phase !== 'paused';
-    view.placeCoordinateButton.disabled = !isInteractive();
+    view.placeCoordinateButton.disabled = !isInteractive() || !isEmptyCoordinate(keyboardCell);
     view.rowSelect.disabled = !isInteractive();
     view.columnSelect.disabled = !isInteractive();
 
-    const selectedCoordinate = hoverCell ?? keyboardCell;
+    const selectedCoordinate = pendingCell ?? hoverCell ?? keyboardCell;
     view.coordinateLabel.textContent = `선택 위치 · ${coordinateName(selectedCoordinate)}`;
+    const showPlacementControls = usesConfirmPlacement() && pendingCell !== null && isInteractive();
+    view.placementControls.hidden = !showPlacementControls;
+    view.confirmPlacementButton.disabled =
+      !showPlacementControls || pendingCell === null || !isEmptyCoordinate(pendingCell);
+    view.cancelPlacementButton.disabled = !showPlacementControls;
+    if (pendingCell) {
+      view.pendingCoordinate.textContent = coordinateName(pendingCell);
+      view.pendingDescription.textContent = isEmptyCoordinate(pendingCell)
+        ? `${stoneName(roundState.turn)}을 놓을 위치`
+        : '이미 돌이 있는 교차점';
+    }
     const lastMove = roundState.history.at(-1);
+    const pendingDescription = pendingCell
+      ? ` ${coordinateName(pendingCell)} 선택, ${isEmptyCoordinate(pendingCell) ? '빈 교차점' : '이미 돌이 있는 교차점'}.`
+      : '';
     const boardDescription = lastMove
       ? `15행 15열 오목판. ${String(roundState.history.length)}수 진행. 마지막 수 ${playerName(lastMove.player)} ${coordinateName(lastMove)}.`
       : `15행 15열 오목판. ${stoneName(roundState.turn)}이 선공합니다.`;
-    view.canvas.setAttribute('aria-label', boardDescription);
+    view.canvas.setAttribute('aria-label', `${boardDescription}${pendingDescription}`);
     syncMoveHistory();
   };
 
@@ -534,7 +596,13 @@ export function createGame(services: GameServices): MiniGameController {
     scores = winner === 1 ? [scores[0] + 1, scores[1]] : [scores[0], scores[1] + 1];
     const winnerScore = winner === 1 ? scores[0] : scores[1];
     const wonMatch = winnerScore >= winsRequired(bestOf);
-    const roundMessage = `${playerName(winner)}의 ${stoneName(winner)}이 다섯 개 이상 연결됐습니다.`;
+    const winningStart = roundState.winningLine[0];
+    const winningEnd = roundState.winningLine.at(-1);
+    const winningCoordinates =
+      winningStart && winningEnd
+        ? ` ${coordinateName(winningStart)}부터 ${coordinateName(winningEnd)}까지`
+        : '';
+    const roundMessage = `${playerName(winner)}의 ${stoneName(winner)}이${winningCoordinates} 다섯 개 이상 연결됐습니다.`;
 
     if (wonMatch) {
       setPhase('matchOver', roundMessage);
@@ -569,6 +637,7 @@ export function createGame(services: GameServices): MiniGameController {
     const placedMove = result.state.history.at(-1);
     roundState = result.state;
     hoverCell = null;
+    pendingCell = null;
     keyboardCell = coordinate;
     if (view) {
       view.rowSelect.value = String(coordinate.row);
@@ -602,11 +671,12 @@ export function createGame(services: GameServices): MiniGameController {
 
   const updateCoordinateControls = (): void => {
     if (!view) return;
+    pendingCell = null;
     keyboardCell = {
       row: Number.parseInt(view.rowSelect.value, 10),
       col: Number.parseInt(view.columnSelect.value, 10),
     };
-    view.coordinateLabel.textContent = `선택 위치 · ${coordinateName(keyboardCell)}`;
+    syncUI();
     draw();
   };
 
@@ -637,6 +707,7 @@ export function createGame(services: GameServices): MiniGameController {
     roundNumber += 1;
     roundState = createRoundState(starterForRound(starterRule, roundNumber));
     hoverCell = null;
+    pendingCell = null;
     keyboardCell = { row: 7, col: 7 };
     keyboardCursorVisible = false;
     setPhase('playing', `오목 ${String(roundNumber)}라운드`);
@@ -674,7 +745,7 @@ export function createGame(services: GameServices): MiniGameController {
     view.canvas.addEventListener(
       'pointermove',
       (event) => {
-        if (!isInteractive()) return;
+        if (!isInteractive() || usesConfirmPlacement()) return;
         const coordinate = pointerCoordinate(event);
         if (
           (coordinate === null && hoverCell === null) ||
@@ -710,6 +781,25 @@ export function createGame(services: GameServices): MiniGameController {
         event.preventDefault();
         view?.canvas.focus({ preventScroll: true });
         keyboardCell = coordinate;
+        if (view) {
+          view.rowSelect.value = String(coordinate.row);
+          view.columnSelect.value = String(coordinate.col);
+        }
+        if (usesConfirmPlacement()) {
+          const unchanged = sameCoordinate(pendingCell, coordinate);
+          pendingCell = coordinate;
+          hoverCell = null;
+          if (!unchanged) {
+            setStatus(
+              isEmptyCoordinate(coordinate)
+                ? `${coordinateName(coordinate)}를 선택했습니다. 이 위치에 놓기 버튼으로 확정하세요.`
+                : `${coordinateName(coordinate)}에는 이미 돌이 있습니다. 다른 위치를 선택하세요.`,
+            );
+          }
+          syncUI();
+          draw();
+          return;
+        }
         placeAt(coordinate);
       },
       { signal },
@@ -754,11 +844,14 @@ export function createGame(services: GameServices): MiniGameController {
 
         event.preventDefault();
         hoverCell = null;
+        pendingCell = null;
         keyboardCell = { row: nextRow, col: nextCol };
         if (view) {
           view.rowSelect.value = String(nextRow);
           view.columnSelect.value = String(nextCol);
           view.coordinateLabel.textContent = `선택 위치 · ${coordinateName(keyboardCell)}`;
+          view.placementControls.hidden = true;
+          view.placeCoordinateButton.disabled = !isEmptyCoordinate(keyboardCell);
           view.canvas.setAttribute(
             'aria-label',
             `${coordinateName(keyboardCell)} 선택. ${roundState.board[nextRow]?.[nextCol] === 0 ? '빈 교차점' : '이미 돌이 있는 교차점'}.`,
@@ -772,10 +865,20 @@ export function createGame(services: GameServices): MiniGameController {
     view.undoButton.addEventListener(
       'click',
       () => {
+        const lastMove = roundState.history.at(-1);
+        if (!lastMove) return;
+        const approved = window.confirm(
+          `${coordinateName(lastMove)}의 마지막 수를 무를까요? 상대와 확인한 뒤 진행하세요.`,
+        );
+        if (!approved) {
+          setStatus('한 수 무르기를 취소했습니다. 현재 대국을 그대로 이어갑니다.');
+          return;
+        }
         const result = undoLastMove(roundState);
         if (!result.undone) return;
         roundState = result.state;
         hoverCell = null;
+        pendingCell = null;
         keyboardCell = { row: result.move.row, col: result.move.col };
         services.audio.hit(0.25);
         setStatus(
@@ -783,6 +886,28 @@ export function createGame(services: GameServices): MiniGameController {
         );
         syncUI();
         draw();
+      },
+      { signal },
+    );
+    view.confirmPlacementButton.addEventListener(
+      'click',
+      () => {
+        if (!pendingCell || !isEmptyCoordinate(pendingCell)) return;
+        placeAt(pendingCell);
+      },
+      { signal },
+    );
+    view.cancelPlacementButton.addEventListener(
+      'click',
+      () => {
+        if (!pendingCell) return;
+        const cancelled = pendingCell;
+        pendingCell = null;
+        hoverCell = null;
+        setStatus(`${coordinateName(cancelled)} 선택을 취소했습니다. 다른 위치를 선택하세요.`);
+        syncUI();
+        draw();
+        view?.canvas.focus({ preventScroll: true });
       },
       { signal },
     );
@@ -816,6 +941,7 @@ export function createGame(services: GameServices): MiniGameController {
         if (selected !== 'alternate' && selected !== 'black' && selected !== 'white') return;
         starterRule = selected;
         roundState = createRoundState(starterForRound(starterRule, roundNumber));
+        pendingCell = null;
         const message = `${stoneName(roundState.turn)} 선공으로 설정했습니다.`;
         setStatus(message);
         syncUI();
@@ -830,7 +956,9 @@ export function createGame(services: GameServices): MiniGameController {
     window.addEventListener(
       'resize',
       () => {
+        if (!usesConfirmPlacement()) pendingCell = null;
         surface?.resize();
+        syncUI();
         draw();
       },
       { signal },
@@ -858,7 +986,7 @@ export function createGame(services: GameServices): MiniGameController {
     if (!view || !surface) return;
     surface.resize();
     setPhase('idle', '오목 준비');
-    setStatus(`${matchLabel(bestOf)} 준비 완료. 시작 버튼을 눌러주세요.`, false);
+    setStatus(`${matchLabel(bestOf)} 준비 완료. 시작 버튼을 눌러주세요.`);
     syncUI();
     draw();
   };
@@ -900,7 +1028,7 @@ export function createGame(services: GameServices): MiniGameController {
     draw();
   };
 
-  const reset = (options?: { preserveMatchScore?: boolean }): void => {
+  const reset = (options?: { preserveMatchScore?: boolean }): boolean => {
     cancelAnimation();
     animationProgress = 1;
     const preserveScore = options?.preserveMatchScore === true && phase !== 'matchOver';
@@ -912,6 +1040,7 @@ export function createGame(services: GameServices): MiniGameController {
     }
     roundState = createRoundState(starterForRound(starterRule, roundNumber));
     hoverCell = null;
+    pendingCell = null;
     keyboardCell = { row: 7, col: 7 };
     keyboardCursorVisible = false;
     setPhase('idle', '오목 다시 준비');
@@ -926,10 +1055,12 @@ export function createGame(services: GameServices): MiniGameController {
     }
     syncUI();
     draw();
+    return true;
   };
 
   const destroy = (): void => {
     teardownView();
+    pendingCell = null;
     phase = 'idle';
   };
 

@@ -14,6 +14,10 @@ const PADDLE_MAX_SPEED = 470;
 const PADDLE_ACCELERATION = 2_700;
 const PADDLE_DECELERATION = 3_300;
 const RALLY_SPEED_GAIN = 1.045;
+const SIMULATION_STEP_SECONDS = 1 / 120;
+const MAX_COLLISIONS_PER_SUBSTEP = 8;
+const COLLISION_TIME_EPSILON = 1e-9;
+const COLLISION_POSITION_EPSILON = 0.001;
 
 export interface PongPaddle {
   x: number;
@@ -205,44 +209,153 @@ function currentBallSpeed(ball: PongBall): number {
   return Math.hypot(ball.velocityX, ball.velocityY);
 }
 
-function collidePaddle(
-  state: PongState,
+type PongBallImpact =
+  | { type: 'wall'; time: number; edge: 'top' | 'bottom' }
+  | { type: 'paddle'; time: number; player: 1 | 2; paddle: PongPaddle; impactY: number }
+  | { type: 'score'; time: number; player: 1 | 2 };
+
+function impactTime(
+  position: number,
+  velocity: number,
+  boundary: number,
+  remaining: number,
+): number | null {
+  if (velocity === 0) return null;
+  const time = (boundary - position) / velocity;
+  if (time < -COLLISION_TIME_EPSILON || time > remaining + COLLISION_TIME_EPSILON) return null;
+  return Math.max(0, Math.min(time, remaining));
+}
+
+function paddleImpact(
+  ball: PongBall,
   pongPaddle: PongPaddle,
   player: 1 | 2,
-  previousX: number,
-  previousY: number,
-  nextX: number,
-  nextY: number,
-): boolean {
-  const movingToward = player === 1 ? state.ball.velocityX < 0 : state.ball.velocityX > 0;
-  if (!movingToward) return false;
+  remaining: number,
+): PongBallImpact | null {
+  const movingToward = player === 1 ? ball.velocityX < 0 : ball.velocityX > 0;
+  if (!movingToward) return null;
 
   const face =
-    player === 1
-      ? pongPaddle.x + pongPaddle.width + state.ball.radius
-      : pongPaddle.x - state.ball.radius;
-  const crossed =
-    player === 1 ? previousX >= face && nextX <= face : previousX <= face && nextX >= face;
-  if (!crossed) return false;
+    player === 1 ? pongPaddle.x + pongPaddle.width + ball.radius : pongPaddle.x - ball.radius;
+  const back =
+    player === 1 ? pongPaddle.x - ball.radius : pongPaddle.x + pongPaddle.width + ball.radius;
+  let time: number | null;
 
-  const denominator = nextX - previousX;
-  const time = denominator === 0 ? 0 : Math.max(0, Math.min(1, (face - previousX) / denominator));
-  const impactY = previousY + (nextY - previousY) * time;
-  const paddleTop = pongPaddle.y - state.ball.radius;
-  const paddleBottom = pongPaddle.y + pongPaddle.height + state.ball.radius;
-  if (impactY < paddleTop || impactY > paddleBottom) return false;
+  if (player === 1 && ball.x < face) {
+    time = ball.x >= back - COLLISION_POSITION_EPSILON ? 0 : null;
+  } else if (player === 2 && ball.x > face) {
+    time = ball.x <= back + COLLISION_POSITION_EPSILON ? 0 : null;
+  } else {
+    time = impactTime(ball.x, ball.velocityX, face, remaining);
+  }
+  if (time === null) return null;
 
+  const impactY = ball.y + ball.velocityY * time;
+  const paddleTop = pongPaddle.y - ball.radius;
+  const paddleBottom = pongPaddle.y + pongPaddle.height + ball.radius;
+  if (impactY < paddleTop || impactY > paddleBottom) return null;
+  return { type: 'paddle', time, player, paddle: pongPaddle, impactY };
+}
+
+function findNextImpact(state: PongState, remaining: number): PongBallImpact | null {
+  const { ball } = state;
+  let earliest: PongBallImpact | null = null;
+  const consider = (impact: PongBallImpact | null): void => {
+    if (impact && (earliest === null || impact.time < earliest.time - COLLISION_TIME_EPSILON)) {
+      earliest = impact;
+    }
+  };
+
+  if (ball.velocityY < 0) {
+    const time = impactTime(ball.y, ball.velocityY, ball.radius, remaining);
+    if (time !== null) consider({ type: 'wall', time, edge: 'top' });
+  } else if (ball.velocityY > 0) {
+    const time = impactTime(ball.y, ball.velocityY, PONG_HEIGHT - ball.radius, remaining);
+    if (time !== null) consider({ type: 'wall', time, edge: 'bottom' });
+  }
+
+  consider(paddleImpact(ball, state.paddles[0], 1, remaining));
+  consider(paddleImpact(ball, state.paddles[1], 2, remaining));
+
+  if (ball.velocityX < 0) {
+    const time = impactTime(ball.x, ball.velocityX, -ball.radius, remaining);
+    if (time !== null) consider({ type: 'score', time, player: 2 });
+  } else if (ball.velocityX > 0) {
+    const time = impactTime(ball.x, ball.velocityX, PONG_WIDTH + ball.radius, remaining);
+    if (time !== null) consider({ type: 'score', time, player: 1 });
+  }
+  return earliest;
+}
+
+function resolvePaddleImpact(
+  state: PongState,
+  impact: Extract<PongBallImpact, { type: 'paddle' }>,
+): void {
+  const { ball } = state;
   const contact =
-    (impactY - (pongPaddle.y + pongPaddle.height / 2)) /
-    (pongPaddle.height / 2 + state.ball.radius);
-  const speed = cappedRallySpeed(currentBallSpeed(state.ball));
-  const bounce = calculatePaddleBounce(contact, pongPaddle.velocityY, player === 1 ? 1 : -1, speed);
-  state.ball.x = face;
-  state.ball.y = impactY;
-  state.ball.velocityX = bounce.velocityX;
-  state.ball.velocityY = bounce.velocityY;
+    (impact.impactY - (impact.paddle.y + impact.paddle.height / 2)) /
+    (impact.paddle.height / 2 + ball.radius);
+  const speed = cappedRallySpeed(currentBallSpeed(ball));
+  const direction: -1 | 1 = impact.player === 1 ? 1 : -1;
+  const bounce = calculatePaddleBounce(contact, impact.paddle.velocityY, direction, speed);
+  const face =
+    impact.player === 1
+      ? impact.paddle.x + impact.paddle.width + ball.radius
+      : impact.paddle.x - ball.radius;
+  ball.x = face + direction * COLLISION_POSITION_EPSILON;
+  ball.y = impact.impactY;
+  ball.velocityX = bounce.velocityX;
+  ball.velocityY = bounce.velocityY;
   state.rallyHits += 1;
-  return true;
+}
+
+function simulateBallSubstep(state: PongState, seconds: number, event: PongUpdateEvent): void {
+  const { ball } = state;
+  if (ball.x <= -ball.radius) {
+    if (scorePongPoint(state, 2)) event.scoredBy = 2;
+    return;
+  }
+  if (ball.x >= PONG_WIDTH + ball.radius) {
+    if (scorePongPoint(state, 1)) event.scoredBy = 1;
+    return;
+  }
+  if (ball.y < ball.radius) {
+    ball.y = ball.radius;
+    if (ball.velocityY < 0) ball.velocityY = Math.abs(ball.velocityY);
+  } else if (ball.y > PONG_HEIGHT - ball.radius) {
+    ball.y = PONG_HEIGHT - ball.radius;
+    if (ball.velocityY > 0) ball.velocityY = -Math.abs(ball.velocityY);
+  }
+
+  let remaining = seconds;
+  let collisions = 0;
+  while (
+    remaining > COLLISION_TIME_EPSILON &&
+    state.phase === 'playing' &&
+    collisions < MAX_COLLISIONS_PER_SUBSTEP
+  ) {
+    const impact = findNextImpact(state, remaining);
+    if (!impact) {
+      ball.x += ball.velocityX * remaining;
+      ball.y += ball.velocityY * remaining;
+      break;
+    }
+
+    ball.x += ball.velocityX * impact.time;
+    ball.y += ball.velocityY * impact.time;
+    remaining = Math.max(0, remaining - impact.time);
+
+    if (impact.type === 'wall') {
+      ball.y = impact.edge === 'top' ? ball.radius : PONG_HEIGHT - ball.radius;
+      ball.velocityY = impact.edge === 'top' ? Math.abs(ball.velocityY) : -Math.abs(ball.velocityY);
+    } else if (impact.type === 'paddle') {
+      resolvePaddleImpact(state, impact);
+      event.paddleHit = impact.player;
+    } else {
+      if (scorePongPoint(state, impact.player)) event.scoredBy = impact.player;
+    }
+    collisions += 1;
+  }
 }
 
 export function scorePongPoint(state: PongState, player: 1 | 2): boolean {
@@ -267,46 +380,25 @@ export function scorePongPoint(state: PongState, player: 1 | 2): boolean {
 }
 
 function updatePlaying(state: PongState, input: PongInput, seconds: number): PongUpdateEvent {
-  updatePaddle(state.paddles[0], input.player1Axis, seconds);
-  updatePaddle(state.paddles[1], input.player2Axis, seconds);
-
   const event: PongUpdateEvent = {};
   const speed = Math.max(currentBallSpeed(state.ball), 1);
   const travel = speed * seconds;
-  const subSteps = Math.max(1, Math.min(24, Math.ceil(travel / (state.ball.radius * 0.55))));
+  const subSteps = Math.max(
+    1,
+    Math.min(
+      24,
+      Math.max(
+        Math.ceil(seconds / SIMULATION_STEP_SECONDS),
+        Math.ceil(travel / (state.ball.radius * 0.55)),
+      ),
+    ),
+  );
   const subStep = seconds / subSteps;
 
   for (let index = 0; index < subSteps && state.phase === 'playing'; index += 1) {
-    const previousX = state.ball.x;
-    const previousY = state.ball.y;
-    let nextX = previousX + state.ball.velocityX * subStep;
-    let nextY = previousY + state.ball.velocityY * subStep;
-
-    if (nextY - state.ball.radius < 0 && state.ball.velocityY < 0) {
-      nextY = state.ball.radius + (state.ball.radius - nextY);
-      state.ball.velocityY = Math.abs(state.ball.velocityY);
-    } else if (nextY + state.ball.radius > PONG_HEIGHT && state.ball.velocityY > 0) {
-      nextY = PONG_HEIGHT - state.ball.radius - (nextY + state.ball.radius - PONG_HEIGHT);
-      state.ball.velocityY = -Math.abs(state.ball.velocityY);
-    }
-
-    const hitLeft = collidePaddle(state, state.paddles[0], 1, previousX, previousY, nextX, nextY);
-    const hitRight =
-      !hitLeft && collidePaddle(state, state.paddles[1], 2, previousX, previousY, nextX, nextY);
-    if (hitLeft || hitRight) {
-      event.paddleHit = hitLeft ? 1 : 2;
-      nextX = state.ball.x + state.ball.velocityX * subStep * (1 / subSteps);
-      nextY = state.ball.y + state.ball.velocityY * subStep * (1 / subSteps);
-    }
-
-    state.ball.x = nextX;
-    state.ball.y = nextY;
-
-    if (state.ball.x + state.ball.radius < 0) {
-      if (scorePongPoint(state, 2)) event.scoredBy = 2;
-    } else if (state.ball.x - state.ball.radius > PONG_WIDTH) {
-      if (scorePongPoint(state, 1)) event.scoredBy = 1;
-    }
+    updatePaddle(state.paddles[0], input.player1Axis, subStep);
+    updatePaddle(state.paddles[1], input.player2Axis, subStep);
+    simulateBallSubstep(state, subStep, event);
   }
 
   if (event.scoredBy && state.phase === 'matchOver') event.matchWinner = state.winner || undefined;

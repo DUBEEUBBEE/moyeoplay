@@ -1,7 +1,7 @@
 import { createCanvasSurface, type CanvasSurface } from '../../core/canvas-scaler';
 import type { GamePhase, GameServices, MiniGameController } from '../../core/game-controller';
 import { FixedStepLoop } from '../../core/game-loop';
-import { bindHold, InputManager } from '../../core/input-manager';
+import { bindHold, InputManager, type InputBinding } from '../../core/input-manager';
 import {
   PONG_HEIGHT,
   PONG_WIDTH,
@@ -64,7 +64,7 @@ function phaseMessage(state: PongState, playerName: (player: 1 | 2) => string): 
     case 'countdown':
       return `${String(Math.max(1, Math.ceil(state.countdownRemaining)))}초 후 서브`;
     case 'playing':
-      return `랠리 ${String(state.rallyHits)}회`;
+      return `마지막 랠리 ${String(state.rallyHits)}회`;
     case 'paused':
       return '일시정지됨';
     case 'roundOver':
@@ -86,8 +86,15 @@ export function createGame(services: GameServices): MiniGameController {
   let completed = false;
   let reportedPhase: GamePhase | null = null;
   const input = new InputManager();
+  const holdBindings: InputBinding[] = [];
   const playerName = (player: 1 | 2): string => services.getPlayerName(player);
-  const held: HeldControls = {
+  const controlHeld: HeldControls = {
+    p1Up: false,
+    p1Down: false,
+    p2Up: false,
+    p2Down: false,
+  };
+  const globalKeyHeld: HeldControls = {
     p1Up: false,
     p1Down: false,
     p2Up: false,
@@ -96,12 +103,19 @@ export function createGame(services: GameServices): MiniGameController {
 
   const axis = (negative: boolean, positive: boolean): number =>
     Number(positive) - Number(negative);
+  const isHeld = (control: keyof HeldControls): boolean =>
+    controlHeld[control] || globalKeyHeld[control];
 
   const clearHeld = (): void => {
-    held.p1Up = false;
-    held.p1Down = false;
-    held.p2Up = false;
-    held.p2Down = false;
+    for (const binding of holdBindings) binding.release();
+    controlHeld.p1Up = false;
+    controlHeld.p1Down = false;
+    controlHeld.p2Up = false;
+    controlHeld.p2Down = false;
+    globalKeyHeld.p1Up = false;
+    globalKeyHeld.p1Down = false;
+    globalKeyHeld.p2Up = false;
+    globalKeyHeld.p2Down = false;
   };
 
   const updateStatus = (): void => {
@@ -132,8 +146,8 @@ export function createGame(services: GameServices): MiniGameController {
     const event = updatePong(
       state,
       {
-        player1Axis: axis(held.p1Up, held.p1Down),
-        player2Axis: axis(held.p2Up, held.p2Down),
+        player1Axis: axis(isHeld('p1Up'), isHeld('p1Down')),
+        player2Axis: axis(isHeld('p2Up'), isHeld('p2Down')),
       },
       seconds,
     );
@@ -148,7 +162,7 @@ export function createGame(services: GameServices): MiniGameController {
       services.complete({
         winner: event.matchWinner,
         headline: `${services.getPlayerName(event.matchWinner)} 승리!`,
-        detail: `${String(state.scores[0])} : ${String(state.scores[1])} · ${String(state.rallyHits)}회 랠리`,
+        detail: `${String(state.scores[0])} : ${String(state.scores[1])} · 마지막 랠리 ${String(state.rallyHits)}회`,
         score: [state.scores[0], state.scores[1]],
       });
     }
@@ -323,7 +337,6 @@ export function createGame(services: GameServices): MiniGameController {
       canvas.className = 'game-canvas';
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', '네온 탁구 경기장');
-      canvas.tabIndex = 0;
       canvas.style.width = '100%';
       canvas.style.maxWidth = `${String(PONG_WIDTH)}px`;
       canvas.style.display = 'block';
@@ -340,25 +353,27 @@ export function createGame(services: GameServices): MiniGameController {
       root.append(info, canvas, controls);
       container.append(root);
 
-      bindHold(p1.up, (pressed) => (held.p1Up = pressed), input.signal);
-      bindHold(p1.down, (pressed) => (held.p1Down = pressed), input.signal);
-      bindHold(p2.up, (pressed) => (held.p2Up = pressed), input.signal);
-      bindHold(p2.down, (pressed) => (held.p2Down = pressed), input.signal);
+      holdBindings.push(
+        bindHold(p1.up, (pressed) => (controlHeld.p1Up = pressed), input.signal),
+        bindHold(p1.down, (pressed) => (controlHeld.p1Down = pressed), input.signal),
+        bindHold(p2.up, (pressed) => (controlHeld.p2Up = pressed), input.signal),
+        bindHold(p2.down, (pressed) => (controlHeld.p2Down = pressed), input.signal),
+      );
 
       const handleKey = (event: KeyboardEvent, pressed: boolean): void => {
         const active = state.phase === 'playing' || state.phase === 'countdown';
         switch (event.code) {
           case 'KeyW':
-            held.p1Up = pressed;
+            globalKeyHeld.p1Up = pressed;
             break;
           case 'KeyS':
-            held.p1Down = pressed;
+            globalKeyHeld.p1Down = pressed;
             break;
           case 'ArrowUp':
-            held.p2Up = pressed;
+            globalKeyHeld.p2Up = pressed;
             break;
           case 'ArrowDown':
-            held.p2Down = pressed;
+            globalKeyHeld.p2Down = pressed;
             break;
           default:
             return;
@@ -425,7 +440,7 @@ export function createGame(services: GameServices): MiniGameController {
     pause,
     resume,
 
-    reset(options): void {
+    reset(options): boolean {
       resetPongState(state, options?.preserveMatchScore ?? false);
       completed = false;
       reportedPhase = null;
@@ -434,6 +449,7 @@ export function createGame(services: GameServices): MiniGameController {
       updateStatus();
       loop.pause();
       render();
+      return true;
     },
 
     destroy(): void {

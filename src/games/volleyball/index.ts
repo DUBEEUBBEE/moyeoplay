@@ -1,7 +1,7 @@
 import { createCanvasSurface, type CanvasSurface } from '../../core/canvas-scaler';
 import type { GamePhase, GameServices, MiniGameController } from '../../core/game-controller';
 import { FixedStepLoop } from '../../core/game-loop';
-import { bindHold, InputManager } from '../../core/input-manager';
+import { bindHold, InputManager, type InputBinding } from '../../core/input-manager';
 import {
   VOLLEYBALL_FLOOR_Y,
   VOLLEYBALL_HEIGHT,
@@ -97,8 +97,17 @@ export function createGame(services: GameServices): MiniGameController {
   let completed = false;
   let reportedPhase: GamePhase | null = null;
   const input = new InputManager();
+  const holdBindings: InputBinding[] = [];
   const playerName = (player: 1 | 2): string => services.getPlayerName(player);
-  const held: HeldControls = {
+  const controlHeld: HeldControls = {
+    p1Left: false,
+    p1Right: false,
+    p1Jump: false,
+    p2Left: false,
+    p2Right: false,
+    p2Jump: false,
+  };
+  const globalKeyHeld: HeldControls = {
     p1Left: false,
     p1Right: false,
     p1Jump: false,
@@ -108,15 +117,24 @@ export function createGame(services: GameServices): MiniGameController {
   };
 
   const clearHeld = (): void => {
-    held.p1Left = false;
-    held.p1Right = false;
-    held.p1Jump = false;
-    held.p2Left = false;
-    held.p2Right = false;
-    held.p2Jump = false;
+    for (const binding of holdBindings) binding.release();
+    controlHeld.p1Left = false;
+    controlHeld.p1Right = false;
+    controlHeld.p1Jump = false;
+    controlHeld.p2Left = false;
+    controlHeld.p2Right = false;
+    controlHeld.p2Jump = false;
+    globalKeyHeld.p1Left = false;
+    globalKeyHeld.p1Right = false;
+    globalKeyHeld.p1Jump = false;
+    globalKeyHeld.p2Left = false;
+    globalKeyHeld.p2Right = false;
+    globalKeyHeld.p2Jump = false;
   };
 
   const axis = (left: boolean, right: boolean): number => Number(right) - Number(left);
+  const isHeld = (control: keyof HeldControls): boolean =>
+    controlHeld[control] || globalKeyHeld[control];
 
   const updateStatus = (): void => {
     if (scoreElement) {
@@ -144,10 +162,10 @@ export function createGame(services: GameServices): MiniGameController {
     const event = updateVolleyball(
       state,
       {
-        player1Axis: axis(held.p1Left, held.p1Right),
-        player1Jump: held.p1Jump,
-        player2Axis: axis(held.p2Left, held.p2Right),
-        player2Jump: held.p2Jump,
+        player1Axis: axis(isHeld('p1Left'), isHeld('p1Right')),
+        player1Jump: isHeld('p1Jump'),
+        player2Axis: axis(isHeld('p2Left'), isHeld('p2Right')),
+        player2Jump: isHeld('p2Jump'),
       },
       seconds,
     );
@@ -391,7 +409,6 @@ export function createGame(services: GameServices): MiniGameController {
       canvas.className = 'game-canvas';
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', '통통 배구 경기장');
-      canvas.tabIndex = 0;
       canvas.style.width = '100%';
       canvas.style.maxWidth = `${String(VOLLEYBALL_WIDTH)}px`;
       canvas.style.display = 'block';
@@ -407,33 +424,35 @@ export function createGame(services: GameServices): MiniGameController {
       root.append(info, canvas, controls);
       container.append(root);
 
-      bindHold(p1.left, (pressed) => (held.p1Left = pressed), input.signal);
-      bindHold(p1.right, (pressed) => (held.p1Right = pressed), input.signal);
-      bindHold(p1.jump, (pressed) => (held.p1Jump = pressed), input.signal);
-      bindHold(p2.left, (pressed) => (held.p2Left = pressed), input.signal);
-      bindHold(p2.right, (pressed) => (held.p2Right = pressed), input.signal);
-      bindHold(p2.jump, (pressed) => (held.p2Jump = pressed), input.signal);
+      holdBindings.push(
+        bindHold(p1.left, (pressed) => (controlHeld.p1Left = pressed), input.signal),
+        bindHold(p1.right, (pressed) => (controlHeld.p1Right = pressed), input.signal),
+        bindHold(p1.jump, (pressed) => (controlHeld.p1Jump = pressed), input.signal),
+        bindHold(p2.left, (pressed) => (controlHeld.p2Left = pressed), input.signal),
+        bindHold(p2.right, (pressed) => (controlHeld.p2Right = pressed), input.signal),
+        bindHold(p2.jump, (pressed) => (controlHeld.p2Jump = pressed), input.signal),
+      );
 
       const handleKey = (event: KeyboardEvent, pressed: boolean): void => {
         const active = state.phase === 'playing' || state.phase === 'countdown';
         switch (event.code) {
           case 'KeyA':
-            held.p1Left = pressed;
+            globalKeyHeld.p1Left = pressed;
             break;
           case 'KeyD':
-            held.p1Right = pressed;
+            globalKeyHeld.p1Right = pressed;
             break;
           case 'KeyW':
-            held.p1Jump = pressed;
+            globalKeyHeld.p1Jump = pressed;
             break;
           case 'ArrowLeft':
-            held.p2Left = pressed;
+            globalKeyHeld.p2Left = pressed;
             break;
           case 'ArrowRight':
-            held.p2Right = pressed;
+            globalKeyHeld.p2Right = pressed;
             break;
           case 'ArrowUp':
-            held.p2Jump = pressed;
+            globalKeyHeld.p2Jump = pressed;
             break;
           default:
             return;
@@ -500,7 +519,7 @@ export function createGame(services: GameServices): MiniGameController {
     pause,
     resume,
 
-    reset(options): void {
+    reset(options): boolean {
       resetVolleyballState(state, options?.preserveMatchScore ?? false);
       completed = false;
       reportedPhase = null;
@@ -509,6 +528,7 @@ export function createGame(services: GameServices): MiniGameController {
       updateStatus();
       loop.pause();
       render();
+      return true;
     },
 
     destroy(): void {

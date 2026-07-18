@@ -42,7 +42,8 @@ export interface MiniGameController {
   start(): void;
   pause(): void;
   resume(): void;
-  reset(options?: { preserveMatchScore?: boolean }): void;
+  /** Returns false only when a game deliberately keeps the current round. */
+  reset(options?: { preserveMatchScore?: boolean }): boolean;
   destroy(): void;
 }
 

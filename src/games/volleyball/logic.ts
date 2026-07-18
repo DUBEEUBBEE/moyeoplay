@@ -16,6 +16,9 @@ const PLAYER_JUMP_SPEED = 665;
 const PLAYER_GRAVITY = 1_650;
 const BALL_GRAVITY = 980;
 const BALL_MAX_SPEED = 1_150;
+// Alternating player/net projections converge at their shared rounded corner.
+// Keep enough bounded passes to clear the final sub-pixel overlap there.
+const MAX_COLLISION_PASSES = 12;
 
 export interface VolleyballPlayer {
   x: number;
@@ -225,18 +228,13 @@ export function resolveBallPlayerCollision(
   ball: VolleyballBall,
   gamePlayer: VolleyballPlayer,
 ): boolean {
-  let deltaX = ball.x - gamePlayer.x;
-  let deltaY = ball.y - gamePlayer.y;
-  let distance = Math.hypot(deltaX, deltaY);
+  const deltaX = ball.x - gamePlayer.x;
+  const deltaY = ball.y - gamePlayer.y;
+  const distance = Math.hypot(deltaX, deltaY);
   const minimumDistance = ball.radius + gamePlayer.radius;
   if (distance >= minimumDistance) return false;
-  if (distance < 0.0001) {
-    deltaX = 0;
-    deltaY = -1;
-    distance = 1;
-  }
-  const normalX = deltaX / distance;
-  const normalY = deltaY / distance;
+  const normalX = distance < 0.0001 ? 0 : deltaX / distance;
+  const normalY = distance < 0.0001 ? -1 : deltaY / distance;
   const penetration = minimumDistance - distance;
   ball.x += normalX * (penetration + 0.05);
   ball.y += normalY * (penetration + 0.05);
@@ -369,10 +367,23 @@ function updateBall(state: VolleyballState, seconds: number): VolleyballUpdateEv
       ball.velocityY = Math.abs(ball.velocityY) * 0.82;
     }
 
-    if (resolveBallNetCollision(ball)) event.netHit = true;
-    if (resolveBallPlayerCollision(ball, state.players[0])) event.playerHit = 1;
-    if (resolveBallPlayerCollision(ball, state.players[1])) event.playerHit = 2;
-    clampBallSpeed(ball);
+    for (let pass = 0; pass < MAX_COLLISION_PASSES; pass += 1) {
+      let collided = false;
+      if (resolveBallNetCollision(ball)) {
+        event.netHit = true;
+        collided = true;
+      }
+      if (resolveBallPlayerCollision(ball, state.players[0])) {
+        event.playerHit = 1;
+        collided = true;
+      }
+      if (resolveBallPlayerCollision(ball, state.players[1])) {
+        event.playerHit = 2;
+        collided = true;
+      }
+      clampBallSpeed(ball);
+      if (!collided) break;
+    }
 
     if (ball.y + ball.radius >= VOLLEYBALL_FLOOR_Y) {
       ball.y = VOLLEYBALL_FLOOR_Y - ball.radius;

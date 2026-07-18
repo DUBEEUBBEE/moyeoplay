@@ -1,7 +1,7 @@
 import { createCanvasSurface, type CanvasSurface } from '../../core/canvas-scaler';
 import type { GamePhase, GameServices, MiniGameController } from '../../core/game-controller';
 import { FixedStepLoop } from '../../core/game-loop';
-import { InputManager } from '../../core/input-manager';
+import { bindPressActions, InputManager, type InputBinding } from '../../core/input-manager';
 import {
   PINBALL_FLOOR_Y,
   PINBALL_HEIGHT,
@@ -30,7 +30,7 @@ function statusMessage(state: PinballState, playerName: (player: 1 | 2) => strin
     case 'countdown':
       return `${String(state.roundNumber)}라운드 · ${String(Math.max(1, Math.ceil(state.countdownRemaining)))}초 후 출발`;
     case 'playing':
-      return `${state.elapsed.toFixed(1)}초 경과`;
+      return '두 공이 내려가는 중';
     case 'paused':
       return '일시정지됨';
     case 'roundOver': {
@@ -64,6 +64,7 @@ export function createGame(services: GameServices): MiniGameController {
   let completed = false;
   let reportedPhase: GamePhase | null = null;
   let hitSoundCooldown = 0;
+  let boostBinding: InputBinding | null = null;
   const input = new InputManager();
   const playerName = (player: 1 | 2): string => services.getPlayerName(player);
 
@@ -109,14 +110,15 @@ export function createGame(services: GameServices): MiniGameController {
     services.setPhase(state.phase, statusMessage(state, playerName));
   };
 
-  const useBoost = (player: 1 | 2): void => {
-    if (!applyPinballBoost(state, player)) return;
+  const useBoost = (player: 1 | 2): boolean => {
+    if (!applyPinballBoost(state, player)) return false;
     services.audio.hit(0.9);
     const boostedBall = player === 1 ? state.balls[0] : state.balls[1];
     services.announce(
       `${services.getPlayerName(player)} 부스터, ${String(boostedBall.boostsRemaining)}회 남음`,
     );
     updateStatus();
+    return true;
   };
 
   const update = (stepSeconds: number): void => {
@@ -314,6 +316,7 @@ export function createGame(services: GameServices): MiniGameController {
   const pause = (): void => {
     if (state.phase !== 'playing' && state.phase !== 'countdown' && state.phase !== 'roundOver')
       return;
+    boostBinding?.release();
     state.pausedFrom = state.phase;
     state.phase = 'paused';
     loop.pause();
@@ -353,7 +356,6 @@ export function createGame(services: GameServices): MiniGameController {
       canvas.className = 'game-canvas';
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', '대칭 핀볼 드롭 경기장');
-      canvas.tabIndex = 0;
       canvas.style.width = '100%';
       canvas.style.maxWidth = `${String(PINBALL_WIDTH)}px`;
       canvas.style.display = 'block';
@@ -369,8 +371,13 @@ export function createGame(services: GameServices): MiniGameController {
       root.append(info, canvas, controls);
       container.append(root);
 
-      input.listen(p1Button, 'click', () => useBoost(1));
-      input.listen(p2Button, 'click', () => useBoost(2));
+      boostBinding = bindPressActions(
+        [
+          { button: p1Button, onPress: () => useBoost(1) },
+          { button: p2Button, onPress: () => useBoost(2) },
+        ],
+        input.signal,
+      );
       input.listen(window, 'keydown', (event) => {
         if (event.repeat) return;
         if (event.code === 'KeyA') {
@@ -423,7 +430,8 @@ export function createGame(services: GameServices): MiniGameController {
     pause,
     resume,
 
-    reset(options): void {
+    reset(options): boolean {
+      boostBinding?.release();
       resetPinballState(state, options?.preserveMatchScore ?? false);
       completed = false;
       reportedPhase = null;
@@ -431,10 +439,12 @@ export function createGame(services: GameServices): MiniGameController {
       updateStatus();
       loop.pause();
       render();
+      return true;
     },
 
     destroy(): void {
       loop.stop();
+      boostBinding?.release();
       input.destroy();
       root?.remove();
       root = null;
@@ -443,6 +453,7 @@ export function createGame(services: GameServices): MiniGameController {
       statusElement = null;
       timeElement = null;
       boostButtons = null;
+      boostBinding = null;
       mounted = false;
       state = createPinballState();
     },

@@ -1,4 +1,14 @@
-import type { GameDefinition } from '../core/game-controller';
+import type { GameDefinition, GameId, GameModule } from '../core/game-controller';
+
+const RETRY_GAME_LOADERS = import.meta.glob<GameModule>('../games/*/index.ts', {
+  query: { moyeoplayRetry: '1' },
+});
+
+export function loadGameForRetry(gameId: GameId): Promise<GameModule> {
+  const loader = RETRY_GAME_LOADERS[`../games/${gameId}/index.ts`];
+  if (!loader) return Promise.reject(new Error(`Retry loader is unavailable for ${gameId}`));
+  return loader();
+}
 
 export const GAME_DEFINITIONS: readonly GameDefinition[] = [
   {
@@ -114,7 +124,7 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
     rules: [
       'P1은 F, P2는 J 또는 각자의 화면 영역을 누릅니다.',
       '신호 전에 누르면 해당 라운드는 부정 출발 패배입니다.',
-      '매번 다른 대기 시간으로 진행하며 5판 3선승입니다.',
+      '매번 다른 대기 시간으로 진행하며 먼저 3점을 얻으면 승리합니다.',
     ],
     load: () => import('../games/reaction-duel'),
   },

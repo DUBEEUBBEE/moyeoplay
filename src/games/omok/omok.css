@@ -43,6 +43,45 @@
   backdrop-filter: blur(12px);
 }
 
+.omok-placement-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  border: 2px solid color-mix(in srgb, var(--omok-yellow) 72%, white 8%);
+  border-radius: 0.85rem;
+  background: rgba(255, 212, 71, 0.1);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+}
+
+.omok-placement-controls[hidden] {
+  display: none;
+}
+
+.omok-placement-controls p {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+}
+
+.omok-placement-controls p strong {
+  color: var(--omok-yellow);
+  font-size: 1.1rem;
+}
+
+.omok-placement-controls p span {
+  color: var(--color-text-muted, #c4cbd6);
+  font-size: 0.78rem;
+}
+
+.omok-placement-controls > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
 .omok-player-card {
   position: relative;
   display: flex;
@@ -253,9 +292,21 @@
   font-size: 0.95rem;
 }
 
-.omok-turn-panel > span:last-child {
+.omok-turn-panel [data-role='coordinate-label'] {
   color: var(--color-text-muted, #a9b2c2);
   font-size: 0.76rem;
+}
+
+.omok-rule-badge {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(255, 212, 71, 0.34);
+  border-radius: 999px;
+  color: #fff2a3 !important;
+  background: rgba(255, 212, 71, 0.1);
+  font-size: 0.72rem !important;
+  font-weight: 800;
 }
 
 .omok-settings {
@@ -287,7 +338,7 @@
 .omok-settings select,
 .omok-coordinate-controls select {
   min-width: 0;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.42rem 1.7rem 0.42rem 0.55rem;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 0.55rem;
@@ -475,6 +526,14 @@
 
   .omok-panel {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .omok-placement-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .omok-placement-controls > div {
+    width: 100%;
   }
 
   .omok-keyboard-controls,

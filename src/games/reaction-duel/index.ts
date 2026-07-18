@@ -1,6 +1,14 @@
 import type { GamePhase, GameServices, MiniGameController } from '../../core/game-controller';
 import { queryRequired, setText } from '../../core/dom';
-import { reactionWaitMs, resolveReaction, REACTION_TARGET_SCORE } from './logic';
+import { bindActivationRepeatGuard } from '../../core/input-manager';
+import {
+  isFalseStart,
+  normalizeEventTimestamp,
+  reactionWaitMs,
+  resolveReaction,
+  REACTION_RESOLVE_BUFFER_MS,
+  REACTION_TARGET_SCORE,
+} from './logic';
 import './reaction-duel.css';
 
 type Player = 1 | 2;
@@ -9,7 +17,7 @@ const MARKUP = `
   <section class="reaction-game" data-signal="idle" aria-label="반응속도 대결">
     <header class="reaction-head">
       <div class="reaction-player"><i class="player-dot player-dot--one"></i><small data-name="1">PLAYER 1</small><strong data-score="1">0</strong></div>
-      <div class="reaction-round"><span>BEST OF 5</span><b data-round>ROUND 1</b></div>
+      <div class="reaction-round"><span>FIRST TO 3</span><b data-round>ROUND 1</b></div>
       <div class="reaction-player reaction-player--two"><strong data-score="2">0</strong><small data-name="2">PLAYER 2</small><i class="player-dot player-dot--two"></i></div>
     </header>
     <div class="reaction-arena">
@@ -37,6 +45,7 @@ class ReactionDuelController implements MiniGameController {
   #remainingWait = 0;
   #pauseStartedAt = 0;
   #pausedFrom: 'countdown' | 'playing' | null = null;
+  readonly #activePointers = new Map<number, HTMLButtonElement>();
 
   constructor(services: GameServices) {
     this.#services = services;
@@ -62,6 +71,7 @@ class ReactionDuelController implements MiniGameController {
 
   pause(): void {
     if (this.#phase !== 'countdown' && this.#phase !== 'playing') return;
+    this.#releaseAllPointers();
     this.#pausedFrom = this.#phase;
     this.#pauseStartedAt = performance.now();
     if (this.#phase === 'countdown') {
@@ -71,11 +81,13 @@ class ReactionDuelController implements MiniGameController {
       );
       this.#signalAt = null;
       window.clearTimeout(this.#signalTimer);
+      this.#signalTimer = 0;
     }
     if (this.#phase === 'playing' && this.#presses.some((press) => press !== null)) {
       this.#remainingResolve = Math.max(0, this.#resolveDueAt - this.#pauseStartedAt);
     }
     window.clearTimeout(this.#resolveTimer);
+    this.#resolveTimer = 0;
     this.#phase = 'paused';
     this.#setSignal('idle', 'PAUSE');
     this.#setMessage('일시정지되었습니다. 계속하기를 눌러 주세요.');
@@ -107,7 +119,10 @@ class ReactionDuelController implements MiniGameController {
       if (this.#presses.some((press) => press !== null)) {
         const delay = this.#remainingResolve;
         this.#resolveDueAt = performance.now() + delay;
-        this.#resolveTimer = window.setTimeout(() => this.#resolvePresses(), delay);
+        this.#resolveTimer = window.setTimeout(() => {
+          this.#resolveTimer = 0;
+          this.#resolvePresses();
+        }, delay);
         this.#remainingResolve = 0;
       }
       this.#setSignal('go', 'NOW!');
@@ -116,7 +131,7 @@ class ReactionDuelController implements MiniGameController {
     }
   }
 
-  reset(options?: { preserveMatchScore?: boolean }): void {
+  reset(options?: { preserveMatchScore?: boolean }): boolean {
     this.#clearTimers();
     if (!options?.preserveMatchScore) this.#scores = [0, 0];
     this.#round = options?.preserveMatchScore ? this.#round : 1;
@@ -124,14 +139,18 @@ class ReactionDuelController implements MiniGameController {
     this.#signalAt = null;
     this.#presses = [null, null];
     this.#remainingWait = 0;
+    this.#pauseStartedAt = 0;
+    this.#releaseAllPointers();
     this.#setSignal('idle', 'READY');
     this.#setMessage('시작을 눌러 준비하세요.');
     this.#render();
     this.#services.setPhase('idle');
+    return true;
   }
 
   destroy(): void {
     this.#clearTimers();
+    this.#releaseAllPointers();
     this.#abort.abort();
     this.#root = null;
   }
@@ -144,40 +163,68 @@ class ReactionDuelController implements MiniGameController {
       (event) => {
         if (event.repeat) return;
         const key = event.key.toLowerCase();
-        if (key === 'f') this.#press(1, performance.now());
-        else if (key === 'j') this.#press(2, performance.now());
+        if (key === 'f') this.#press(1, this.#eventTime(event));
+        else if (key === 'j') this.#press(2, this.#eventTime(event));
         else return;
         if (this.#phase === 'countdown' || this.#phase === 'playing') event.preventDefault();
       },
       { signal },
     );
     for (const player of [1, 2] as const) {
-      queryRequired<HTMLButtonElement>(
+      const zone = queryRequired<HTMLButtonElement>(
         this.#root,
         `[data-reaction-zone="${String(player)}"]`,
-      ).addEventListener(
+      );
+      zone.dataset.pressed = 'false';
+      bindActivationRepeatGuard(zone, signal);
+      zone.addEventListener(
         'pointerdown',
         (event) => {
           event.preventDefault();
-          this.#press(player, performance.now());
+          if (this.#activePointers.has(event.pointerId)) return;
+          this.#activePointers.set(event.pointerId, zone);
+          zone.dataset.pressed = 'true';
+          try {
+            zone.setPointerCapture(event.pointerId);
+          } catch {
+            // Pointer capture is an optional enhancement.
+          }
+          this.#press(player, this.#eventTime(event));
         },
         { signal },
       );
-      queryRequired<HTMLButtonElement>(
-        this.#root,
-        `[data-reaction-zone="${String(player)}"]`,
-      ).addEventListener(
+      for (const eventName of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
+        zone.addEventListener(eventName, (event) => this.#releasePointer(event.pointerId), {
+          signal,
+        });
+      }
+      zone.addEventListener(
         'click',
         (event) => {
-          if (event.detail === 0) this.#press(player, performance.now());
+          if (event.detail === 0) this.#press(player, this.#eventTime(event));
         },
         { signal },
       );
     }
+    window.addEventListener('pointerup', (event) => this.#releasePointer(event.pointerId), {
+      capture: true,
+      signal,
+    });
+    window.addEventListener('pointercancel', (event) => this.#releasePointer(event.pointerId), {
+      capture: true,
+      signal,
+    });
+    window.addEventListener('blur', () => this.#releaseAllPointers(), { signal });
+    document.addEventListener(
+      'visibilitychange',
+      () => document.hidden && this.#releaseAllPointers(),
+      { signal },
+    );
   }
 
   #beginRound(): void {
     this.#clearTimers();
+    this.#releaseAllPointers();
     this.#phase = 'countdown';
     this.#presses = [null, null];
     this.#signalAt = null;
@@ -195,6 +242,7 @@ class ReactionDuelController implements MiniGameController {
     const dueAt = performance.now() + wait;
     this.#signalAt = dueAt;
     this.#signalTimer = window.setTimeout(() => {
+      this.#signalTimer = 0;
       this.#signalAt = performance.now();
       this.#phase = 'playing';
       this.#setSignal('go', 'NOW!');
@@ -206,23 +254,29 @@ class ReactionDuelController implements MiniGameController {
     }, wait);
   }
 
-  #press(player: Player, now: number): void {
-    if (this.#phase === 'countdown') {
+  #press(player: Player, pressedAt: number): void {
+    if (
+      this.#phase === 'countdown' ||
+      (this.#phase === 'playing' && isFalseStart(this.#signalAt, pressedAt))
+    ) {
       this.#setSignal('false', 'FALSE');
       this.#finishRound(player === 1 ? 2 : 1, `${this.#services.getPlayerName(player)} 부정 출발`);
       return;
     }
     if (this.#phase !== 'playing' || this.#signalAt === null) return;
     if (this.#presses[player - 1] !== null) return;
-    this.#presses[player - 1] = now;
+    this.#presses[player - 1] = pressedAt;
     this.#renderTimes();
     if (this.#presses[0] !== null && this.#presses[1] !== null) {
       this.#resolvePresses();
       return;
     }
     window.clearTimeout(this.#resolveTimer);
-    this.#resolveDueAt = now + 12;
-    this.#resolveTimer = window.setTimeout(() => this.#resolvePresses(), 12);
+    this.#resolveDueAt = performance.now() + REACTION_RESOLVE_BUFFER_MS;
+    this.#resolveTimer = window.setTimeout(() => {
+      this.#resolveTimer = 0;
+      this.#resolvePresses();
+    }, REACTION_RESOLVE_BUFFER_MS);
   }
 
   #resolvePresses(): void {
@@ -239,6 +293,7 @@ class ReactionDuelController implements MiniGameController {
 
   #finishRound(winner: 0 | 1 | 2, detail: string): void {
     this.#clearTimers();
+    this.#releaseAllPointers();
     if (winner === 1) {
       this.#scores[0] += 1;
       this.#services.audio.score(winner);
@@ -311,6 +366,31 @@ class ReactionDuelController implements MiniGameController {
     setText(queryRequired(this.#root, '[data-message]'), message);
   }
 
+  #eventTime(event: Event): number {
+    const now = performance.now();
+    return normalizeEventTimestamp(event.timeStamp, now, performance.timeOrigin);
+  }
+
+  #releasePointer(pointerId: number): void {
+    const zone = this.#activePointers.get(pointerId);
+    if (!zone) return;
+    this.#activePointers.delete(pointerId);
+    if (![...this.#activePointers.values()].includes(zone)) zone.dataset.pressed = 'false';
+  }
+
+  #releaseAllPointers(): void {
+    const captures = [...this.#activePointers.entries()];
+    this.#activePointers.clear();
+    for (const [pointerId, zone] of captures) {
+      zone.dataset.pressed = 'false';
+      try {
+        if (zone.hasPointerCapture(pointerId)) zone.releasePointerCapture(pointerId);
+      } catch {
+        // The pointer may have ended already or capture may be unsupported.
+      }
+    }
+  }
+
   #clearTimers(): void {
     window.clearTimeout(this.#signalTimer);
     window.clearTimeout(this.#resolveTimer);
@@ -318,6 +398,8 @@ class ReactionDuelController implements MiniGameController {
     this.#resolveTimer = 0;
     this.#resolveDueAt = 0;
     this.#remainingResolve = 0;
+    this.#remainingWait = 0;
+    this.#pauseStartedAt = 0;
     this.#pausedFrom = null;
   }
 }

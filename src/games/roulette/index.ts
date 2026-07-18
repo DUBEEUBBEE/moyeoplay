@@ -245,7 +245,7 @@ class RouletteController implements MiniGameController {
     this.#scheduleFrame();
   }
 
-  reset(): void {
+  reset(): boolean {
     this.#cancelFrame();
     this.#phase = 'idle';
     this.#rotation = 0;
@@ -263,6 +263,7 @@ class RouletteController implements MiniGameController {
       this.#draw();
     }
     this.#services.setPhase('idle', '벌칙 룰렛을 다시 준비했습니다.');
+    return true;
   }
 
   destroy(): void {
@@ -627,12 +628,48 @@ class RouletteController implements MiniGameController {
     if (!result) return;
     const text = `벌칙 룰렛 결과: ${result}`;
     try {
-      await navigator.clipboard.writeText(text);
+      const clipboard = Reflect.get(navigator, 'clipboard') as
+        Pick<Clipboard, 'writeText'> | undefined;
+      if (clipboard && typeof clipboard.writeText === 'function') {
+        await clipboard.writeText(text);
+      } else if (!this.#copyWithTemporaryInput(text)) {
+        throw new Error('Clipboard API is unavailable');
+      }
       this.#setStatus(`결과 “${result}”을 클립보드에 복사했습니다.`);
       this.#services.announce('룰렛 결과를 복사했습니다.');
     } catch {
-      this.#setStatus('결과를 복사하지 못했습니다. 텍스트를 직접 선택해 주세요.');
-      this.#services.announce('클립보드 복사를 완료하지 못했습니다.');
+      if (this.#copyWithTemporaryInput(text)) {
+        this.#setStatus(`결과 “${result}”을 클립보드에 복사했습니다.`);
+        this.#services.announce('룰렛 결과를 복사했습니다.');
+      } else {
+        this.#view?.resultText.setAttribute('tabindex', '0');
+        this.#view?.resultText.focus();
+        this.#setStatus('결과를 복사하지 못했습니다. 결과 텍스트를 길게 눌러 복사해 주세요.');
+        this.#services.announce('결과 텍스트에 포커스를 옮겼습니다. 직접 선택해 주세요.');
+      }
+    }
+  }
+
+  #copyWithTemporaryInput(value: string): boolean {
+    const root = this.#view?.root;
+    const legacyDocument = document as unknown as {
+      execCommand?: (command: string) => boolean;
+    };
+    if (!root || typeof legacyDocument.execCommand !== 'function') return false;
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.readOnly = true;
+    input.setAttribute('aria-hidden', 'true');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    root.append(input);
+    input.select();
+    try {
+      return legacyDocument.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      input.remove();
     }
   }
 

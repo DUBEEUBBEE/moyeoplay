@@ -1,5 +1,6 @@
 import { queryRequired, setText } from '../../core/dom';
 import type { GamePhase, GameServices, MiniGameController } from '../../core/game-controller';
+import { bindActivationRepeatGuard } from '../../core/input-manager';
 import {
   DEFAULT_TAP_DURATION_SECONDS,
   countTap,
@@ -139,6 +140,7 @@ class TapBattleController implements MiniGameController {
   #segmentStartedAt = 0;
   #activePointerIds: ReadonlySet<number> = new Set();
   readonly #pointerZones = new Map<number, HTMLButtonElement>();
+  #lastAudioHitAt = Number.NEGATIVE_INFINITY;
 
   constructor(services: GameServices) {
     this.#services = services;
@@ -169,6 +171,7 @@ class TapBattleController implements MiniGameController {
     this.#cancelFrame();
     this.#releaseAllPointers();
     this.#counts = [0, 0];
+    this.#lastAudioHitAt = Number.NEGATIVE_INFINITY;
     this.#elapsedBeforeSegment = 0;
     this.#segmentStartedAt = performance.now();
     this.#phase = 'playing';
@@ -208,11 +211,12 @@ class TapBattleController implements MiniGameController {
     this.#scheduleFrame();
   }
 
-  reset(): void {
+  reset(): boolean {
     this.#cancelFrame();
     this.#releaseAllPointers();
     this.#phase = 'idle';
     this.#counts = [0, 0];
+    this.#lastAudioHitAt = Number.NEGATIVE_INFINITY;
     this.#elapsedBeforeSegment = 0;
     if (this.#view) {
       this.#renderNames();
@@ -222,6 +226,7 @@ class TapBattleController implements MiniGameController {
       this.#render(0);
     }
     this.#services.setPhase('idle', '탭 배틀을 처음 상태로 되돌렸습니다.');
+    return true;
   }
 
   destroy(): void {
@@ -232,6 +237,7 @@ class TapBattleController implements MiniGameController {
     this.#view = null;
     this.#phase = 'idle';
     this.#counts = [0, 0];
+    this.#lastAudioHitAt = Number.NEGATIVE_INFINITY;
     this.#elapsedBeforeSegment = 0;
   }
 
@@ -273,6 +279,7 @@ class TapBattleController implements MiniGameController {
 
     view.zones.forEach((zone, index) => {
       const player = (index + 1) as TapPlayer;
+      bindActivationRepeatGuard(zone, signal);
       zone.addEventListener(
         'pointerdown',
         (event) => {
@@ -307,6 +314,21 @@ class TapBattleController implements MiniGameController {
         { signal },
       );
     });
+
+    window.addEventListener('pointerup', (event) => this.#releasePointer(event.pointerId), {
+      capture: true,
+      signal,
+    });
+    window.addEventListener('pointercancel', (event) => this.#releasePointer(event.pointerId), {
+      capture: true,
+      signal,
+    });
+    window.addEventListener('blur', () => this.#releaseAllPointers(), { signal });
+    document.addEventListener(
+      'visibilitychange',
+      () => document.hidden && this.#releaseAllPointers(),
+      { signal },
+    );
   }
 
   #tap(player: TapPlayer, now: number): boolean {
@@ -316,7 +338,12 @@ class TapBattleController implements MiniGameController {
       return false;
     }
     this.#counts = countTap(this.#counts, player);
-    this.#services.audio.hit(0.32);
+    // Count every valid tap, but coalesce its sound so rapid two-player bursts do
+    // not allocate an oscillator/gain pair for every individual pointer event.
+    if (now - this.#lastAudioHitAt >= 40) {
+      this.#lastAudioHitAt = now;
+      this.#services.audio.hit(0.32);
+    }
     this.#renderScores(this.#elapsedAt(now));
     return true;
   }
