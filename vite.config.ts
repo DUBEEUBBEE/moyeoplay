@@ -16,8 +16,12 @@ function siteMetadataPlugin(siteUrl?: string): Plugin {
           `<meta property="og:url" content="${normalizedUrl}" />\n    <link rel="canonical" href="${normalizedUrl}" />`,
         )
         .replace(
-          '<meta property="og:image" content="./og-cover.svg" />',
-          `<meta property="og:image" content="${normalizedUrl}og-cover.svg" />`,
+          '<meta property="og:image" content="./og-cover.png" />',
+          `<meta property="og:image" content="${normalizedUrl}og-cover.png" />`,
+        )
+        .replace(
+          '<meta name="twitter:image" content="./og-cover.png" />',
+          `<meta name="twitter:image" content="${normalizedUrl}og-cover.png" />`,
         );
     },
     generateBundle() {
@@ -51,6 +55,6 @@ export default defineConfig({
   build: {
     target: 'es2020',
     cssCodeSplit: true,
-    sourcemap: true,
+    sourcemap: false,
   },
 });
