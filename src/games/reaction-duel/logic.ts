@@ -2,6 +2,9 @@ import type { RandomSource } from '../../core/seeded-random';
 
 export const REACTION_TARGET_SCORE = 3;
 export const REACTION_TIE_WINDOW_MS = 8;
+// The 12ms buffer lets an event inside the 8ms tie window reach the handler before resolution.
+// It does not widen the tie window; resolveReaction still compares the original event timestamps.
+export const REACTION_RESOLVE_BUFFER_MS = 12;
 
 export interface ReactionOutcome {
   winner: 0 | 1 | 2;
@@ -20,6 +23,20 @@ export function reactionWaitMs(random: RandomSource, min = 1_350, max = 3_750): 
 
 export function isFalseStart(signalAt: number | null, pressedAt: number): boolean {
   return signalAt === null || pressedAt < signalAt;
+}
+
+export function normalizeEventTimestamp(
+  eventTimestamp: number,
+  now: number,
+  timeOrigin: number,
+): number {
+  if (!Number.isFinite(eventTimestamp) || eventTimestamp <= 0 || !Number.isFinite(now)) return now;
+  const normalized =
+    eventTimestamp > 1_000_000_000_000 && Number.isFinite(timeOrigin)
+      ? eventTimestamp - timeOrigin
+      : eventTimestamp;
+  if (!Number.isFinite(normalized) || normalized < 0 || normalized > now + 1_000) return now;
+  return Math.min(normalized, now);
 }
 
 export function resolveReaction(

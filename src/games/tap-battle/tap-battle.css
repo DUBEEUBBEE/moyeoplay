@@ -425,8 +425,12 @@
 
 @media (orientation: landscape) and (max-height: 500px) {
   .tap-battle {
-    grid-template-columns: minmax(11rem, 0.32fr) minmax(0, 1fr);
-    gap: 0.55rem;
+    position: relative;
+    grid-template-columns: minmax(10rem, 0.3fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(44px, 1fr);
+    gap: 4px;
+    height: 100%;
+    min-height: 0;
   }
 
   .tap-battle__scoreboard,
@@ -439,31 +443,80 @@
 
   .tap-battle__scoreboard {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 44px 44px;
+    gap: 4px;
+    height: 92px;
+    overflow: hidden;
   }
 
   .tap-battle__clock {
     grid-column: 1 / -1;
     grid-row: 1;
-    min-height: 3.7rem;
+    min-height: 44px;
+    padding: 0.25rem;
+  }
+
+  .tap-battle__clock strong {
+    margin-block: 0.1rem;
+    font-size: 1.25rem;
+  }
+
+  .tap-battle__clock span {
+    font-size: 11px;
+  }
+
+  .tap-battle__clock small {
+    display: none;
   }
 
   .tap-battle__player {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    padding: 0.4rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1fr;
+    height: 44px;
+    padding: 0.2rem 0.35rem;
     text-align: center;
+  }
+
+  .tap-battle__name,
+  .tap-battle__rate {
+    font-size: 11px;
+  }
+
+  .tap-battle__rate {
+    display: none;
+  }
+
+  .tap-battle__count {
+    font-size: 1.5rem;
   }
 
   .tap-battle__player--two .tap-battle__count,
   .tap-battle__player--two .tap-battle__name,
   .tap-battle__player--two .tap-battle__rate,
   .tap-battle__count {
+    grid-row: 1;
+  }
+
+  .tap-battle__player--two .tap-battle__count {
     grid-column: 1;
-    grid-row: auto;
+  }
+
+  .tap-battle__player--two .tap-battle__name {
+    grid-column: 2;
+  }
+
+  .tap-battle__player--one .tap-battle__count {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .tap-battle__toolbar {
-    padding: 0.35rem 0.5rem;
+    height: 44px;
+    padding: 0 0.4rem;
+  }
+
+  .tap-battle__toolbar select {
+    min-height: 44px;
   }
 
   .tap-battle__toolbar span {
@@ -476,14 +529,37 @@
 
   .tap-battle__arena {
     grid-column: 2;
-    grid-row: 1 / span 5;
-    min-height: 285px;
+    grid-row: 1 / -1;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tap-battle__zone {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.45rem;
+  }
+
+  .tap-battle__zone > span:nth-of-type(2) {
+    font-size: 11px;
   }
 
   .tap-battle__status {
-    min-height: 0;
-    padding: 0.45rem;
-    font-size: 0.68rem;
+    height: 44px;
+    min-height: 44px;
+    overflow: hidden;
+    padding: 0.25rem 0.4rem;
+    font-size: 11px;
+  }
+
+  .tap-battle__result:not([hidden]) {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: calc(30% + 0.55rem);
+    z-index: 3;
+    max-height: calc(100% - 1rem);
+    overflow: auto;
   }
 }
 

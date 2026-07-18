@@ -276,6 +276,7 @@
 }
 
 .roulette-result strong {
+  user-select: text;
   max-width: 100%;
   color: var(--ink, #f7f8fb);
   font-size: clamp(1.2rem, 4vw, 1.85rem);

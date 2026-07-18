@@ -37,6 +37,20 @@ describe('roulette item handling', () => {
       RangeError,
     );
   });
+
+  it('normalizes the 12-item boundary with Korean, emoji, and blank entries', () => {
+    const values = [
+      '긴 한글 벌칙 '.repeat(20),
+      '🎯🎉',
+      '   ',
+      ...Array.from({ length: 9 }, (_, index) => `항목 ${String(index + 4)}`),
+    ];
+    const normalized = normalizeRouletteItems(values);
+    expect(normalized).toHaveLength(12);
+    expect(Array.from(normalized[0] ?? '')).toHaveLength(MAX_ROULETTE_ITEM_CHARACTERS);
+    expect(normalized[1]).toBe('🎯🎉');
+    expect(normalized[2]).toBe('벌칙 3');
+  });
 });
 
 describe('roulette selection and angle mapping', () => {
