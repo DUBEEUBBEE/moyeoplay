@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { createSeededRandom, randomInt, shuffle } from './seeded-random';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createSeededRandom, randomInt, secureRandomIndex, shuffle } from './seeded-random';
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('seeded random', () => {
   it('reproduces the same stream for the same seed', () => {
@@ -18,5 +20,23 @@ describe('seeded random', () => {
     expect(shuffle([1, 2, 3, 4], createSeededRandom(10))).toEqual(
       shuffle([1, 2, 3, 4], createSeededRandom(10)),
     );
+  });
+
+  it('uses rejection sampling for secure indices and never falls back to Math.random', () => {
+    const samples = [0xffff_ffff, 5];
+    vi.stubGlobal('crypto', {
+      getRandomValues(values: Uint32Array) {
+        values[0] = samples.shift() ?? 0;
+        return values;
+      },
+    });
+    expect(secureRandomIndex(3)).toBe(2);
+
+    vi.stubGlobal('crypto', undefined);
+    expect(() => secureRandomIndex(3)).toThrow('Secure random values are unavailable');
+  });
+
+  it('rejects lengths that cannot be represented by a 32-bit sample', () => {
+    expect(() => secureRandomIndex(0x1_0000_0001)).toThrow(RangeError);
   });
 });

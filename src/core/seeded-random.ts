@@ -38,11 +38,13 @@ export function shuffle<T>(values: readonly T[], random: RandomSource): T[] {
 }
 
 export function secureRandomIndex(length: number): number {
-  if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError('length must be positive');
-  if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
-    return randomInt(Math.random, length);
-  }
   const range = 0x1_0000_0000;
+  if (!Number.isSafeInteger(length) || length <= 0 || length > range) {
+    throw new RangeError('length must be an integer between 1 and 2^32');
+  }
+  if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
+    throw new Error('Secure random values are unavailable in this browser');
+  }
   const ceiling = range - (range % length);
   const sample = new Uint32Array(1);
   do crypto.getRandomValues(sample);

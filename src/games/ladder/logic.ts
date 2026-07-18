@@ -1,7 +1,9 @@
-import { createSeededRandom, shuffle } from '../../core/seeded-random';
+import { secureRandomIndex } from '../../core/seeded-random';
 
 export const MIN_PARTICIPANTS = 2;
 export const MAX_PARTICIPANTS = 8;
+
+export type RandomIndexSource = (maxExclusive: number) => number;
 
 export interface LadderRung {
   readonly row: number;
@@ -24,14 +26,13 @@ export interface LadderTrace {
 export interface LadderLayout {
   readonly participantCount: number;
   readonly rowCount: number;
-  readonly seed: string;
   readonly rungs: readonly LadderRung[];
+  /** The uniformly selected target permutation, expressed as start -> end. */
   readonly mapping: readonly number[];
 }
 
-export interface GenerateLadderOptions {
+export interface LadderFromPermutationOptions {
   readonly rowCount?: number;
-  readonly density?: number;
 }
 
 function assertParticipantCount(participantCount: number): void {
@@ -48,6 +49,10 @@ function assertRowCount(rowCount: number, participantCount: number): void {
   if (!Number.isInteger(rowCount) || rowCount < participantCount - 1) {
     throw new RangeError('rowCount must be an integer large enough to cover every gap');
   }
+}
+
+function swap(values: unknown[], left: number, right: number): void {
+  [values[left], values[right]] = [values[right], values[left]];
 }
 
 export function defaultRowCount(participantCount: number): number {
@@ -104,71 +109,6 @@ export function hasRungInEveryGap(participantCount: number, rungs: readonly Ladd
   );
 }
 
-function buildRungs(
-  participantCount: number,
-  rowCount: number,
-  density: number,
-  seed: string,
-): LadderRung[] {
-  const random = createSeededRandom(seed);
-  const matrix = Array.from({ length: rowCount }, () =>
-    Array.from({ length: participantCount - 1 }, () => false),
-  );
-
-  // First give every gap a rung on its own row. This prevents a visually dead
-  // lane even for an unlucky seed and also establishes a useful baseline path.
-  const coverageRows = shuffle(
-    Array.from({ length: rowCount }, (_, row) => row),
-    random,
-  );
-  for (let gap = 0; gap < participantCount - 1; gap += 1) {
-    const row = coverageRows[gap];
-    const rowData = row === undefined ? undefined : matrix[row];
-    if (rowData) rowData[gap] = true;
-  }
-
-  const capacity = rowCount * Math.ceil((participantCount - 1) / 2);
-  let target = Math.min(
-    capacity,
-    Math.max(participantCount * 2, Math.round(rowCount * (participantCount - 1) * density)),
-  );
-  // With two lanes an even number of swaps is the identity. Prefer a real
-  // choice while keeping the requested density.
-  if (participantCount === 2 && target % 2 === 0) target = Math.min(capacity, target + 1);
-
-  const candidates = shuffle(
-    Array.from({ length: rowCount * (participantCount - 1) }, (_, index) => ({
-      row: Math.floor(index / (participantCount - 1)),
-      left: index % (participantCount - 1),
-    })),
-    random,
-  );
-
-  let rungCount = participantCount - 1;
-  for (const candidate of candidates) {
-    if (rungCount >= target) break;
-    const row = matrix[candidate.row];
-    if (
-      row === undefined ||
-      row[candidate.left] ||
-      row[candidate.left - 1] ||
-      row[candidate.left + 1]
-    ) {
-      continue;
-    }
-    row[candidate.left] = true;
-    rungCount += 1;
-  }
-
-  const rungs: LadderRung[] = [];
-  for (let row = 0; row < matrix.length; row += 1) {
-    for (let left = 0; left < participantCount - 1; left += 1) {
-      if (matrix[row]?.[left]) rungs.push({ row, left });
-    }
-  }
-  return rungs;
-}
-
 export function traceLadder(
   start: number,
   participantCount: number,
@@ -219,48 +159,94 @@ export function calculateMapping(
 
 export function isPermutation(mapping: readonly number[], size = mapping.length): boolean {
   if (!Number.isInteger(size) || size < 0 || mapping.length !== size) return false;
-  return new Set(mapping).size === size && mapping.every((value) => value >= 0 && value < size);
+  return (
+    new Set(mapping).size === size &&
+    mapping.every((value) => Number.isInteger(value) && value >= 0 && value < size)
+  );
+}
+
+/** Selects each of the n! start -> end mappings with equal probability. */
+export function selectTargetPermutation(
+  participantCount: number,
+  randomIndex: RandomIndexSource = secureRandomIndex,
+): number[] {
+  assertParticipantCount(participantCount);
+  const permutation = Array.from({ length: participantCount }, (_, index) => index);
+  for (let index = participantCount - 1; index > 0; index -= 1) {
+    const target = randomIndex(index + 1);
+    if (!Number.isInteger(target) || target < 0 || target > index) {
+      throw new RangeError('random index source returned an out-of-range index');
+    }
+    swap(permutation, index, target);
+  }
+  return permutation;
+}
+
+/**
+ * Converts a start -> end permutation to adjacent swaps. At the bottom, column
+ * `end` must contain the path whose start is the inverse permutation at `end`.
+ * Moving those starts into order yields at most n(n-1)/2 swaps (28 for n=8).
+ * One swap per row makes same-row overlap impossible.
+ */
+export function createLadderForPermutation(
+  targetPermutation: readonly number[],
+  options: LadderFromPermutationOptions = {},
+): LadderLayout {
+  const participantCount = targetPermutation.length;
+  assertParticipantCount(participantCount);
+  if (!isPermutation(targetPermutation, participantCount)) {
+    throw new RangeError('targetPermutation must be a complete permutation');
+  }
+
+  const startAtEnd = Array.from({ length: participantCount }, () => -1);
+  for (let start = 0; start < participantCount; start += 1) {
+    const end = targetPermutation[start];
+    if (end !== undefined) startAtEnd[end] = start;
+  }
+
+  const currentOrder = Array.from({ length: participantCount }, (_, index) => index);
+  const adjacentSwaps: number[] = [];
+  for (let end = 0; end < participantCount; end += 1) {
+    const wantedStart = startAtEnd[end];
+    if (wantedStart === undefined || wantedStart < 0) {
+      throw new Error('target permutation is missing a destination');
+    }
+    let currentColumn = currentOrder.indexOf(wantedStart);
+    while (currentColumn > end) {
+      const left = currentColumn - 1;
+      adjacentSwaps.push(left);
+      swap(currentOrder, left, currentColumn);
+      currentColumn -= 1;
+    }
+  }
+
+  const minimumRows = Math.max(participantCount - 1, adjacentSwaps.length);
+  const rowCount = options.rowCount ?? Math.max(defaultRowCount(participantCount), minimumRows);
+  assertRowCount(rowCount, participantCount);
+  if (rowCount < adjacentSwaps.length) {
+    throw new RangeError('rowCount must provide at least one row per adjacent swap');
+  }
+
+  const firstRow = Math.floor((rowCount - adjacentSwaps.length) / 2);
+  const rungs = adjacentSwaps.map((left, index) => Object.freeze({ row: firstRow + index, left }));
+  const calculatedMapping = calculateMapping(participantCount, rowCount, rungs);
+  if (!calculatedMapping.every((end, start) => end === targetPermutation[start])) {
+    throw new Error('generated ladder does not implement its target permutation');
+  }
+
+  return Object.freeze({
+    participantCount,
+    rowCount,
+    rungs: Object.freeze(rungs),
+    mapping: Object.freeze([...calculatedMapping]),
+  });
 }
 
 export function generateLadder(
   participantCount: number,
-  seed: string | number,
-  options: GenerateLadderOptions = {},
+  randomIndex: RandomIndexSource = secureRandomIndex,
 ): LadderLayout {
-  assertParticipantCount(participantCount);
-  const rowCount = options.rowCount ?? defaultRowCount(participantCount);
-  assertRowCount(rowCount, participantCount);
-  const density = options.density ?? 0.3;
-  if (!Number.isFinite(density) || density < 0.15 || density > 0.7) {
-    throw new RangeError('density must be between 0.15 and 0.7');
-  }
-
-  const normalizedSeed = String(seed);
-  let selectedRungs: LadderRung[] = [];
-  let selectedMapping: number[] = [];
-
-  // A denser ladder can still cancel back to its starting column. Try a few
-  // deterministic variants so every lane usually travels to a different end.
-  // The last valid layout remains a safe fallback because every rung is a swap,
-  // which always produces a complete one-to-one permutation.
-  for (let attempt = 0; attempt < 24; attempt += 1) {
-    selectedRungs = buildRungs(
-      participantCount,
-      rowCount,
-      density,
-      `${normalizedSeed}:${String(attempt)}`,
-    );
-    selectedMapping = calculateMapping(participantCount, rowCount, selectedRungs);
-    if (selectedMapping.every((end, start) => end !== start)) break;
-  }
-
-  return {
-    participantCount,
-    rowCount,
-    seed: normalizedSeed,
-    rungs: selectedRungs,
-    mapping: selectedMapping,
-  };
+  return createLadderForPermutation(selectTargetPermutation(participantCount, randomIndex));
 }
 
 export function normalizeEntries(
@@ -276,6 +262,17 @@ export function normalizeEntries(
   });
 }
 
-export function shuffleEntries(values: readonly string[], seed: string | number): string[] {
-  return shuffle(values, createSeededRandom(seed));
+export function shuffleEntries(
+  values: readonly string[],
+  randomIndex: RandomIndexSource = secureRandomIndex,
+): string[] {
+  const shuffled = [...values];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const target = randomIndex(index + 1);
+    if (!Number.isInteger(target) || target < 0 || target > index) {
+      throw new RangeError('random index source returned an out-of-range index');
+    }
+    swap(shuffled, index, target);
+  }
+  return shuffled;
 }
