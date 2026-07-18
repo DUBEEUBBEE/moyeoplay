@@ -34,7 +34,7 @@ const SHORT_TITLES: Record<GameId, string> = {
 };
 
 async function openGame(page: Page, gameId: GameId): Promise<void> {
-  await page.goto(`./#game/${gameId}`);
+  await page.goto(`./play/#game/${gameId}`);
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
 }
 

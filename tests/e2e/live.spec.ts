@@ -24,9 +24,9 @@ test.describe('live GitHub Pages smoke', () => {
     });
     await page.setViewportSize({ width: 844, height: 390 });
 
-    const response = await page.goto('./#lobby');
+    const response = await page.goto('./');
     expect(response?.status()).toBe(200);
-    await expect(page.locator('[data-game-id]')).toHaveCount(8);
+    await expect(page.locator('article.static-game-card')).toHaveCount(8);
 
     const metadata = await page.evaluate(() => ({
       canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
@@ -43,7 +43,7 @@ test.describe('live GitHub Pages smoke', () => {
         (element) => element.href,
       ),
     }));
-    const expectedSite = new URL('./', page.url()).href.split('#')[0];
+    const expectedSite = new URL('./', page.url()).href.replace(/#.*$/u, '');
     expect(metadata.canonical).toBe(expectedSite);
     expect(metadata.ogUrl).toBe(expectedSite);
     const expectedOgImage = new URL('og-cover.png', expectedSite).href;
@@ -57,7 +57,6 @@ test.describe('live GitHub Pages smoke', () => {
     expect(metadata.styles.length).toBeGreaterThan(0);
     const assetUrls = [
       expectedOgImage,
-      new URL('robots.txt', expectedSite).href,
       new URL('sitemap.xml', expectedSite).href,
       manifestUrl,
       iconUrl,
@@ -66,19 +65,28 @@ test.describe('live GitHub Pages smoke', () => {
       ...metadata.styles,
     ];
     expect(assetUrls.length).toBeGreaterThanOrEqual(6);
+    const expectedBasePath = new URL(expectedSite).pathname;
     for (const url of assetUrls) {
       expect((await request.get(url)).status(), url).toBe(200);
-      expect(new URL(url).pathname, url).toContain('/moyeoplay/');
+      expect(new URL(url).pathname.startsWith(expectedBasePath), url).toBe(true);
     }
+    const robotsResponse = await request.get(new URL('robots.txt', expectedSite).href);
+    if (expectedBasePath === '/') expect(robotsResponse.status()).toBe(200);
+    else expect(robotsResponse.status()).toBe(404);
 
     const manifestResponse = await request.get(manifestUrl);
     const manifest = (await manifestResponse.json()) as {
+      id?: string;
       start_url?: string;
       scope?: string;
       icons?: { src?: string; sizes?: string; purpose?: string }[];
     };
-    expect(manifest.start_url).toBe('./#lobby');
-    expect(manifest.scope).toBe('./');
+    expect(manifest.id).toBe(expectedBasePath);
+    expect(manifest.start_url).toBe(`${expectedBasePath}play/#lobby`);
+    expect(manifest.scope).toBe(expectedBasePath);
+    expect(new URL(requireAssetUrl(manifest.id, 'manifest id'), manifestUrl).href).toBe(
+      new URL(expectedBasePath, expectedSite).href,
+    );
     const manifestIcons = manifest.icons ?? [];
     expect(manifestIcons).toEqual(
       expect.arrayContaining([
@@ -89,10 +97,11 @@ test.describe('live GitHub Pages smoke', () => {
     );
     for (const icon of manifestIcons) {
       const manifestIconUrl = new URL(requireAssetUrl(icon.src, 'manifest icon'), manifestUrl).href;
+      expect(new URL(manifestIconUrl).pathname.startsWith(expectedBasePath)).toBe(true);
       expect((await request.get(manifestIconUrl)).status(), manifestIconUrl).toBe(200);
     }
 
-    await page.goto('./#game/pong');
+    await page.goto('./play/#game/pong');
     await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
     await page.locator('#game-start').click();
     const canvas = page.locator('.pong-game canvas');
