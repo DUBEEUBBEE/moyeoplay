@@ -4,7 +4,16 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'output', '.playwright-cli'],
+    ignores: [
+      'dist',
+      'dist-*',
+      '.generated-pages',
+      'coverage',
+      'playwright-report',
+      'test-results',
+      'output',
+      '.playwright-cli',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -25,8 +34,17 @@ export default tseslint.config(
     },
   },
   {
-    files: ['eslint.config.js', 'scripts/**/*.mjs'],
+    files: ['eslint.config.js', 'scripts/**/*.mjs', 'scripts/**/*.d.mts', 'site/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
-    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        console: 'readonly',
+        Crypto: 'readonly',
+        document: 'readonly',
+        process: 'readonly',
+        URL: 'readonly',
+      },
+    },
   },
 );

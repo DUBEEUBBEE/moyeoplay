@@ -1,0 +1,604 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { GAME_CONTENT, PAGE_CONTENT, SITE_META } from '../site/site-content.mjs';
+import { resolveSiteConfig } from './site-config.mjs';
+
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const config = resolveSiteConfig();
+const generatedRoot = config.generatedDirectory;
+const gameById = new Map(GAME_CONTENT.map((game) => [game.id, game]));
+
+const GAME_SEO_TITLES = Object.freeze({
+  omok: '웹 오목 2인용 — 규칙·조작·바로 플레이 | 모여PLAY',
+  pong: '2인용 웹 탁구 — 키보드·모바일 대전 | 모여PLAY',
+  volleyball: '통통 배구 — 2인용 점프 액션 | 모여PLAY',
+  'pinball-drop': '핀볼 늦게 떨어지기 — 대칭 보드 대결 | 모여PLAY',
+  ladder: '사다리 타기 — 2~8명 공정한 결과 추첨 | 모여PLAY',
+  'reaction-duel': '반응속도 대결 — 2인용 웹 반응 테스트 | 모여PLAY',
+  'tap-battle': '탭 배틀 — 2인용 연타 대결 | 모여PLAY',
+  roulette: '벌칙 룰렛 — 같은 확률의 파티 추첨 | 모여PLAY',
+});
+
+const GAME_ACCENTS = Object.freeze({
+  omok: '#ffd447',
+  pong: '#45e4e0',
+  volleyball: '#ff5d9e',
+  'pinball-drop': '#a675ff',
+  ladder: '#58e6a9',
+  'reaction-duel': '#ff9f43',
+  'tap-battle': '#5aa9ff',
+  roulette: '#f4b942',
+});
+
+const GAME_PLAYER_COUNTS = Object.freeze({
+  omok: { value: 2 },
+  pong: { value: 2 },
+  volleyball: { value: 2 },
+  'pinball-drop': { value: 2 },
+  ladder: { minValue: 2, maxValue: 8 },
+  'reaction-duel': { value: 2 },
+  'tap-battle': { value: 2 },
+  roulette: { minValue: 2, maxValue: 12 },
+});
+
+const NAV_ITEMS = Object.freeze([
+  { label: '게임', path: '/' },
+  { label: '플레이 방법', path: '/how-to-play/' },
+  { label: '공정성', path: '/fairness/' },
+  { label: '소개', path: '/about/' },
+]);
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function escapeXml(value) {
+  return escapeHtml(value);
+}
+
+function jsonForScript(value) {
+  return JSON.stringify(value).replaceAll('<', '\\u003c');
+}
+
+function sitePath(relativePath = '') {
+  if (relativePath.startsWith('#')) return relativePath;
+  const clean = relativePath.replace(/^\/+/, '');
+  return clean ? `${config.basePath}${clean}` : config.basePath;
+}
+
+function absoluteUrl(relativePath = '') {
+  return new URL(relativePath.replace(/^\/+/, ''), config.siteUrl).href;
+}
+
+function moduleHref(outputFile, sourceFile) {
+  const relative = path
+    .relative(path.dirname(outputFile), path.join(REPOSITORY_ROOT, sourceFile))
+    .split(path.sep)
+    .join('/');
+  return relative.startsWith('.') ? relative : `./${relative}`;
+}
+
+function renderHead({
+  title,
+  description,
+  canonicalPath,
+  ogImagePath = 'og-cover.png',
+  imageAlt = `${title} 미리보기`,
+  ogType = 'website',
+  robots = 'index,follow,max-image-preview:large',
+  structuredData,
+}) {
+  const canonical = absoluteUrl(canonicalPath);
+  const image = absoluteUrl(ogImagePath);
+  return `
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="${escapeHtml(robots)}" />
+    <meta name="description" content="${escapeHtml(description)}" />
+    <link rel="canonical" href="${escapeHtml(canonical)}" />
+    <meta property="og:type" content="${escapeHtml(ogType)}" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:site_name" content="모여PLAY" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:url" content="${escapeHtml(canonical)}" />
+    <meta property="og:image" content="${escapeHtml(image)}" />
+    <meta property="og:image:alt" content="${escapeHtml(imageAlt)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(image)}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(imageAlt)}" />
+    <link rel="icon" href="${escapeHtml(sitePath('favicon.svg'))}" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="${escapeHtml(sitePath('apple-touch-icon.png'))}" />
+    <link rel="manifest" href="${escapeHtml(sitePath('manifest.webmanifest'))}" />
+    <title>${escapeHtml(title)}</title>${
+      structuredData
+        ? `\n    <script type="application/ld+json">${jsonForScript(structuredData)}</script>`
+        : ''
+    }`;
+}
+
+function renderHeader(activePath) {
+  return `<header class="content-header">
+      <a class="content-brand" href="${sitePath()}" aria-label="모여PLAY 홈">
+        <span class="content-brand__mark" aria-hidden="true">M</span>
+        <strong>모여<span>PLAY</span></strong>
+      </a>
+      <nav class="content-nav" aria-label="주요 메뉴">
+        ${NAV_ITEMS.map(
+          (item) =>
+            `<a href="${sitePath(item.path)}"${item.path === activePath ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`,
+        ).join('')}
+        <a href="${sitePath('play/#lobby')}">바로 플레이</a>
+      </nav>
+    </header>`;
+}
+
+function renderFooter() {
+  return `<footer class="content-footer">
+      <div><strong>모여PLAY</strong><p>게임 설정과 최근 전적은 운영 서버에 업로드하지 않고 현재 브라우저에 저장합니다.</p></div>
+      <nav class="content-footer__nav" aria-label="정책 및 안내">
+        <a href="${sitePath()}">게임</a>
+        <a href="${sitePath('how-to-play/')}">사용법</a>
+        <a href="${sitePath('fairness/')}">공정성</a>
+        <a href="${sitePath('privacy/')}">개인정보</a>
+        <a href="${sitePath('terms/')}">이용약관</a>
+        <a href="${sitePath('contact/')}">문의</a>
+        <a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">GitHub</a>
+        <button type="button" data-back-to-top>맨 위로</button>
+      </nav>
+    </footer>`;
+}
+
+function renderBreadcrumb(items) {
+  return `<nav class="breadcrumb" aria-label="현재 위치"><ol>${items
+    .map((item, index) => {
+      const isLast = index === items.length - 1;
+      return `<li>${
+        isLast
+          ? `<span aria-current="page">${escapeHtml(item.label)}</span>`
+          : `<a href="${sitePath(item.path)}">${escapeHtml(item.label)}</a>`
+      }</li>`;
+    })
+    .join('')}</ol></nav>`;
+}
+
+function renderAdSlot() {
+  if (!config.adsense.enabled) return '';
+  return `<aside class="ad-slot" aria-label="광고" data-adsense-slot data-adsense-client="${escapeHtml(config.adsense.clientId)}" data-adsense-test-mode="${String(config.adsense.testMode)}">
+      <span class="ad-slot__label">광고</span>
+      <ins class="adsbygoogle" data-ad-client="${escapeHtml(config.adsense.clientId)}" data-ad-slot="${escapeHtml(config.adsense.contentSlotId)}" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <noscript>광고는 동의와 JavaScript가 모두 준비된 경우에만 요청됩니다.</noscript>
+    </aside>`;
+}
+
+function renderLayout({ outputFile, head, activePath, body, inlineHeadScript = '' }) {
+  return `<!doctype html>
+<html lang="ko">
+  <head>${head}${inlineHeadScript}</head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+    <div class="ambient ambient--one" aria-hidden="true"></div>
+    <div class="ambient ambient--two" aria-hidden="true"></div>
+    <div class="content-site">
+      ${renderHeader(activePath)}
+      <main class="content-main" id="main-content">${body}</main>
+      ${renderFooter()}
+    </div>
+    <script type="module" src="${moduleHref(outputFile, 'src/static-site.ts')}"></script>
+  </body>
+</html>
+`;
+}
+
+function renderPicture(game, className = '') {
+  const prefix = `assets/game-icons/${game.id}`;
+  return `<picture${className ? ` class="${className}"` : ''}>
+      <source type="image/avif" srcset="${sitePath(`${prefix}.avif`)}" />
+      <source type="image/webp" srcset="${sitePath(`${prefix}.webp`)}" />
+      <img src="${sitePath(`${prefix}.png`)}" width="320" height="320" loading="lazy" decoding="async" alt="" />
+    </picture>`;
+}
+
+function renderStaticGameCard(game) {
+  return `<article class="static-game-card">
+      ${renderPicture(game)}
+      <p class="content-kicker">${escapeHtml(game.players)} · ${escapeHtml(game.duration)}</p>
+      <h3>${escapeHtml(game.title)}</h3>
+      <p>${escapeHtml(game.shortDescription)}</p>
+      <div class="static-game-card__links">
+        <a href="${sitePath(`play/#game/${game.id}`)}">게임 시작</a>
+        <a href="${sitePath(`games/${game.slug}/`)}">가이드</a>
+      </div>
+    </article>`;
+}
+
+function renderItems(items) {
+  return `<div class="feature-grid">${items
+    .map(
+      (item) =>
+        `<article class="feature-card"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.text)}</p></article>`,
+    )
+    .join('')}</div>`;
+}
+
+function renderSection(section) {
+  const paragraphs = section.paragraphs
+    ? section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('')
+    : '';
+  const list = section.steps
+    ? `<ol>${section.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>`
+    : '';
+  const items = section.items ? renderItems(section.items) : '';
+  const note = section.note
+    ? `<aside class="article-callout"><strong>알아두기</strong><p>${escapeHtml(section.note)}</p></aside>`
+    : '';
+  const link = section.link
+    ? `<p><a class="content-button" href="${sitePath(section.link.href)}">${escapeHtml(section.link.label)}</a></p>`
+    : '';
+  const links = section.links
+    ? `<ul class="content-link-list">${section.links
+        .map((item) => {
+          const href = item.external ? item.href : sitePath(item.href);
+          const rel = item.external ? ' rel="noopener noreferrer"' : '';
+          return `<li><a href="${escapeHtml(href)}"${rel}>${escapeHtml(item.label)}</a></li>`;
+        })
+        .join('')}</ul>`
+    : '';
+  return `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.title)}</h2>${paragraphs}${list}${items}${note}${link}${links}</section>`;
+}
+
+function rootStructuredData() {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${config.siteUrl}#website`,
+        url: config.siteUrl,
+        name: SITE_META.name,
+        description: PAGE_CONTENT.root.description,
+        inLanguage: 'ko-KR',
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': `${config.siteUrl}#application`,
+        name: SITE_META.name,
+        url: absoluteUrl('play/'),
+        applicationCategory: 'GameApplication',
+        operatingSystem: 'Any',
+        browserRequirements: 'JavaScript와 최신 브라우저 필요',
+        isAccessibleForFree: true,
+        inLanguage: 'ko-KR',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
+      },
+    ],
+  };
+}
+
+function renderRoot(outputFile) {
+  const page = PAGE_CONTENT.root;
+  const legacyScript = `
+    <script>
+      (() => {
+        const hash = window.location.hash;
+        const gameHash = new RegExp('^#game/(?:${GAME_CONTENT.map((game) => game.id).join('|')})$');
+        if (hash === '#lobby' || gameHash.test(hash)) {
+          window.location.replace(${JSON.stringify(sitePath('play/'))} + hash);
+        }
+      })();
+    </script>`;
+  const sections = page.sections.map(renderSection).join('');
+  const body = `<section class="landing-hero">
+      <div>
+        <p class="content-kicker">${escapeHtml(page.eyebrow)}</p>
+        <h1>${escapeHtml(page.heading)}</h1>
+        <p class="content-lead">${escapeHtml(page.lead)}</p>
+        <div class="content-actions">
+          <a class="content-button content-button--primary" href="${sitePath('play/#lobby')}">지금 플레이</a>
+          <a class="content-button" href="#games">8가지 게임 보기</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true"><span class="hero-art__glyph">M</span></div>
+    </section>
+    <section class="section-block" id="games"><h2>8가지 게임 가이드</h2><p class="section-intro">제목과 규칙을 먼저 살펴보거나 바로 게임을 열 수 있습니다. 모든 링크는 JavaScript 없이도 이동합니다.</p><div class="static-game-grid">${GAME_CONTENT.map(renderStaticGameCard).join('')}</div></section>
+    <div class="article-body">${sections}</div>
+    ${renderAdSlot()}`;
+  return renderLayout({
+    outputFile,
+    activePath: '/',
+    inlineHeadScript: legacyScript,
+    head: renderHead({
+      title: '모여PLAY — 설치 없이 함께 즐기는 8가지 파티 게임',
+      description: page.description,
+      canonicalPath: '',
+      structuredData: rootStructuredData(),
+    }),
+    body,
+  });
+}
+
+function guideStructuredData(game) {
+  const url = absoluteUrl(`games/${game.slug}/`);
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#webpage`,
+        url,
+        name: GAME_SEO_TITLES[game.id],
+        description: game.shortDescription,
+        inLanguage: 'ko-KR',
+        dateModified: game.updated,
+        breadcrumb: { '@id': `${url}#breadcrumb` },
+        mainEntity: { '@id': `${url}#game` },
+      },
+      {
+        '@type': 'VideoGame',
+        '@id': `${url}#game`,
+        name: game.title,
+        description: game.longDescription,
+        url,
+        gamePlatform: 'Web browser',
+        numberOfPlayers: {
+          '@type': 'QuantitativeValue',
+          ...GAME_PLAYER_COUNTS[game.id],
+        },
+        playMode: 'MultiPlayer',
+        inLanguage: 'ko-KR',
+        isAccessibleForFree: true,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${url}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: '홈', item: config.siteUrl },
+          { '@type': 'ListItem', position: 2, name: '게임', item: `${config.siteUrl}#games` },
+          { '@type': 'ListItem', position: 3, name: game.title, item: url },
+        ],
+      },
+    ],
+  };
+}
+
+function renderStringList(items) {
+  return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+}
+
+function renderRelatedCard(game) {
+  return `<article class="feature-card"><strong>${escapeHtml(game.title)}</strong><p>${escapeHtml(game.shortDescription)}</p><a class="content-button" href="${sitePath(`games/${game.slug}/`)}">가이드 보기</a></article>`;
+}
+
+function renderGuide(game, outputFile) {
+  const related = game.related.map((id) => gameById.get(id)).filter(Boolean);
+  const body = `${renderBreadcrumb([
+    { label: '홈', path: '/' },
+    { label: '게임', path: '/#games' },
+    { label: game.title, path: `/games/${game.slug}/` },
+  ])}
+    <section class="guide-hero">
+      <div>
+        <p class="content-kicker">${escapeHtml(game.genre)} · ${escapeHtml(game.players)}</p>
+        <h1>${escapeHtml(game.title)} 게임 가이드</h1>
+        <p class="content-lead">${escapeHtml(game.longDescription)}</p>
+        <div class="content-actions"><a class="content-button content-button--primary" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 바로 플레이</a><a class="content-button" href="${sitePath('fairness/')}">공정성 원칙</a></div>
+      </div>
+      <div class="guide-icon" style="--accent: ${escapeHtml(GAME_ACCENTS[game.id])}">${renderPicture(game)}</div>
+    </section>
+    <div class="guide-facts">
+      <article class="fact-card"><strong>인원</strong><p>${escapeHtml(game.players)}</p></article>
+      <article class="fact-card"><strong>예상 시간</strong><p>${escapeHtml(game.duration)}</p></article>
+      <article class="fact-card"><strong>장르</strong><p>${escapeHtml(game.genre)}</p></article>
+      <article class="fact-card"><strong>지원 기기</strong><p>데스크톱·모바일 웹</p></article>
+    </div>
+    <img class="guide-screenshot" src="${sitePath(`assets/screenshots/${game.id}.webp`)}" width="1280" height="720" loading="lazy" decoding="async" alt="${escapeHtml(`${game.title} 실제 게임 화면`)}" />
+    <div class="article-body">
+      <section><h2>이 게임이 잘 맞는 상황</h2><p>${escapeHtml(game.bestFor)}</p></section>
+      <section><h2>시작 전 준비</h2>${renderStringList(game.setup)}</section>
+      <section><h2>규칙과 승리 조건</h2>${renderStringList(game.rules)}<div class="article-callout"><strong>승리 조건</strong><p>${escapeHtml(game.winCondition)}</p></div></section>
+      <section><h2>조작 방법</h2><h3>데스크톱</h3>${renderStringList(game.controls.desktop)}<h3>모바일</h3>${renderStringList(game.controls.mobile)}</section>
+      <section><h2>공정성</h2>${renderStringList(game.fairness)}<p><a class="content-button" href="${sitePath('fairness/')}">전체 공정성 설명 보기</a></p></section>
+      ${renderAdSlot()}
+      <section><h2>실수하기 쉬운 점과 팁</h2>${renderStringList(game.tips)}</section>
+      <section><h2>접근성과 화면 방향</h2>${renderStringList(game.accessibility)}</section>
+      <section><h2>관련 게임</h2><div class="related-grid">${related.map(renderRelatedCard).join('')}</div></section>
+      <section><h2>바로 한 판 시작하기</h2><p>${escapeHtml(game.shortDescription)}</p><a class="content-button content-button--primary" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 열기</a></section>
+      <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보</h2><p>작성·운영: 모여PLAY 프로젝트</p><p>최초 작성: <time datetime="${escapeHtml(SITE_META.created)}">${escapeHtml(SITE_META.created)}</time> · 최종 수정: <time datetime="${escapeHtml(game.updated)}">${escapeHtml(game.updated)}</time></p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
+    </div>`;
+  return renderLayout({
+    outputFile,
+    activePath: '/',
+    head: renderHead({
+      title: GAME_SEO_TITLES[game.id],
+      description: game.shortDescription,
+      canonicalPath: `games/${game.slug}/`,
+      ogImagePath: `assets/og/${game.id}.png`,
+      imageAlt: `${game.title} — 모여PLAY 게임 가이드 미리보기`,
+      ogType: 'article',
+      structuredData: guideStructuredData(game),
+    }),
+    body,
+  });
+}
+
+function pageStructuredData(page) {
+  const url = absoluteUrl(page.path);
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#webpage`,
+        url,
+        name: `${page.title} | 모여PLAY`,
+        description: page.description,
+        inLanguage: 'ko-KR',
+        dateModified: page.updated,
+        breadcrumb: { '@id': `${url}#breadcrumb` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${url}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: '홈', item: config.siteUrl },
+          { '@type': 'ListItem', position: 2, name: page.title, item: url },
+        ],
+      },
+    ],
+  };
+}
+
+function renderContactChannels(page) {
+  const email = config.publicContactEmail
+    ? `<article class="feature-card"><strong>${escapeHtml(page.channels.email.label)}</strong><p>공개 문의 주소로 이메일을 보낼 수 있습니다.</p><a class="content-button" href="mailto:${escapeHtml(config.publicContactEmail)}">이메일 보내기</a></article>`
+    : '';
+  const fallback = page.channels.fallback;
+  const repository = page.channels.repository;
+  return `<section><h2>문의 채널</h2><div class="feature-grid">${email}<article class="feature-card"><strong>${escapeHtml(fallback.label)}</strong><p>${escapeHtml(fallback.description)}</p><a class="content-button" href="${escapeHtml(fallback.href)}" rel="noopener noreferrer">GitHub Issues 열기</a></article><article class="feature-card"><strong>${escapeHtml(repository.label)}</strong><p>${escapeHtml(repository.description)}</p><a class="content-button" href="${escapeHtml(repository.href)}" rel="noopener noreferrer">저장소 열기</a></article></div></section>`;
+}
+
+function renderContentPage(page, outputFile) {
+  const contact = page.slug === 'contact' ? renderContactChannels(page) : '';
+  const privacyDisclosure =
+    page.slug === 'privacy' && config.adsense.enabled
+      ? `<aside class="article-callout"><strong>이 빌드의 광고 처리</strong><p>이 빌드는 Google AdSense 광고 영역을 포함하지만, 필요한 동의가 확인되기 전에는 Google 광고 태그를 요청하지 않습니다. 운영 전 Google 인증 CMP가 동의·거부·철회 상태를 실제로 관리하고 동의가 확인된 경우에만 광고 gate 이벤트를 보내도록 연결해야 합니다.</p></aside>`
+      : '';
+  const sections = page.sections
+    .map((section) => {
+      if (
+        page.slug !== 'privacy' ||
+        section.id !== 'ads-and-measurement' ||
+        !config.adsense.enabled
+      ) {
+        return section;
+      }
+      return {
+        ...section,
+        paragraphs: [
+          '이 빌드에는 Google AdSense용 콘텐츠 광고 영역이 활성화되어 있습니다. Google과 승인된 광고 파트너는 광고 제공·측정·부정행위 방지·사용자 선택에 따른 개인화를 위해 쿠키, 웹 비콘 또는 유사 기술, IP 주소, 페이지 URL, 브라우저·기기 정보를 처리할 수 있습니다.',
+          '광고 태그는 필요한 동의가 확인되기 전에는 요청하지 않도록 gate되어 있습니다. 운영 전 Google 인증 CMP가 EEA·영국·스위스 등 적용 지역의 동의·거부·철회를 실제로 관리하고, Privacy 문구를 실제 사업자와 보관 정책에 맞춰 검토해야 합니다.',
+        ],
+      };
+    })
+    .map(renderSection)
+    .join('');
+  const body = `${renderBreadcrumb([
+    { label: '홈', path: '/' },
+    { label: page.title, path: page.path },
+  ])}
+    <header class="article-hero"><p class="content-kicker">모여PLAY 안내</p><h1>${escapeHtml(page.heading)}</h1><p class="content-lead">${escapeHtml(page.lead)}</p></header>
+    <div class="article-body">${privacyDisclosure}${contact}${sections}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
+  return renderLayout({
+    outputFile,
+    activePath: page.path,
+    head: renderHead({
+      title: `${page.title} | 모여PLAY`,
+      description: page.description,
+      canonicalPath: page.path,
+      structuredData: pageStructuredData(page),
+    }),
+    body,
+  });
+}
+
+function renderPlay(outputFile) {
+  const title = '모여PLAY 게임 로비 — 8가지 로컬 파티 게임';
+  const description =
+    '오목, 탁구, 배구, 핀볼, 사다리, 반응속도, 탭 배틀, 룰렛을 한 기기에서 바로 실행하세요.';
+  return `<!doctype html>
+<html lang="ko">
+  <head>${renderHead({
+    title,
+    description,
+    canonicalPath: 'play/',
+    robots: 'noindex,follow',
+  })}</head>
+  <body>
+    <div id="app"></div>
+    <noscript><p>게임 실행에는 JavaScript가 필요합니다. <a href="${sitePath()}">정적 게임 안내로 돌아가기</a></p></noscript>
+    <script type="module" src="${moduleHref(outputFile, 'src/main.ts')}"></script>
+  </body>
+</html>
+`;
+}
+
+async function writeGenerated(relativePath, source) {
+  const target = path.join(generatedRoot, relativePath);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, source, 'utf8');
+}
+
+function sitemapSource() {
+  const entries = [
+    { path: '', updated: PAGE_CONTENT.root.updated },
+    ...GAME_CONTENT.map((game) => ({ path: `games/${game.slug}/`, updated: game.updated })),
+    ...Object.entries(PAGE_CONTENT)
+      .filter(([key]) => key !== 'root')
+      .map(([, page]) => ({ path: page.path, updated: page.updated })),
+  ];
+  const unique = new Set(entries.map((entry) => absoluteUrl(entry.path)));
+  if (unique.size !== 15 || entries.length !== 15) {
+    throw new Error('Sitemap must contain exactly 15 unique indexable clean URLs.');
+  }
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries
+    .map(
+      (entry) =>
+        `  <url><loc>${escapeXml(absoluteUrl(entry.path))}</loc><lastmod>${escapeXml(entry.updated)}</lastmod></url>`,
+    )
+    .join('\n')}\n</urlset>\n`;
+}
+
+async function generate() {
+  await rm(generatedRoot, { recursive: true, force: true });
+  await mkdir(generatedRoot, { recursive: true });
+
+  const rootFile = path.join(generatedRoot, 'index.html');
+  const playFile = path.join(generatedRoot, 'play/index.html');
+  await writeGenerated('index.html', renderRoot(rootFile));
+  await writeGenerated('play/index.html', renderPlay(playFile));
+
+  for (const game of GAME_CONTENT) {
+    const relativePath = `games/${game.slug}/index.html`;
+    await writeGenerated(relativePath, renderGuide(game, path.join(generatedRoot, relativePath)));
+  }
+  for (const [, page] of Object.entries(PAGE_CONTENT).filter(([key]) => key !== 'root')) {
+    const relativePath = `${page.slug}/index.html`;
+    await writeGenerated(
+      relativePath,
+      renderContentPage(page, path.join(generatedRoot, relativePath)),
+    );
+  }
+
+  await writeGenerated('sitemap.xml', sitemapSource());
+  if (config.basePath === '/') {
+    await writeGenerated(
+      'robots.txt',
+      `User-agent: *\nAllow: /\nSitemap: ${absoluteUrl('sitemap.xml')}\n`,
+    );
+    if (config.adsense.publisherId) {
+      await writeGenerated(
+        'ads.txt',
+        `google.com, ${config.adsense.publisherId}, DIRECT, f08c47fec0942fa0\n`,
+      );
+    }
+  }
+  if (config.customDomain) await writeGenerated('CNAME', `${config.customDomain}\n`);
+
+  console.log(
+    `Generated 16 HTML entries for ${config.siteUrl} (${config.basePath}) with AdSense ${config.adsense.enabled ? 'enabled' : 'disabled'}.`,
+  );
+}
+
+await generate();

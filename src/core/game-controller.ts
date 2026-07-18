@@ -51,6 +51,14 @@ export interface GameModule {
   createGame(services: GameServices): MiniGameController;
 }
 
+export interface GameIcon {
+  avif: string;
+  webp: string;
+  png: string;
+  width: number;
+  height: number;
+}
+
 export interface GameDefinition {
   id: GameId;
   title: string;
@@ -63,6 +71,8 @@ export interface GameDefinition {
   controls: string;
   accent: string;
   symbol: string;
+  guideSlug: string;
+  icon: GameIcon;
   landscapePreferred?: boolean;
   rules: readonly string[];
   load(): Promise<GameModule>;
