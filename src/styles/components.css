@@ -75,7 +75,7 @@
 .brand small {
   margin-top: -1px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .privacy-pill {
@@ -119,8 +119,8 @@
 .icon-button {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 13px;
@@ -155,7 +155,8 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 42px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 13px;
@@ -278,7 +279,7 @@
 
 .trust-list span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -361,7 +362,7 @@
 .session-score small {
   overflow: hidden;
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -501,10 +502,25 @@
     box-shadow 0.22s ease;
 }
 
-.game-card:hover {
-  border-color: color-mix(in srgb, var(--game-accent), transparent 56%);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
-  transform: translateY(-5px);
+.game-card__open {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.game-card__open:focus-visible {
+  outline-offset: -4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .game-card:hover {
+    border-color: color-mix(in srgb, var(--game-accent), transparent 56%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    transform: translateY(-5px);
+  }
 }
 
 .game-card__top {
@@ -513,7 +529,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.11em;
 }
@@ -584,8 +600,8 @@
   min-height: 43px;
   margin-bottom: 17px;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.6;
   word-break: keep-all;
 }
 
@@ -606,12 +622,12 @@
 
 .game-card__meta small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .game-card__meta strong {
   overflow: hidden;
-  font-size: 9px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -622,7 +638,7 @@
   align-items: center;
   margin-top: 14px;
   color: var(--game-accent);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -675,7 +691,7 @@
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .site-footer strong {
@@ -690,6 +706,33 @@
   justify-self: end;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.game-load-error {
+  display: grid;
+  place-items: center;
+  min-height: min(520px, 65svh);
+  padding: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+}
+
+.game-load-error h2 {
+  margin-bottom: 8px;
+}
+
+.game-load-error p {
+  max-width: 42rem;
+  color: var(--ink-soft);
+}
+
+.game-load-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 .modal {
@@ -781,7 +824,7 @@
 .settings-form legend {
   margin-bottom: 9px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -832,14 +875,14 @@
 
 .switch-row small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .storage-note {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .result-modal .modal__body {
@@ -859,7 +902,7 @@
   border-radius: 999px;
   color: var(--yellow-ink);
   background: var(--yellow);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 1000;
   letter-spacing: 0.12em;
 }

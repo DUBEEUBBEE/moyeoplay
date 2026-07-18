@@ -37,7 +37,7 @@
 .game-hud__title p {
   margin: 0 0 2px;
   color: var(--yellow);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
 }
@@ -56,7 +56,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.025);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .hud-button {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 11px;
@@ -75,6 +75,7 @@
   background: var(--surface);
   font-size: 11px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .hud-button--primary {
@@ -93,7 +94,7 @@
   border-radius: 10px;
   color: var(--ink-soft);
   background: rgba(255, 212, 71, 0.06);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .orientation-notice strong {
@@ -150,7 +151,7 @@
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -192,7 +193,7 @@
   padding: 0 5px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -305,7 +306,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -428,7 +429,7 @@
   display: grid;
   gap: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 }
 

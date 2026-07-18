@@ -10,11 +10,9 @@ function appendMeta(container: HTMLElement, label: string, value: string): void 
   container.append(item);
 }
 
-export function createGameCard(game: GameDefinition, index: number): HTMLButtonElement {
-  const card = document.createElement('button');
-  card.type = 'button';
+export function createGameCard(game: GameDefinition, index: number): HTMLElement {
+  const card = document.createElement('article');
   card.className = 'game-card';
-  card.dataset.gameId = game.id;
   card.style.setProperty('--game-accent', game.accent);
 
   const top = document.createElement('span');
@@ -37,6 +35,7 @@ export function createGameCard(game: GameDefinition, index: number): HTMLButtonE
   art.append(glyph, orbit);
 
   const title = document.createElement('h3');
+  title.id = `game-card-${game.id}-title`;
   title.textContent = game.title;
   const description = document.createElement('p');
   description.textContent = game.description;
@@ -55,6 +54,16 @@ export function createGameCard(game: GameDefinition, index: number): HTMLButtonE
   arrow.setAttribute('aria-hidden', 'true');
   action.append(arrow);
 
-  card.append(top, art, title, description, meta, action);
+  const openButton = document.createElement('button');
+  openButton.type = 'button';
+  openButton.className = 'game-card__open';
+  openButton.dataset.gameId = game.id;
+  openButton.setAttribute('aria-label', `${game.title} 시작`);
+  const openLabel = document.createElement('span');
+  openLabel.className = 'visually-hidden';
+  openLabel.textContent = `${game.title} 시작`;
+  openButton.append(openLabel);
+
+  card.append(top, art, title, description, meta, action, openButton);
   return card;
 }

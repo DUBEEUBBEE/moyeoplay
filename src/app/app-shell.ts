@@ -11,13 +11,20 @@ import { secureRandomIndex } from '../core/seeded-random';
 import { createGameCard } from '../components/game-card';
 import { Modal } from '../components/modal';
 import { Toast } from '../components/toast';
-import { GAME_DEFINITIONS, getGameDefinition } from './game-registry';
+import { GAME_DEFINITIONS, getGameDefinition, loadGameForRetry } from './game-registry';
 import { navigateToGame, navigateToLobby, parseHash } from './router';
 import { SessionStore, type SessionState } from './session-store';
 import { SettingsStore, type SettingsState } from './settings-store';
 
 const TWO_PLAYER_GAMES = new Set<GameId>([
   'omok',
+  'pong',
+  'volleyball',
+  'pinball-drop',
+  'reaction-duel',
+  'tap-battle',
+]);
+const ONE_SCREEN_GAMES = new Set<GameId>([
   'pong',
   'volleyball',
   'pinball-drop',
@@ -52,6 +59,9 @@ export class AppShell {
   #wasAutoPaused = false;
   #scrollToGamesOnLobby = false;
   #hasRouted = false;
+  #failedGameId: GameId | null = null;
+  #retryRequiresReload = false;
+  #announceTimer: number | null = null;
 
   readonly #lobby: HTMLElement;
   readonly #stage: HTMLElement;
@@ -91,6 +101,7 @@ export class AppShell {
     this.#renderCards();
     this.#buildSettingsModal();
     this.#bindEvents();
+    this.#syncViewportHeight();
     this.#settings.subscribe((state) => this.#applySettings(state));
     this.#session.subscribe((state) => this.#renderSession(state));
     this.#fullscreenButton.hidden = !document.fullscreenEnabled;
@@ -102,6 +113,16 @@ export class AppShell {
 
   destroy(): void {
     this.#abort.abort();
+    delete document.body.dataset.oneScreenGame;
+    for (const property of [
+      '--app-viewport-height',
+      '--app-viewport-width',
+      '--app-viewport-offset-top',
+      '--app-viewport-offset-left',
+    ]) {
+      document.documentElement.style.removeProperty(property);
+    }
+    delete document.documentElement.dataset.visualViewportFallback;
     this.#destroyController();
     this.#audio.destroy();
     this.#toast.destroy();
@@ -144,6 +165,7 @@ export class AppShell {
                 <div class="hero__actions">
                   <button class="primary-button" type="button" data-action="random">랜덤 게임 선택 <span aria-hidden="true">→</span></button>
                   <button class="secondary-button" type="button" data-action="scroll-games">8개 게임 보기</button>
+                  <button class="secondary-button" type="button" data-action="share">링크 공유</button>
                 </div>
                 <ul class="trust-list" aria-label="서비스 특징">
                   <li><strong>2번</strong><span>이내로 게임 시작</span></li>
@@ -245,10 +267,12 @@ export class AppShell {
           }
         } else if (action === 'lobby') navigateToLobby();
         else if (action === 'random') this.#openRandomGame();
+        else if (action === 'share') void this.#shareCurrentPage();
         else if (action === 'settings') this.#openSettings(target);
         else if (action === 'rules') this.#openRules(target);
         else if (action === 'reset') this.#resetGame();
         else if (action === 'fullscreen') void this.#toggleFullscreen();
+        else if (action === 'retry-game') this.#retryFailedGame();
         else if (action === 'clear-session') this.#session.clear();
       },
       { signal },
@@ -258,6 +282,9 @@ export class AppShell {
     window.addEventListener('hashchange', () => void this.#route(), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibility(), { signal });
     document.addEventListener('fullscreenchange', () => this.#updateFullscreenLabel(), { signal });
+    window.addEventListener('resize', this.#syncViewportHeight, { signal });
+    window.visualViewport?.addEventListener('resize', this.#syncViewportHeight, { signal });
+    window.visualViewport?.addEventListener('scroll', this.#syncViewportHeight, { signal });
   }
 
   async #route(): Promise<void> {
@@ -284,6 +311,7 @@ export class AppShell {
     this.#stage.hidden = true;
     this.#lobby.hidden = false;
     document.body.dataset.view = 'lobby';
+    delete document.body.dataset.oneScreenGame;
     document.title = '모여PLAY — 친구들이 모이면 바로 한 판';
     const scrollToGames = this.#scrollToGamesOnLobby;
     if (focusView) {
@@ -305,24 +333,27 @@ export class AppShell {
     });
   }
 
-  async #showGame(gameId: GameId, focusView: boolean): Promise<void> {
+  async #showGame(gameId: GameId, focusView: boolean, retryLoad = false): Promise<void> {
     const game = getGameDefinition(gameId);
     if (!game) return;
     const token = ++this.#loadToken;
     this.#destroyController();
+    this.#retryRequiresReload = false;
     this.#lobby.hidden = true;
     this.#stage.hidden = false;
     document.body.dataset.view = 'game';
+    document.body.dataset.oneScreenGame = String(ONE_SCREEN_GAMES.has(gameId));
     this.#stageTitle.textContent = game.title;
     this.#stageEyebrow.textContent = `${game.eyebrow} · ${game.players}`;
     this.#orientationNotice.hidden = !game.landscapePreferred;
+    this.#failedGameId = null;
     this.#gameHost.dataset.loading = 'true';
     this.#gameHost.setAttribute('aria-busy', 'true');
     this.#gameHost.textContent = '게임을 준비하고 있습니다…';
     document.title = `${game.title} · 모여PLAY`;
 
     try {
-      const module = await game.load();
+      const module = retryLoad ? await loadGameForRetry(game.id) : await game.load();
       if (token !== this.#loadToken) return;
       clearElement(this.#gameHost);
       this.#currentGame = game;
@@ -342,18 +373,56 @@ export class AppShell {
       this.#gameHost.setAttribute('aria-busy', 'false');
       window.scrollTo({ top: 0, behavior: 'instant' });
       if (focusView) this.#stageTitle.focus({ preventScroll: true });
-    } catch {
+    } catch (error: unknown) {
       if (token !== this.#loadToken) return;
-      this.#toast.show('게임을 불러오지 못했습니다. 로비에서 다시 시도해 주세요.');
-      navigateToLobby(true);
+      console.error(`[모여PLAY] 게임 모듈을 불러오지 못했습니다: ${game.id}`, error);
+      this.#destroyController();
+      this.#failedGameId = game.id;
+      this.#retryRequiresReload = retryLoad;
+      this.#currentGame = game;
+      this.#gameHost.dataset.loading = 'false';
+      this.#gameHost.setAttribute('aria-busy', 'false');
+      const panel = document.createElement('section');
+      panel.className = 'game-load-error';
+      panel.setAttribute('role', 'alert');
+      const title = document.createElement('h2');
+      title.textContent = `${game.title}를 불러오지 못했습니다`;
+      const detail = document.createElement('p');
+      detail.textContent = retryLoad
+        ? '재시도도 완료되지 않았습니다. 현재 게임 주소를 유지한 채 페이지를 새로고침하거나 로비로 돌아가 주세요.'
+        : '일시적인 오류일 수 있습니다. 다시 시도하거나 로비로 돌아가 주세요.';
+      const actions = document.createElement('div');
+      actions.className = 'game-load-error__actions';
+      const retry = this.#makeModalButton(retryLoad ? '페이지 새로고침' : '다시 시도', true);
+      retry.dataset.action = 'retry-game';
+      const lobby = this.#makeModalButton('로비로 돌아가기');
+      lobby.dataset.action = 'lobby';
+      actions.append(retry, lobby);
+      panel.append(title, detail, actions);
+      this.#gameHost.replaceChildren(panel);
+      this.#setPhase(
+        'idle',
+        retryLoad
+          ? `${game.title} 재시도에 실패했습니다. 페이지를 새로고침할 수 있습니다.`
+          : `${game.title}를 불러오지 못했습니다. 다시 시도할 수 있습니다.`,
+      );
+      retry.focus();
     }
   }
 
   #destroyController(): void {
-    this.#controller?.destroy();
+    this.#clearAnnouncement();
+    const controller = this.#controller;
     this.#controller = null;
     this.#currentGame = null;
+    this.#failedGameId = null;
+    this.#retryRequiresReload = false;
     this.#phase = 'idle';
+    try {
+      controller?.destroy();
+    } catch (error: unknown) {
+      console.error('[모여PLAY] 게임 자원을 정리하지 못했습니다.', error);
+    }
     clearElement(this.#gameHost);
   }
 
@@ -374,8 +443,10 @@ export class AppShell {
   #resetGame(): void {
     if (!this.#controller) return;
     this.#resultModal.close();
-    this.#controller.reset();
-    this.#setPhase('idle', '게임을 처음 상태로 다시 준비했습니다.');
+    const didReset = this.#controller.reset();
+    if (didReset) {
+      this.#setPhase('idle', '게임을 처음 상태로 다시 준비했습니다.');
+    }
   }
 
   #setPhase(phase: GamePhase, message?: string): void {
@@ -447,6 +518,62 @@ export class AppShell {
     const pool = GAME_DEFINITIONS.filter((game) => game.id !== exclude);
     const game = pool[secureRandomIndex(pool.length)];
     if (game) navigateToGame(game.id);
+  }
+
+  #retryFailedGame(): void {
+    const gameId = this.#failedGameId;
+    if (!gameId) return;
+    if (this.#retryRequiresReload) {
+      window.location.reload();
+      return;
+    }
+    void this.#showGame(gameId, true, true);
+  }
+
+  async #shareCurrentPage(): Promise<void> {
+    const shareData = {
+      title: '모여PLAY — 친구들이 모이면 바로 한 판',
+      text: '로그인과 설치 없이 한 기기에서 즐기는 로컬 파티 아케이드',
+      url: window.location.href,
+    };
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share(shareData);
+        this.#toast.show('공유 메뉴를 열었습니다.');
+        return;
+      }
+      const clipboard = Reflect.get(navigator, 'clipboard') as
+        Pick<Clipboard, 'writeText'> | undefined;
+      if (clipboard && typeof clipboard.writeText === 'function') {
+        await clipboard.writeText(shareData.url);
+      } else if (!this.#copyTextFallback(shareData.url)) {
+        throw new Error('Clipboard API is unavailable');
+      }
+      this.#toast.show('현재 페이지 링크를 복사했습니다.');
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      this.#toast.show('링크를 공유하지 못했습니다. 주소창의 URL을 복사해 주세요.');
+    }
+  }
+
+  #copyTextFallback(value: string): boolean {
+    const legacyDocument = document as unknown as {
+      execCommand?: (command: string) => boolean;
+    };
+    if (typeof legacyDocument.execCommand !== 'function') return false;
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.readOnly = true;
+    input.className = 'visually-hidden';
+    document.body.append(input);
+    input.select();
+    try {
+      return legacyDocument.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      input.remove();
+    }
   }
 
   #openRules(trigger: HTMLElement): void {
@@ -637,11 +764,34 @@ export class AppShell {
   }
 
   #announce(message: string): void {
-    this.#liveRegion.textContent = '';
-    window.setTimeout(() => {
+    this.#clearAnnouncement();
+    this.#announceTimer = window.setTimeout(() => {
       this.#liveRegion.textContent = message;
+      this.#announceTimer = null;
     }, 20);
   }
+
+  #clearAnnouncement(): void {
+    if (this.#announceTimer !== null) window.clearTimeout(this.#announceTimer);
+    this.#announceTimer = null;
+    this.#liveRegion.textContent = '';
+  }
+
+  readonly #syncViewportHeight = (): void => {
+    const viewport = window.visualViewport;
+    const values = {
+      '--app-viewport-height': viewport?.height ?? window.innerHeight,
+      '--app-viewport-width': viewport?.width ?? window.innerWidth,
+      '--app-viewport-offset-top': viewport?.offsetTop ?? 0,
+      '--app-viewport-offset-left': viewport?.offsetLeft ?? 0,
+    } as const;
+    for (const [property, value] of Object.entries(values)) {
+      document.documentElement.style.setProperty(property, `${String(value)}px`);
+    }
+    document.documentElement.dataset.visualViewportFallback = String(
+      Boolean(viewport && (viewport.scale > 1.05 || viewport.height < 240 || viewport.width < 320)),
+    );
+  };
 
   #isReducedMotion(): boolean {
     return (
