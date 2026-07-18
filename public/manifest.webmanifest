@@ -1,0 +1,19 @@
+{
+  "name": "모여PLAY — 로컬 파티 아케이드",
+  "short_name": "모여PLAY",
+  "description": "로그인과 설치 없이 한 기기에서 바로 즐기는 8가지 파티 게임",
+  "lang": "ko-KR",
+  "start_url": "./#lobby",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#06101c",
+  "theme_color": "#07111f",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
