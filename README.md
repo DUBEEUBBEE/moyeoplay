@@ -4,7 +4,8 @@
 
 ## 공개 URL
 
-현재 전달된 작업 폴더에는 `.git` 원격 정보가 없어 공개 저장소와 Pages URL을 확인할 수 없습니다. 배포 workflow는 준비되어 있으며 저장소에 연결해 `main`에 반영하면 GitHub Pages environment가 실제 URL을 제공합니다. 확인되지 않은 URL은 문서에 임의로 넣지 않았습니다.
+- 공개 사이트: [https://dubeeubbee.github.io/moyeoplay/](https://dubeeubbee.github.io/moyeoplay/)
+- 소스 저장소: [https://github.com/DUBEEUBBEE/moyeoplay](https://github.com/DUBEEUBBEE/moyeoplay)
 
 ## 게임과 조작
 
@@ -79,7 +80,7 @@ docs/             구현 계획, 아키텍처, 상세 게임 규칙
 3. 별도 deploy job이 `pages: write`, `id-token: write`만 받아 `github-pages` environment로 배포합니다.
 4. Pages가 제공하는 `base_path`와 `base_url`을 Vite에 전달해 프로젝트 하위 경로, canonical, Open Graph URL, robots, sitemap을 실제 URL로 생성합니다.
 
-저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 설정해야 합니다. 현재 작업 폴더에는 원격이 없어 이 설정과 실제 배포는 검증하지 못했습니다.
+저장소의 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**로 설정되어 있습니다. `main`에 반영하면 품질 검사를 통과한 `dist`가 위 공개 URL로 배포됩니다.
 
 ## 브라우저 지원
 
