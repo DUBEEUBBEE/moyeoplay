@@ -1,0 +1,256 @@
+.reaction-game {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.reaction-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.reaction-player {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.reaction-player--two {
+  text-align: right;
+}
+
+.reaction-player small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reaction-player strong {
+  color: var(--cyan);
+  font-size: 32px;
+}
+
+.reaction-player--two strong {
+  color: var(--pink);
+}
+
+.reaction-round {
+  display: grid;
+  justify-items: center;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.reaction-round b {
+  color: var(--yellow);
+  font-size: 14px;
+}
+
+.reaction-arena {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: clamp(330px, 54vw, 520px);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 28px;
+  background: #07121f;
+}
+
+.reaction-zone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px;
+  border-radius: 0;
+  color: var(--ink);
+  background: rgba(69, 228, 224, 0.06);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  transition: background 0.16s ease;
+}
+
+.reaction-zone + .reaction-zone {
+  border-left: 1px solid var(--line);
+  background: rgba(255, 93, 158, 0.06);
+}
+
+.reaction-zone:active {
+  background: rgba(69, 228, 224, 0.2);
+}
+
+.reaction-zone + .reaction-zone:active {
+  background: rgba(255, 93, 158, 0.2);
+}
+
+.reaction-zone b {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border: 1px solid rgba(69, 228, 224, 0.45);
+  border-radius: 22px;
+  color: var(--cyan);
+  background: rgba(69, 228, 224, 0.1);
+  font-size: 30px;
+}
+
+.reaction-zone + .reaction-zone b {
+  color: var(--pink);
+  border-color: rgba(255, 93, 158, 0.45);
+  background: rgba(255, 93, 158, 0.1);
+}
+
+.reaction-zone span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reaction-signal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: clamp(120px, 21vw, 190px);
+  aspect-ratio: 1;
+  padding: 18px;
+  border: 10px solid #0b1929;
+  border-radius: 50%;
+  color: var(--ink);
+  background: #17273a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.reaction-signal strong {
+  font-size: clamp(20px, 4vw, 34px);
+  letter-spacing: -0.04em;
+}
+
+.reaction-game[data-signal='go'] .reaction-signal {
+  color: #07130c;
+  background: var(--green);
+  box-shadow:
+    0 0 0 12px rgba(88, 230, 169, 0.1),
+    0 0 60px rgba(88, 230, 169, 0.42);
+}
+
+.reaction-game[data-signal='false'] .reaction-signal {
+  color: #190707;
+  background: var(--danger);
+}
+
+.reaction-status {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 58px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  font-size: 12px;
+  text-align: center;
+}
+
+.reaction-status span:first-child {
+  color: var(--cyan);
+  text-align: left;
+}
+
+.reaction-status span:last-child {
+  color: var(--pink);
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .reaction-head {
+    padding: 11px;
+  }
+
+  .reaction-player {
+    grid-template-columns: auto 1fr;
+  }
+
+  .reaction-player strong {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .reaction-arena {
+    min-height: 410px;
+    border-radius: 20px;
+  }
+
+  .reaction-zone {
+    padding: 18px 10px;
+  }
+
+  .reaction-zone b {
+    width: 56px;
+    height: 56px;
+  }
+
+  .reaction-status {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reaction-status strong {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .reaction-game {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .reaction-head,
+  .reaction-status {
+    grid-column: 1;
+  }
+
+  .reaction-head {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reaction-round {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .reaction-arena {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-height: 290px;
+  }
+
+  .reaction-status {
+    grid-template-columns: 1fr;
+    font-size: 10px;
+  }
+}
