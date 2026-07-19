@@ -881,7 +881,7 @@ class LadderController implements MiniGameController {
     const xPositions = this.xPositions();
 
     context.save();
-    context.strokeStyle = 'rgba(232, 244, 252, .24)';
+    context.strokeStyle = 'rgba(35, 74, 132, .28)';
     context.lineWidth = 3;
     for (const x of xPositions) {
       context.beginPath();
@@ -939,8 +939,8 @@ class LadderController implements MiniGameController {
 
   private drawBackground(context: CanvasRenderingContext2D): void {
     const gradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    gradient.addColorStop(0, 'rgba(15, 35, 55, .9)');
-    gradient.addColorStop(1, 'rgba(4, 13, 25, .9)');
+    gradient.addColorStop(0, 'rgba(255, 250, 240, .98)');
+    gradient.addColorStop(1, 'rgba(232, 241, 255, .98)');
     context.save();
     context.fillStyle = gradient;
     context.beginPath();
@@ -985,14 +985,14 @@ class LadderController implements MiniGameController {
     const top = below ? anchorY : anchorY - height;
     context.beginPath();
     context.roundRect(x - width / 2, top, width, height, 10);
-    context.fillStyle = 'rgba(5, 16, 29, .96)';
+    context.fillStyle = 'rgba(255, 253, 248, .97)';
     context.fill();
     context.strokeStyle = color;
     context.globalAlpha = 0.82;
     context.lineWidth = 1.4;
     context.stroke();
     context.globalAlpha = 1;
-    context.fillStyle = color;
+    context.fillStyle = '#1d2d4a';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(label, x, top + height / 2 + 1);

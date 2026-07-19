@@ -198,11 +198,11 @@ export function createGame(services: GameServices): MiniGameController {
     context.clearRect(0, 0, VOLLEYBALL_WIDTH, VOLLEYBALL_HEIGHT);
 
     const sky = context.createLinearGradient(0, 0, 0, VOLLEYBALL_FLOOR_Y);
-    sky.addColorStop(0, '#12213d');
-    sky.addColorStop(1, '#19355a');
+    sky.addColorStop(0, '#dbeaff');
+    sky.addColorStop(1, '#f8fbff');
     context.fillStyle = sky;
     context.fillRect(0, 0, VOLLEYBALL_WIDTH, VOLLEYBALL_FLOOR_Y);
-    context.fillStyle = '#d49b55';
+    context.fillStyle = '#f1d8b0';
     context.fillRect(
       0,
       VOLLEYBALL_FLOOR_Y,
@@ -210,7 +210,7 @@ export function createGame(services: GameServices): MiniGameController {
       VOLLEYBALL_HEIGHT - VOLLEYBALL_FLOOR_Y,
     );
 
-    context.strokeStyle = 'rgba(255,255,255,0.16)';
+    context.strokeStyle = 'rgba(25,45,79,0.18)';
     context.lineWidth = 2;
     context.beginPath();
     context.moveTo(0, VOLLEYBALL_FLOOR_Y);
@@ -283,14 +283,14 @@ export function createGame(services: GameServices): MiniGameController {
       context.shadowBlur = 0;
     }
 
-    context.fillStyle = '#eef5ff';
+    context.fillStyle = '#fffdf8';
     context.fillRect(
       VOLLEYBALL_NET_X - VOLLEYBALL_NET_WIDTH / 2,
       VOLLEYBALL_NET_TOP,
       VOLLEYBALL_NET_WIDTH,
       VOLLEYBALL_FLOOR_Y - VOLLEYBALL_NET_TOP,
     );
-    context.fillStyle = '#ffd447';
+    context.fillStyle = '#1457d9';
     context.fillRect(VOLLEYBALL_NET_X - 17, VOLLEYBALL_NET_TOP - 6, 34, 10);
     context.strokeStyle = 'rgba(9,27,45,0.45)';
     context.lineWidth = 1;
@@ -321,7 +321,7 @@ export function createGame(services: GameServices): MiniGameController {
     context.stroke();
     context.restore();
 
-    context.fillStyle = 'rgba(255,255,255,0.9)';
+    context.fillStyle = 'rgba(23,33,54,0.92)';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.font = '800 58px system-ui, sans-serif';
@@ -332,7 +332,7 @@ export function createGame(services: GameServices): MiniGameController {
     );
 
     if (state.phase === 'countdown') {
-      context.fillStyle = '#ffd447';
+      context.fillStyle = '#1457d9';
       context.font = '900 106px system-ui, sans-serif';
       context.fillText(
         String(Math.max(1, Math.ceil(state.countdownRemaining))),
@@ -340,9 +340,9 @@ export function createGame(services: GameServices): MiniGameController {
         170,
       );
     } else if (state.phase === 'idle' || state.phase === 'paused') {
-      context.fillStyle = 'rgba(5,12,22,0.65)';
+      context.fillStyle = 'rgba(255,253,248,0.84)';
       context.fillRect(0, 0, VOLLEYBALL_WIDTH, VOLLEYBALL_HEIGHT);
-      context.fillStyle = '#ffffff';
+      context.fillStyle = '#172136';
       context.font = '800 42px system-ui, sans-serif';
       context.fillText(
         state.phase === 'paused' ? '일시정지' : 'START를 눌러 시작',

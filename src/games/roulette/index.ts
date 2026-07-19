@@ -530,8 +530,8 @@ class RouletteController implements MiniGameController {
         WHEEL_CENTER,
         WHEEL_CENTER,
       );
-      this.#backdrop.addColorStop(0, '#122b43');
-      this.#backdrop.addColorStop(1, '#06111e');
+      this.#backdrop.addColorStop(0, '#fffdf8');
+      this.#backdrop.addColorStop(1, '#e8f1ff');
     }
     context.fillStyle = this.#backdrop;
     context.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -548,7 +548,7 @@ class RouletteController implements MiniGameController {
       context.closePath();
       context.fillStyle = WHEEL_COLORS[index % WHEEL_COLORS.length] ?? '#3e8fbd';
       context.fill();
-      context.strokeStyle = 'rgba(255,255,255,.34)';
+      context.strokeStyle = 'rgba(23,33,54,.22)';
       context.lineWidth = 2;
       context.stroke();
 
@@ -558,9 +558,9 @@ class RouletteController implements MiniGameController {
         context.moveTo(0, 0);
         context.arc(0, 0, WHEEL_RADIUS - 4, startAngle, endAngle);
         context.closePath();
-        context.strokeStyle = '#ffd447';
+        context.strokeStyle = '#1457d9';
         context.lineWidth = 9;
-        context.shadowColor = '#ffd447';
+        context.shadowColor = 'rgba(20,87,217,.48)';
         context.shadowBlur = 18;
         context.stroke();
         context.restore();
@@ -585,15 +585,15 @@ class RouletteController implements MiniGameController {
 
     context.beginPath();
     context.arc(0, 0, 55, 0, ROULETTE_FULL_TURN);
-    context.fillStyle = '#091827';
-    context.shadowColor = 'rgba(0,0,0,.55)';
+    context.fillStyle = '#1457d9';
+    context.shadowColor = 'rgba(20,87,217,.35)';
     context.shadowBlur = 18;
     context.fill();
     context.shadowBlur = 0;
     context.lineWidth = 6;
-    context.strokeStyle = '#e8edf3';
+    context.strokeStyle = '#fffdf8';
     context.stroke();
-    context.fillStyle = '#ffd447';
+    context.fillStyle = '#ffffff';
     context.font = '900 16px system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -606,12 +606,12 @@ class RouletteController implements MiniGameController {
     context.lineTo(WHEEL_CENTER + 25, 22);
     context.lineTo(WHEEL_CENTER, 79);
     context.closePath();
-    context.fillStyle = '#ffd447';
-    context.shadowColor = 'rgba(255,212,71,.6)';
+    context.fillStyle = '#ff5d4f';
+    context.shadowColor = 'rgba(255,93,79,.42)';
     context.shadowBlur = 18;
     context.fill();
     context.lineWidth = 5;
-    context.strokeStyle = '#07111d';
+    context.strokeStyle = '#7a2d2a';
     context.stroke();
     context.restore();
 
