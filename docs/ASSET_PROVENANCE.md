@@ -1,4 +1,4 @@
-# 게임 아이콘 자산 provenance
+# 이미지 자산 provenance
 
 최종 갱신: 2026-07-19
 
@@ -11,11 +11,43 @@
 - 최종 master: `design/game-icons/source/<id>.png` 8개
 - 배포 본: `public/assets/game-icons/<id>.{avif,webp,png}`
 - 게임별 OG: `public/assets/og/<id>.png`
-- 제3자 이미지·상표·캐릭터 reference: 사용하지 않음
+- 히어로 원본: `design/hero/source/moyeoplay-party-diorama.png`
+- 히어로 배포본: `public/assets/hero/party-diorama.{avif,webp,jpg}`
+- 게임 아이콘에는 제3자 이미지·상표·캐릭터 reference를 사용하지 않음
 
 도구 출력은 정확한 내부 모델 이름과 버전을 보여 주지 않았다. 따라서 `gpt-image-1.5`, `gpt-image-2` 등 특정 모델을 사용했다고 단정하지 않는다.
 
 오목은 참조 이미지 없이 첫 style master로 생성했다. 나머지 7개 게임은 이 프로젝트에서 생성한 오목 master만 style reference로 사용했다. 외부 사이트에서 이미지를 다운로드하거나 제3자 작품·캐릭터·상표를 reference로 제공하지 않았다.
+
+## 밝은 클레이 히어로 디오라마
+
+사용자가 제공한 화면 시안을 스타일·분위기 참고용으로만 사용하고, UI 문자·로고·내비게이션을 포함하지 않는 별도 히어로 이미지를 Codex built-in imagegen으로 새로 생성했다. 참고 이미지를 사이트에 그대로 배포하거나 잘라 쓰지 않았으며, 새 결과는 오목판·탁구·배구·룰렛 오브젝트만으로 다시 구성했다.
+
+최종 prompt:
+
+```text
+Use case: stylized-concept
+Asset type: responsive landing page hero illustration for a Korean local party game website
+Primary request: create a polished original 3D clay diorama inspired by the attached image's warm playful material language, without copying its layout or interface.
+Input images: Image 1 is a style and mood reference only.
+Scene/backdrop: seamless warm ivory studio background, clean and uncluttered.
+Subject: a compact tabletop party-game world containing a green omok board with a few black and white stones, a red table-tennis paddle and white ball, a blue/yellow/white volleyball beside a small white net, and a colorful roulette wheel. Add only a few tiny clay trees, grass tufts, stones, and one small cloud to make the diorama friendly.
+Style/medium: premium handcrafted polymer-clay 3D render, soft rounded forms, tactile matte texture, crisp commercial quality.
+Composition/framing: wide landscape, scene grouped toward the center-right with generous breathing room and safe cropping on all sides; strong readable silhouettes at website hero size.
+Lighting/mood: soft warm studio light, gentle ambient occlusion and soft contact shadows, cheerful and welcoming.
+Color palette: ivory, royal blue, warm yellow, tomato red, leaf green, charcoal, white.
+Materials/textures: subtle handmade clay fingerprints and smooth rounded edges, no glossy plastic.
+Constraints: no text, no letters, no logo, no interface chrome, no people, no watermark; keep every game object physically plausible and clearly recognizable.
+Avoid: dark background, neon sci-fi styling, photorealistic humans, excessive clutter, duplicate balls or paddles, malformed game pieces.
+```
+
+생성본은 1672×941 PNG이며 프로젝트 원본 디렉터리에 보존한다. `npm run assets:build`는 이 원본을 폭 1440px, 16:9 비율로 맞춘 뒤 다음 배포본을 만든다.
+
+- AVIF: quality 61, effort 7, 4:4:4, 180KiB 상한
+- WebP: quality 84, effort 6, 280KiB 상한
+- JPG fallback: quality 86, mozjpeg, 4:4:4, 350KiB 상한
+
+2026-07-19 산출물은 AVIF 약 38.8KiB, WebP 약 64.5KiB, JPG 약 132.9KiB이며 모두 1440×810이다. 빌드 검증은 세 형식의 존재·크기·해상도와 루트 `<picture>` 참조를 확인한다.
 
 ## canonical 공통 prompt
 

@@ -73,6 +73,12 @@ const indexSource = textSources.get('index.html') ?? '';
 if (!indexSource.includes('<h1>') || !indexSource.includes('games/omok/')) {
   fail(errors, 'Root landing is missing crawlable heading or game guide links.');
 }
+if (
+  !indexSource.includes('assets/hero/party-diorama.avif') ||
+  !indexSource.includes('assets/hero/party-diorama.webp')
+) {
+  fail(errors, 'Root landing is missing the optimized clay hero picture sources.');
+}
 const playSource = textSources.get('play/index.html') ?? '';
 if (!playSource.includes('noindex,follow')) fail(errors, '/play/ must be noindex,follow.');
 if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle')) {
@@ -199,6 +205,27 @@ if (
   fail(errors, 'Manifest icon URLs must use the active deployment base path.');
 }
 
+const heroAssets = [
+  { extension: 'avif', budget: 180 * 1024 },
+  { extension: 'webp', budget: 280 * 1024 },
+  { extension: 'jpg', budget: 350 * 1024 },
+];
+for (const asset of heroAssets) {
+  const relativePath = `assets/hero/party-diorama.${asset.extension}`;
+  const heroPath = path.join(outputDirectory, relativePath);
+  if (!(await exists(heroPath))) {
+    fail(errors, `Missing clay hero asset: ${relativePath}`);
+    continue;
+  }
+  const [metadata, size] = await Promise.all([sharp(heroPath).metadata(), stat(heroPath)]);
+  if (metadata.width !== 1440 || metadata.height !== 810) {
+    fail(errors, `${relativePath} must be 1440x810.`);
+  }
+  if (size.size > asset.budget) {
+    fail(errors, `${relativePath} exceeds ${(asset.budget / 1024).toFixed(0)}KB.`);
+  }
+}
+
 for (const game of GAME_CONTENT) {
   for (const extension of ['avif', 'webp', 'png']) {
     const relativePath = `assets/game-icons/${game.id}.${extension}`;
@@ -231,6 +258,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `Verified ${String(files.length)} production files, 16 routes, 15 sitemap URLs, dual-profile root rules, and eight optimized game asset sets.`,
+    `Verified ${String(files.length)} production files, 16 routes, 15 sitemap URLs, dual-profile root rules, one responsive clay hero, and eight optimized game asset sets.`,
   );
 }

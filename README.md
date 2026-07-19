@@ -78,14 +78,14 @@ src/core/         게임 계약, 고정 스텝 루프, 입력, 오디오, Canvas
 src/games/        8개 독립 게임과 순수 로직 테스트
 src/styles/       토큰, 기본, 컴포넌트, 게임, 반응형 CSS
 tests/e2e/        Playwright 사용자 흐름과 axe 검사
-design/           ImageGen 게임 아이콘 RGBA master
-public/           최적화 아이콘, 실제 게임 스크린샷, OG, PWA 자산
+design/           ImageGen 게임 아이콘과 클레이 히어로 master
+public/           최적화 아이콘·히어로, 실제 게임 스크린샷, OG, PWA 자산
 docs/             아키텍처, QA, SEO·호스팅·AdSense·자산 provenance
 ```
 
 `scripts/generate-site.mjs`가 build 전에 `.generated-pages/`에 16개 HTML entry와 sitemap을 만듭니다. 각 게임은 `/play/`에서 진입할 때 동적으로 import되며 `mount → enter → start/pause/resume/reset → destroy` 생명주기를 따릅니다. 자세한 내용은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
 
-게임 아이콘과 OG는 같은 master에서 결정론적으로 다시 만들 수 있습니다. 실제 게임 화면은 production preview를 연 Playwright로 캡처합니다.
+게임 아이콘·히어로와 OG는 저장소 master에서 다시 만들 수 있습니다. 실제 게임 화면은 production preview를 연 Playwright로 캡처합니다.
 
 ```bash
 npm run assets:build

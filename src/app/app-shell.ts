@@ -154,7 +154,20 @@ export class AppShell {
             <span><strong>모여<span>PLAY</span></strong><small>모이면 바로 한 판</small></span>
             <span class="visually-hidden">로비로 이동</span>
           </button>
-          <p class="privacy-pill"><span aria-hidden="true"></span> 로그인 없음 · 게임 설정과 전적은 브라우저 저장</p>
+          <nav class="app-nav" aria-label="주요 화면">
+            <button class="app-nav__item" type="button" data-action="lobby">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10M9.5 19.5v-6h5v6"/></svg>
+              <span>홈</span>
+            </button>
+            <button class="app-nav__item" type="button" data-action="scroll-games">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.5 8h7a4 4 0 0 1 3.8 2.8l1.5 4.7a2.6 2.6 0 0 1-4.3 2.7l-1.7-1.5H9.2l-1.7 1.5a2.6 2.6 0 0 1-4.3-2.7l1.5-4.7A4 4 0 0 1 8.5 8ZM8 11v4m-2-2h4m6-1h.01M18 14h.01"/></svg>
+              <span>게임</span>
+            </button>
+            <a class="app-nav__item" href="${sitePath('how-to-play/')}">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.7-2.2 2-2.2 3.5M12 17h.01"/></svg>
+              <span>도움말</span>
+            </a>
+          </nav>
           <div class="header-actions">
             <button class="icon-button" id="sound-toggle" type="button" aria-label="사운드 끄기" title="사운드 켜기/끄기">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4Zm12.4-.9a4 4 0 0 1 0 5.8M18.8 6.7a7.5 7.5 0 0 1 0 10.6"/></svg>
@@ -171,11 +184,12 @@ export class AppShell {
             <div class="hero">
               <div class="hero__copy">
                 <p class="eyebrow"><span>LOCAL PARTY ARCADE</span> 한 화면, 여덟 가지 승부</p>
-                <h1 id="hero-title" tabindex="-1">친구들이 모이면<br /><em>바로 한 판.</em></h1>
+                <h1 id="hero-title" tabindex="-1">친구들이 모이면<br /><em>바로 한 판!</em></h1>
                 <p class="hero__description">오목부터 순발력 대결, 공정한 룰렛까지. 가입도 설치도 없이 이 화면을 가운데 두고 바로 시작하세요.</p>
+                <p class="privacy-pill"><span aria-hidden="true"></span> 로그인 없음 · 게임 설정과 전적은 브라우저 저장</p>
                 <div class="hero__actions">
-                  <button class="primary-button" type="button" data-action="random">랜덤 게임 선택 <span aria-hidden="true">→</span></button>
-                  <button class="secondary-button" type="button" data-action="scroll-games">8개 게임 보기</button>
+                  <button class="primary-button primary-button--hero" type="button" data-action="scroll-games"><span class="primary-button__play" aria-hidden="true">▶</span>게임 시작</button>
+                  <button class="secondary-button" type="button" data-action="random">랜덤 선택</button>
                   <button class="secondary-button" type="button" data-action="share">링크 공유</button>
                 </div>
                 <ul class="trust-list" aria-label="서비스 특징">
@@ -184,22 +198,36 @@ export class AppShell {
                   <li><strong>로컬</strong><span>설정 · 최근 전적 브라우저 저장</span></li>
                 </ul>
               </div>
-              <aside class="session-card" aria-labelledby="session-title">
-                <div class="session-card__top">
-                  <div><p class="eyebrow">CURRENT SESSION</p><h2 id="session-title">오늘의 전적</h2></div>
-                  <button class="text-button" type="button" data-action="clear-session">초기화</button>
-                </div>
-                <div class="session-score" aria-label="2인 게임 누적 승수">
-                  <div><span class="player-dot player-dot--one" aria-hidden="true"></span><small data-player-name="1">PLAYER 1</small><strong id="session-p1-score">0</strong><span>승</span></div>
-                  <b aria-hidden="true">:</b>
-                  <div><span class="player-dot player-dot--two" aria-hidden="true"></span><small data-player-name="2">PLAYER 2</small><strong id="session-p2-score">0</strong><span>승</span></div>
-                </div>
-                <div class="recent-block">
-                  <h3>최근 플레이</h3>
-                  <ol id="recent-list"><li class="empty-state">아직 기록이 없습니다. 첫 승부를 시작해 보세요.</li></ol>
-                </div>
-              </aside>
+              <picture class="hero-visual" aria-hidden="true">
+                <source type="image/avif" srcset="${sitePath('assets/hero/party-diorama.avif')}" />
+                <source type="image/webp" srcset="${sitePath('assets/hero/party-diorama.webp')}" />
+                <img src="${sitePath('assets/hero/party-diorama.jpg')}" width="1440" height="810" loading="eager" fetchpriority="high" decoding="async" alt="" />
+              </picture>
             </div>
+
+            <aside class="session-card" aria-labelledby="session-title">
+              <div class="session-card__top">
+                <div><p class="eyebrow">CURRENT SESSION</p><h2 id="session-title">오늘의 전적</h2></div>
+                <button class="text-button" type="button" data-action="clear-session">초기화</button>
+              </div>
+              <div class="session-score" aria-label="2인 게임 누적 승수">
+                <div><span class="player-dot player-dot--one" aria-hidden="true"></span><small data-player-name="1">PLAYER 1</small><strong id="session-p1-score">0</strong><span>승</span></div>
+                <b aria-hidden="true">:</b>
+                <div><span class="player-dot player-dot--two" aria-hidden="true"></span><small data-player-name="2">PLAYER 2</small><strong id="session-p2-score">0</strong><span>승</span></div>
+              </div>
+              <div class="recent-block">
+                <h3>최근 플레이</h3>
+                <ol id="recent-list"><li class="empty-state">아직 기록이 없습니다. 첫 승부를 시작해 보세요.</li></ol>
+              </div>
+            </aside>
+
+            <section class="game-section" id="games" aria-labelledby="games-title">
+              <div class="section-heading">
+                <div><p class="eyebrow">CHOOSE A GAME</p><h2 id="games-title" tabindex="-1">지금 분위기에 맞는 한 판</h2></div>
+                <p>카드를 열고 시작을 누르면 끝. 키보드와 멀티터치를 함께 지원합니다.</p>
+              </div>
+              <div class="game-grid" id="game-grid"></div>
+            </section>
 
             <section class="play-steps" aria-labelledby="play-steps-title">
               <div class="play-steps__heading">
@@ -211,14 +239,6 @@ export class AppShell {
                 <li><span aria-hidden="true">02</span><div><strong>한 기기를 가운데 두세요</strong><p>양쪽 터치 영역 또는 키보드를 각 플레이어가 함께 사용합니다.</p></div></li>
                 <li><span aria-hidden="true">03</span><div><strong>시작을 누르고 승부하세요</strong><p>규칙을 확인한 뒤 플레이하고, 결과는 오늘의 전적에 자동 기록됩니다.</p></div></li>
               </ol>
-            </section>
-
-            <section class="game-section" id="games" aria-labelledby="games-title">
-              <div class="section-heading">
-                <div><p class="eyebrow">CHOOSE A GAME</p><h2 id="games-title" tabindex="-1">지금 분위기에 맞는 한 판</h2></div>
-                <p>카드를 열고 시작을 누르면 끝. 키보드와 멀티터치를 함께 지원합니다.</p>
-              </div>
-              <div class="game-grid" id="game-grid"></div>
             </section>
 
             <section class="promise-panel" aria-label="모여PLAY 데이터 안내">
