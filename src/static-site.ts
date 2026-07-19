@@ -1,6 +1,7 @@
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/static-site.css';
+import './styles/clay-theme.css';
 
 type AdQueue = Record<string, never>[];
 

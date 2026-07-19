@@ -4,10 +4,18 @@ import sharp from 'sharp';
 import { GAME_CONTENT } from '../site/site-content.mjs';
 
 const SOURCE_DIRECTORY = path.resolve('design/game-icons/source');
+const HERO_SOURCE = path.resolve('design/hero/source/moyeoplay-party-diorama.png');
 const ICON_DIRECTORY = path.resolve('public/assets/game-icons');
 const OG_DIRECTORY = path.resolve('public/assets/og');
+const HERO_DIRECTORY = path.resolve('public/assets/hero');
 const ICON_SIZE = 320;
 const ICON_BUDGET_BYTES = 40 * 1024;
+const HERO_WIDTH = 1440;
+const HERO_BUDGET_BYTES = Object.freeze({
+  avif: 180 * 1024,
+  webp: 280 * 1024,
+  jpg: 350 * 1024,
+});
 
 const ACCENTS = Object.freeze({
   omok: '#ffd447',
@@ -107,10 +115,50 @@ async function optimizeIcon(game) {
   return { id: game.id, avifSize, webpSize, pngSize };
 }
 
+async function optimizeHero() {
+  const pipeline = sharp(HERO_SOURCE).resize({
+    width: HERO_WIDTH,
+    fit: 'inside',
+    withoutEnlargement: true,
+  });
+  const outputPaths = {
+    avif: path.join(HERO_DIRECTORY, 'party-diorama.avif'),
+    webp: path.join(HERO_DIRECTORY, 'party-diorama.webp'),
+    jpg: path.join(HERO_DIRECTORY, 'party-diorama.jpg'),
+  };
+  await Promise.all([
+    pipeline
+      .clone()
+      .avif({ quality: 61, effort: 7, chromaSubsampling: '4:4:4' })
+      .toFile(outputPaths.avif),
+    pipeline.clone().webp({ quality: 84, effort: 6 }).toFile(outputPaths.webp),
+    pipeline
+      .clone()
+      .jpeg({ quality: 86, mozjpeg: true, chromaSubsampling: '4:4:4' })
+      .toFile(outputPaths.jpg),
+  ]);
+
+  const sizes = Object.fromEntries(
+    await Promise.all(
+      Object.entries(outputPaths).map(async ([format, file]) => [format, (await stat(file)).size]),
+    ),
+  );
+  for (const [format, size] of Object.entries(sizes)) {
+    if (size > HERO_BUDGET_BYTES[format]) {
+      throw new Error(
+        `Hero ${format.toUpperCase()} exceeds its ${(HERO_BUDGET_BYTES[format] / 1024).toFixed(0)}KB budget.`,
+      );
+    }
+  }
+  return sizes;
+}
+
 await mkdir(ICON_DIRECTORY, { recursive: true });
 await mkdir(OG_DIRECTORY, { recursive: true });
+await mkdir(HERO_DIRECTORY, { recursive: true });
 const results = [];
 for (const game of GAME_CONTENT) results.push(await optimizeIcon(game));
+const heroSizes = await optimizeHero();
 
 const totalModernBytes = results.reduce(
   (total, result) => total + Math.min(result.avifSize, result.webpSize),
@@ -122,3 +170,6 @@ for (const result of results) {
   );
 }
 console.log(`Eight-icon modern-format budget: ${(totalModernBytes / 1024).toFixed(1)}KB.`);
+console.log(
+  `Hero: AVIF ${(heroSizes.avif / 1024).toFixed(1)}KB, WebP ${(heroSizes.webp / 1024).toFixed(1)}KB, JPG ${(heroSizes.jpg / 1024).toFixed(1)}KB.`,
+);

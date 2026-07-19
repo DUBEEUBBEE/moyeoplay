@@ -7,8 +7,8 @@
   "start_url": "/play/#lobby",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#06101c",
-  "theme_color": "#07111f",
+  "background_color": "#f7f3eb",
+  "theme_color": "#1f65d6",
   "icons": [
     {
       "src": "/icon-192.png",

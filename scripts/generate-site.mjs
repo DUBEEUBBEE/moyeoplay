@@ -43,10 +43,9 @@ const GAME_PLAYER_COUNTS = Object.freeze({
 });
 
 const NAV_ITEMS = Object.freeze([
-  { label: '게임', path: '/' },
-  { label: '플레이 방법', path: '/how-to-play/' },
-  { label: '공정성', path: '/fairness/' },
-  { label: '소개', path: '/about/' },
+  { label: '홈', path: '/', icon: 'home' },
+  { label: '게임', path: '/#games', icon: 'game' },
+  { label: '도움말', path: '/how-to-play/', icon: 'help' },
 ]);
 
 function escapeHtml(value) {
@@ -93,14 +92,16 @@ function renderHead({
   ogType = 'website',
   robots = 'index,follow,max-image-preview:large',
   structuredData,
+  themeColor = '#f7f3eb',
+  colorScheme = 'light',
 }) {
   const canonical = absoluteUrl(canonicalPath);
   const image = absoluteUrl(ogImagePath);
   return `
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#07111f" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="${escapeHtml(themeColor)}" />
+    <meta name="color-scheme" content="${escapeHtml(colorScheme)}" />
     <meta name="robots" content="${escapeHtml(robots)}" />
     <meta name="description" content="${escapeHtml(description)}" />
     <link rel="canonical" href="${escapeHtml(canonical)}" />
@@ -129,6 +130,16 @@ function renderHead({
     }`;
 }
 
+function renderNavIcon(icon) {
+  if (icon === 'home') {
+    return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10M9.5 19.5v-6h5v6"/></svg>';
+  }
+  if (icon === 'game') {
+    return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.5 8h7a4 4 0 0 1 3.8 2.8l1.5 4.7a2.6 2.6 0 0 1-4.3 2.7l-1.7-1.5H9.2l-1.7 1.5a2.6 2.6 0 0 1-4.3-2.7l1.5-4.7A4 4 0 0 1 8.5 8ZM8 11v4m-2-2h4m6-1h.01M18 14h.01"/></svg>';
+  }
+  return '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.7-2.2 2-2.2 3.5M12 17h.01"/></svg>';
+}
+
 function renderHeader(activePath) {
   return `<header class="content-header">
       <a class="content-brand" href="${sitePath()}" aria-label="모여PLAY 홈">
@@ -136,11 +147,11 @@ function renderHeader(activePath) {
         <strong>모여<span>PLAY</span></strong>
       </a>
       <nav class="content-nav" aria-label="주요 메뉴">
-        ${NAV_ITEMS.map(
-          (item) =>
-            `<a href="${sitePath(item.path)}"${item.path === activePath ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`,
-        ).join('')}
-        <a href="${sitePath('play/#lobby')}">바로 플레이</a>
+        ${NAV_ITEMS.map((item) => {
+          const isActive = item.path === activePath;
+          return `<a href="${sitePath(item.path)}"${isActive ? ' aria-current="page"' : ''}>${renderNavIcon(item.icon)}<span>${escapeHtml(item.label)}</span></a>`;
+        }).join('')}
+        <a class="content-nav__play" href="${sitePath('play/#lobby')}">바로 플레이</a>
       </nav>
     </header>`;
 }
@@ -187,7 +198,7 @@ function renderLayout({ outputFile, head, activePath, body, inlineHeadScript = '
   return `<!doctype html>
 <html lang="ko">
   <head>${head}${inlineHeadScript}</head>
-  <body>
+  <body class="content-body">
     <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
     <div class="ambient ambient--one" aria-hidden="true"></div>
     <div class="ambient ambient--two" aria-hidden="true"></div>
@@ -202,6 +213,15 @@ function renderLayout({ outputFile, head, activePath, body, inlineHeadScript = '
 `;
 }
 
+function renderHeroPicture() {
+  const prefix = 'assets/hero/party-diorama';
+  return `<picture class="hero-art__picture">
+      <source type="image/avif" srcset="${sitePath(`${prefix}.avif`)}" />
+      <source type="image/webp" srcset="${sitePath(`${prefix}.webp`)}" />
+      <img src="${sitePath(`${prefix}.jpg`)}" width="1440" height="810" loading="eager" fetchpriority="high" decoding="async" alt="오목판, 탁구, 배구와 룰렛을 점토로 표현한 모여PLAY 게임 디오라마" />
+    </picture>`;
+}
+
 function renderPicture(game, className = '') {
   const prefix = `assets/game-icons/${game.id}`;
   return `<picture${className ? ` class="${className}"` : ''}>
@@ -212,7 +232,7 @@ function renderPicture(game, className = '') {
 }
 
 function renderStaticGameCard(game) {
-  return `<article class="static-game-card">
+  return `<article class="static-game-card" style="--game-accent: ${escapeHtml(GAME_ACCENTS[game.id])}">
       ${renderPicture(game)}
       <p class="content-kicker">${escapeHtml(game.players)} · ${escapeHtml(game.duration)}</p>
       <h3>${escapeHtml(game.title)}</h3>
@@ -300,17 +320,20 @@ function renderRoot(outputFile) {
       })();
     </script>`;
   const sections = page.sections.map(renderSection).join('');
+  const headingParts = page.heading.split(', ');
+  const headingLead = headingParts[0] ?? page.heading;
+  const headingAccent = headingParts.slice(1).join(', ');
   const body = `<section class="landing-hero">
-      <div>
+      <div class="landing-hero__copy">
         <p class="content-kicker">${escapeHtml(page.eyebrow)}</p>
-        <h1>${escapeHtml(page.heading)}</h1>
+        <h1><span>${escapeHtml(headingLead)}</span>${headingAccent ? `<em>${escapeHtml(headingAccent)}!</em>` : ''}</h1>
         <p class="content-lead">${escapeHtml(page.lead)}</p>
         <div class="content-actions">
-          <a class="content-button content-button--primary" href="${sitePath('play/#lobby')}">지금 플레이</a>
+          <a class="content-button content-button--primary" href="${sitePath('play/#lobby')}"><span class="content-button__play" aria-hidden="true">▶</span>게임 시작</a>
           <a class="content-button" href="#games">8가지 게임 보기</a>
         </div>
       </div>
-      <div class="hero-art" aria-hidden="true"><span class="hero-art__glyph">M</span></div>
+      <div class="hero-art">${renderHeroPicture()}</div>
     </section>
     <section class="section-block" id="games"><h2>8가지 게임 가이드</h2><p class="section-intro">제목과 규칙을 먼저 살펴보거나 바로 게임을 열 수 있습니다. 모든 링크는 JavaScript 없이도 이동합니다.</p><div class="static-game-grid">${GAME_CONTENT.map(renderStaticGameCard).join('')}</div></section>
     <div class="article-body">${sections}</div>
@@ -525,7 +548,7 @@ function renderPlay(outputFile) {
     canonicalPath: 'play/',
     robots: 'noindex,follow',
   })}</head>
-  <body>
+  <body class="play-app">
     <div id="app"></div>
     <noscript><p>게임 실행에는 JavaScript가 필요합니다. <a href="${sitePath()}">정적 게임 안내로 돌아가기</a></p></noscript>
     <script type="module" src="${moduleHref(outputFile, 'src/main.ts')}"></script>
