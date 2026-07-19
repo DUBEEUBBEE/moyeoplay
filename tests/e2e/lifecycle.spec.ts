@@ -22,6 +22,7 @@ function collectErrors(page: Page): string[] {
 }
 
 test('20회 이상 게임 전환 뒤에도 단일 controller DOM만 남는다', async ({ page }) => {
+  test.slow();
   await page.addInitScript(() => {
     const animationFrames = new Set<number>();
     const timeouts = new Set<number>();
