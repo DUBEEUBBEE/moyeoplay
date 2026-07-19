@@ -179,12 +179,12 @@ export function createGame(services: GameServices): MiniGameController {
     context.clearRect(0, 0, PONG_WIDTH, PONG_HEIGHT);
 
     const background = context.createLinearGradient(0, 0, PONG_WIDTH, PONG_HEIGHT);
-    background.addColorStop(0, '#081b2d');
-    background.addColorStop(1, '#07111f');
+    background.addColorStop(0, '#fffaf0');
+    background.addColorStop(1, '#e8f1ff');
     context.fillStyle = background;
     context.fillRect(0, 0, PONG_WIDTH, PONG_HEIGHT);
 
-    context.strokeStyle = 'rgba(69, 228, 224, 0.08)';
+    context.strokeStyle = 'rgba(20, 87, 217, 0.1)';
     context.lineWidth = 1;
     for (let x = 40; x < PONG_WIDTH; x += 40) {
       context.beginPath();
@@ -200,7 +200,7 @@ export function createGame(services: GameServices): MiniGameController {
     }
 
     context.setLineDash([10, 15]);
-    context.strokeStyle = 'rgba(255,255,255,0.3)';
+    context.strokeStyle = 'rgba(25,45,79,0.28)';
     context.lineWidth = 3;
     context.beginPath();
     context.moveTo(PONG_WIDTH / 2, 20);
@@ -227,7 +227,7 @@ export function createGame(services: GameServices): MiniGameController {
         const point = state.trail[index];
         if (!point) continue;
         const alpha = ((state.trail.length - index) / state.trail.length) * 0.15;
-        context.fillStyle = `rgba(255,255,255,${String(alpha)})`;
+        context.fillStyle = `rgba(20,87,217,${String(alpha)})`;
         context.beginPath();
         context.arc(point.x, point.y, Math.max(2, state.ball.radius - index * 0.7), 0, Math.PI * 2);
         context.fill();
@@ -244,15 +244,15 @@ export function createGame(services: GameServices): MiniGameController {
       context.fillRect(gamePaddle.x, gamePaddle.y, gamePaddle.width, gamePaddle.height);
     }
 
-    context.shadowColor = '#ffffff';
+    context.shadowColor = '#8fb8ff';
     context.shadowBlur = reducedMotion ? 0 : 22;
-    context.fillStyle = '#ffffff';
+    context.fillStyle = '#1457d9';
     context.beginPath();
     context.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI * 2);
     context.fill();
     context.shadowBlur = 0;
 
-    context.fillStyle = 'rgba(255,255,255,0.9)';
+    context.fillStyle = 'rgba(23,33,54,0.92)';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.font = '700 66px system-ui, sans-serif';
@@ -260,16 +260,16 @@ export function createGame(services: GameServices): MiniGameController {
 
     if (state.phase === 'countdown') {
       context.font = '900 112px system-ui, sans-serif';
-      context.fillStyle = '#ffd447';
+      context.fillStyle = '#1457d9';
       context.fillText(
         String(Math.max(1, Math.ceil(state.countdownRemaining))),
         PONG_WIDTH / 2,
         PONG_HEIGHT / 2,
       );
     } else if (state.phase === 'paused' || state.phase === 'idle') {
-      context.fillStyle = 'rgba(5,12,22,0.66)';
+      context.fillStyle = 'rgba(255,253,248,0.84)';
       context.fillRect(0, 0, PONG_WIDTH, PONG_HEIGHT);
-      context.fillStyle = '#ffffff';
+      context.fillStyle = '#172136';
       context.font = '800 42px system-ui, sans-serif';
       context.fillText(
         state.phase === 'paused' ? '일시정지' : 'START를 눌러 시작',

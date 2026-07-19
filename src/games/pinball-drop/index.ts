@@ -196,19 +196,19 @@ export function createGame(services: GameServices): MiniGameController {
     context.save();
     context.clearRect(0, 0, PINBALL_WIDTH, PINBALL_HEIGHT);
     const background = context.createLinearGradient(0, 0, 0, PINBALL_HEIGHT);
-    background.addColorStop(0, '#171431');
-    background.addColorStop(1, '#080d1d');
+    background.addColorStop(0, '#f4efff');
+    background.addColorStop(1, '#fffaf0');
     context.fillStyle = background;
     context.fillRect(0, 0, PINBALL_WIDTH, PINBALL_HEIGHT);
 
-    context.fillStyle = 'rgba(69,228,224,0.035)';
+    context.fillStyle = 'rgba(69,228,224,0.12)';
     context.fillRect(
       PINBALL_LEFT_WALL,
       20,
       PINBALL_LEFT_INNER_WALL - PINBALL_LEFT_WALL,
       PINBALL_FLOOR_Y - 20,
     );
-    context.fillStyle = 'rgba(255,93,158,0.035)';
+    context.fillStyle = 'rgba(255,93,158,0.1)';
     context.fillRect(
       PINBALL_RIGHT_INNER_WALL,
       20,
@@ -216,7 +216,7 @@ export function createGame(services: GameServices): MiniGameController {
       PINBALL_FLOOR_Y - 20,
     );
 
-    context.strokeStyle = 'rgba(255,255,255,0.35)';
+    context.strokeStyle = 'rgba(25,76,156,0.42)';
     context.lineWidth = 4;
     for (const x of [
       PINBALL_LEFT_WALL,
@@ -229,7 +229,7 @@ export function createGame(services: GameServices): MiniGameController {
       context.lineTo(x, PINBALL_FLOOR_Y);
       context.stroke();
     }
-    context.strokeStyle = '#ffd447';
+    context.strokeStyle = '#1457d9';
     context.lineWidth = 5;
     context.setLineDash([16, 9]);
     context.beginPath();
@@ -251,7 +251,7 @@ export function createGame(services: GameServices): MiniGameController {
         context.arc(peg.x, peg.y, peg.radius, 0, Math.PI * 2);
         context.fill();
         context.globalAlpha = 1;
-        context.strokeStyle = 'rgba(255,255,255,0.8)';
+        context.strokeStyle = 'rgba(23,33,54,0.38)';
         context.lineWidth = 2;
         context.stroke();
       }
@@ -262,19 +262,19 @@ export function createGame(services: GameServices): MiniGameController {
 
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillStyle = 'rgba(255,255,255,0.92)';
+    context.fillStyle = 'rgba(23,33,54,0.92)';
     context.font = '800 28px system-ui, sans-serif';
     context.fillText(services.getPlayerName(1), 245, 34);
     context.fillText(services.getPlayerName(2), PINBALL_WIDTH - 245, 34);
     context.font = '800 22px system-ui, sans-serif';
     context.fillText(`BOOST ×${String(state.balls[0].boostsRemaining)}`, 245, 72);
     context.fillText(`BOOST ×${String(state.balls[1].boostsRemaining)}`, PINBALL_WIDTH - 245, 72);
-    context.fillStyle = '#ffd447';
+    context.fillStyle = '#1457d9';
     context.font = '900 30px ui-monospace, monospace';
     context.fillText(`${state.elapsed.toFixed(2)}s`, PINBALL_WIDTH / 2, 35);
 
     if (state.phase === 'countdown') {
-      context.fillStyle = '#ffd447';
+      context.fillStyle = '#1457d9';
       context.font = '900 108px system-ui, sans-serif';
       context.fillText(
         String(Math.max(1, Math.ceil(state.countdownRemaining))),
@@ -282,9 +282,9 @@ export function createGame(services: GameServices): MiniGameController {
         255,
       );
     } else if (state.phase === 'idle' || state.phase === 'paused') {
-      context.fillStyle = 'rgba(5,8,22,0.67)';
+      context.fillStyle = 'rgba(255,253,248,0.86)';
       context.fillRect(0, 0, PINBALL_WIDTH, PINBALL_HEIGHT);
-      context.fillStyle = '#ffffff';
+      context.fillStyle = '#172136';
       context.font = '800 42px system-ui, sans-serif';
       context.fillText(
         state.phase === 'paused' ? '일시정지' : 'START를 눌러 시작',
@@ -292,9 +292,9 @@ export function createGame(services: GameServices): MiniGameController {
         PINBALL_HEIGHT / 2,
       );
     } else if (state.phase === 'roundOver' && state.lastResult) {
-      context.fillStyle = 'rgba(5,8,22,0.72)';
+      context.fillStyle = 'rgba(255,253,248,0.92)';
       context.fillRect(155, 220, PINBALL_WIDTH - 310, 150);
-      context.fillStyle = '#ffffff';
+      context.fillStyle = '#172136';
       context.font = '900 36px system-ui, sans-serif';
       const headline =
         state.lastResult.winner === 0

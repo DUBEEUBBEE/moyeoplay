@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('가로 화면 네온 탁구 idle 레이아웃은 시각 기준선을 유지한다', async ({
+test('가로 화면 클레이 탁구 idle 레이아웃은 시각 기준선을 유지한다', async ({
   browserName,
   page,
 }, testInfo) => {
