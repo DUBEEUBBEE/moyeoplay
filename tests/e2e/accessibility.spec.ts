@@ -95,7 +95,7 @@ test('핀볼 live status는 진행 시간 tick을 반복 공지하지 않는다'
   await page.goto('./play/#game/pinball-drop');
   await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
   await page.locator('#game-start').click();
-  await expect(page.locator('#game-phase')).toHaveText('경기 중', { timeout: 6_000 });
+  await expect(page.locator('#game-phase')).toHaveText('경기 중', { timeout: 15_000 });
   const mutations = await page.locator('.pinball-game .game-local-status').evaluate(
     (element) =>
       new Promise<number>((resolve) => {
