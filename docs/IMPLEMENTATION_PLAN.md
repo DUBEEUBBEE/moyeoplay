@@ -74,4 +74,4 @@ docs/               # 구조·규칙·구현 문서
 - PR에서 `npm ci`, typecheck, lint, unit, build, E2E를 실행한다.
 - `main` push에서 동일 검사를 통과한 `dist`만 공식 Pages artifact로 올리고, 최소 권한·environment URL·concurrency cancellation을 설정한다.
 - 확인된 원격 `DUBEEUBBEE/moyeoplay`의 프로젝트 Pages base는 `/moyeoplay/`다. hash routing과 모든 chunk·manifest·icon 경로를 이 base로 프로덕션 빌드하고 PR에서도 같은 `dist`를 검사한다.
-- canonical, Open Graph, sitemap은 확인된 `https://dubeeubbee.github.io/moyeoplay/` 절대 URL로 빌드한다. `main` 배포 뒤 공개 URL 200, CSS/JS, Canvas 시작, `#game/*`, 모바일을 별도 live smoke job에서 검증한다.
+- canonical, Open Graph, sitemap은 운영 기준 `https://moyeoplay.studio/` 절대 URL로 빌드한다. `main` 배포 뒤 공개 URL 200, CSS/JS, Canvas 시작, `/play/#game/*`, 모바일을 별도 live smoke job에서 검증한다.

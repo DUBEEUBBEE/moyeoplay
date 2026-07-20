@@ -20,22 +20,24 @@ npm run typecheck
 npm run lint
 npm run format:check
 npm run test
-npm run build:pages
+npm run build
 npm run verify:dist
-npm run test:e2e:root
 npm run test:e2e:prod
+npm run test:e2e:root
 npm audit --omit=dev
 ```
 
-`test:e2e:root`는 배포되지 않는 `dist-root-test`에 base `/`, mock AdSense ID, test mode를 적용해 custom root 파일과 consent gate를 Chromium·WebKit에서 검사한다. `test:e2e:prod`는 실제 배포 profile의 `dist`를 다시 만든 뒤 `vite preview`를 검사한다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
+운영 profile의 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`이다. `test:e2e:prod`는 실제 광고 off 배포 profile의 `dist`를 다시 만든 뒤 `vite preview`를 검사한다. `test:e2e:root`는 배포되지 않는 `dist-meta-test`와 `dist-ads-test`에 base `/`와 mock ID를 적용해 AdSense account-meta-only, mock ad-on과 CMP adapter를 Chromium·WebKit에서 검사한다. 테스트 placeholder는 `dist`에 들어가면 안 된다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
 
 ## 정적 콘텐츠·SEO·광고 검사
 
 - JavaScript를 끈 별도 browser context에서 루트, 8개 가이드, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
 - sitemap은 15개 clean canonical만 포함하고 `/play/`와 hash URL을 제외한다.
 - 모든 OG·Twitter image alt는 페이지당 정확히 하나이며 모든 콘텐츠 이미지에 width·height가 있다.
-- project-path profile에는 host-root `robots.txt`·`ads.txt`·`CNAME`이 없어야 한다. base `/`에는 `robots.txt`, custom domain에는 `CNAME`, root publisher가 있을 때에만 `ads.txt`가 있어야 한다.
-- 기본 off profile은 광고 DOM·tag·Google 요청이 모두 0이다. mock-on test profile도 consent 전후 실제 Google 요청을 만들지 않으며 `/play/`와 trust 페이지의 slot은 0이다.
+- deployable `dist`의 canonical, OG/Twitter, JSON-LD, sitemap, manifest, robots sitemap과 공유 URL은 모두 `https://moyeoplay.studio/`에서 파생되어야 한다. 이전 Pages URL, example domain, placeholder AdSense ID가 하나라도 남으면 실패한다.
+- base `/`에는 `robots.txt`, custom domain에는 `CNAME`, 실제 publisher가 있을 때에만 `ads.txt`가 있어야 한다. `/play/`는 robots에서 차단하지 않는다.
+- 기본 off profile은 AdSense account meta·광고 DOM·tag·Google 요청이 모두 0이다. account-meta-only profile은 유효 meta만 있고 slot·script·request는 0이다.
+- mock ad-on profile은 홈과 8개 가이드에만 slot을 두고 `/play/`, About, 사용법, 공정성, Privacy, Terms, Contact에는 slot을 두지 않는다. consent 전, denied, withdrawn, CMP unavailable/error에서 script와 request는 0이어야 하며 test mode의 granted도 외부 요청을 만들지 않는다.
 - 아이콘은 320×320 AVIF·WebP·PNG, OG는 1200×630, 실제 화면은 1280×720이어야 하고 각 AVIF·WebP는 40KiB 이하여야 한다.
 - Chromium 성능 budget은 정적 루트의 LCP, CLS, TBT 대체 지표와 JS·이미지 전송량을 수집한다. Axe serious/critical 0과 SEO 구조 검사는 별도 hard assertion으로 유지한다.
 
@@ -105,13 +107,18 @@ npm audit --omit=dev
 
 ## GitHub Pages production smoke
 
-1. `npm run build:pages` 후 `npm run test:e2e:prod:run`을 실행한다.
-2. `/moyeoplay/` 정적 루트, `/moyeoplay/play/`, 8개 가이드와 6개 trust URL이 200인지 확인하고 모든 direct gameplay hash route를 연다.
-3. HTML에 `/src/main.ts`가 없고 JS/CSS가 도메인 루트 `/assets/`가 아니라 `/moyeoplay/assets/`에서 로드되는지 확인한다.
-4. favicon, manifest, apple icon, 192/512/maskable icon, 게임 아이콘·스크린샷·raster OG image가 모두 200인지 확인한다. manifest `id`·`scope`·`start_url`과 icon path가 실제 deploy base를 사용해야 한다.
-5. canonical, `og:url`, `og:image`, Twitter image가 실제 HTTPS Pages URL인지 확인한다.
-6. main 배포 뒤 workflow의 live smoke job이 배포 URL에서 8개 카드, landscape 모바일, Canvas 게임 시작, console/page error 0개를 다시 검사한다.
+1. custom-domain 환경에서 `npm run build`, `npm run verify:dist`, `npm run test:e2e:prod:run`을 실행한다.
+2. HTTPS에서 `/`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`, 8개 `/games/<slug>/`, `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`, `/play/#lobby`를 검사한다.
+3. 15개 색인 문서는 200이고 unknown route는 404여야 한다. canonical·`og:url`은 custom domain이어야 하며 sitemap은 정확히 15개 clean HTTPS URL만 포함하고 `/play/`·hash URL을 제외해야 한다.
+4. `/play/`는 `noindex,follow`이고 robots는 `/play/`를 차단하지 않아야 한다. 광고 off live 빌드는 account meta·slot·Google script·광고 요청이 0이고 `ads.txt`는 404여야 한다.
+5. favicon, manifest, apple icon, 192/512/maskable icon, 게임 아이콘·스크린샷·raster OG image가 모두 200이어야 한다. manifest `id`·`scope`는 `/`, `start_url`은 `/play/#lobby`여야 한다.
+6. 390×844 홈과 한 게임 가이드, 844×390 플레이 화면에서 horizontal overflow, 잘린 핵심 조작, console/page error가 없어야 한다.
+7. `E2E_CHECK_REDIRECTS=true`에서 `http://moyeoplay.studio/<path>`는 같은 path의 `https://moyeoplay.studio/<path>`로 명확한 영구 redirect를 해야 한다. `www`와 apex 사이 redirect는 path를 보존하고 loop가 없어야 한다. Pages workflow는 이 검사를 출시 게이트로 활성화하므로 TLS가 준비되지 않으면 live smoke가 실패한다. 이전 `dubeeubbee.github.io/moyeoplay/` URL도 custom canonical 전략과 일치해야 한다.
 
-이미 배포된 주소만 다시 검사할 때는 `E2E_LIVE_URL=https://dubeeubbee.github.io/moyeoplay/ npm run test:e2e:live`를 실행한다.
+이미 배포된 주소만 다시 검사할 때는 `E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live`를 실행한다.
+
+redirect까지 함께 확인할 때는 `E2E_CHECK_REDIRECTS=true E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live`를 실행한다.
+
+2026-07-21 현재 DNS A/CNAME과 HTTP 콘텐츠는 확인했지만, live TLS 인증서가 custom hostname을 포함하지 않아 HTTPS smoke가 실패했다. HTTP apex도 HTTPS로 redirect되지 않았다. 따라서 위 HTTPS·redirect 항목은 **미완료 출시 차단 문제**이며 `main` artifact 배포 성공으로 대체할 수 없다.
 
 실제 배포 권한이나 외부 브라우저가 없는 환경에서는 해당 항목을 성공으로 기록하지 않고 `미검증`으로 남긴다.

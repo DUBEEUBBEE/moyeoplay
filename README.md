@@ -4,14 +4,16 @@
 
 ## 공개 URL
 
-- 공개 사이트: [https://dubeeubbee.github.io/moyeoplay/](https://dubeeubbee.github.io/moyeoplay/)
-- 플레이 앱: [https://dubeeubbee.github.io/moyeoplay/play/](https://dubeeubbee.github.io/moyeoplay/play/)
+- 공개 사이트: [https://moyeoplay.studio/](https://moyeoplay.studio/)
+- 플레이 앱: [https://moyeoplay.studio/play/](https://moyeoplay.studio/play/)
 - 게임 가이드: `/games/omok/`, `/games/pong/`, `/games/volleyball/`, `/games/pinball-drop/`, `/games/ladder/`, `/games/reaction-duel/`, `/games/tap-battle/`, `/games/roulette/`
 - 안내 페이지: `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`
-- sitemap: [https://dubeeubbee.github.io/moyeoplay/sitemap.xml](https://dubeeubbee.github.io/moyeoplay/sitemap.xml)
+- sitemap: [https://moyeoplay.studio/sitemap.xml](https://moyeoplay.studio/sitemap.xml)
 - 소스 저장소: [https://github.com/DUBEEUBBEE/moyeoplay](https://github.com/DUBEEUBBEE/moyeoplay)
 
-예전 `/#lobby`와 `/#game/<id>` 주소는 같은 상태의 `/play/` 주소로 `location.replace` 이동합니다. `/play/`는 `noindex,follow`이며 sitemap에는 15개 clean 콘텐츠 URL만 포함합니다.
+운영 빌드의 단일 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`입니다. 예전 `/#lobby`와 `/#game/<id>` 주소는 같은 상태의 `/play/` 주소로 `location.replace` 이동합니다. `/play/`는 `noindex,follow`이며 sitemap에는 15개 clean 콘텐츠 URL만 포함합니다.
+
+> 출시 상태 — 2026-07-21 점검에서 apex와 `www` DNS는 GitHub Pages를 가리켰지만, 커스텀 도메인용 TLS 인증서와 HTTPS 강제 전환은 아직 확인되지 않았습니다. 마지막 live smoke는 인증서 이름 불일치로 실패했고 HTTP apex도 HTTPS로 전환되지 않았습니다. 이 항목이 해소되기 전에는 HTTPS·redirect 완료 또는 Search Console·AdSense 준비 완료로 기록하지 않습니다.
 
 ## 게임과 조작
 
@@ -52,10 +54,10 @@ npm run lint            # ESLint
 npm run format:check    # Prettier 검사
 npm run test            # Vitest 단위 테스트
 npm run test:coverage   # V8 커버리지
-npm run test:e2e        # Pages 경로로 빌드한 dist의 Playwright + axe
+npm run test:e2e        # custom root로 빌드한 dist의 Playwright + axe
 npm run test:e2e:root   # custom-domain root + AdSense mock 격리 profile
 npm run test:e2e:dev    # 빠른 개발 서버 E2E
-E2E_LIVE_URL=https://dubeeubbee.github.io/moyeoplay/ npm run test:e2e:live
+E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live
                         # 지정한 배포 URL의 Pages smoke
 npm run check           # typecheck + lint + unit + production build
 ```
@@ -96,14 +98,34 @@ npm run assets:screenshots
 
 `.github/workflows/pages.yml`은 다음 흐름을 사용합니다.
 
-1. 모든 pull request에서 `npm ci`, 타입·포맷·린트 검사, 단위 테스트, custom root mock 검사, 실제 배포 profile의 Chromium·WebKit production E2E를 실행합니다.
+1. 모든 pull request에서 `npm ci`, 타입·포맷·린트 검사, 단위 테스트, custom root의 광고 off·account-meta-only·mock-ad 검사, 실제 배포 profile의 Chromium·WebKit production E2E를 실행합니다.
 2. `main` push에서는 같은 검사가 통과한 뒤 `dist`를 공식 Pages artifact로 업로드합니다.
 3. 별도 deploy job이 `pages: write`, `id-token: write`만 받아 `github-pages` environment로 배포합니다.
-4. 배포 직후 별도 live smoke job이 Pages URL의 로비·메타데이터·정적 자산·Canvas 게임을 Chromium으로 다시 검사합니다.
+4. 배포 직후 별도 live smoke job이 `https://moyeoplay.studio/`의 15개 색인 URL, `/play/`, root 파일, 메타데이터, 정적 자산과 Canvas 게임을 Chromium으로 다시 검사합니다. HTTP·`www` redirect test는 `E2E_CHECK_REDIRECTS=true`일 때 실행되며 Pages workflow는 출시 게이트로 이 값을 켭니다. TLS가 준비되지 않으면 job을 실패시켜 외부 blocker를 숨기지 않습니다.
 
-workflow는 저장소 이름과 `SITE_URL`/`CUSTOM_DOMAIN` 변수를 이용해 base path를 계산합니다. Project Pages에서는 `/moyeoplay/sitemap.xml`을 생성하지만, host root 파일로 오해할 수 있는 `/moyeoplay/robots.txt`와 `/moyeoplay/ads.txt`는 만들지 않습니다. custom domain profile은 base `/`와 profile별 PWA id·scope를 사용하고 `CNAME`, root `robots.txt`, 실제 publisher가 설정된 경우에만 root `ads.txt`를 생성합니다. 자세한 내용은 [SEO 배포](docs/SEO_DEPLOYMENT.md)와 [호스팅·수익화](docs/HOSTING_AND_MONETIZATION.md)를 참고하세요.
+workflow는 `SITE_URL`/`CUSTOM_DOMAIN`을 운영 URL의 단일 공급원으로 사용합니다. custom-domain profile은 base `/`와 PWA id·scope를 사용하고 `CNAME`, root `robots.txt`, 실제 publisher가 설정된 경우에만 root `ads.txt`를 생성합니다. GitHub Actions 방식에서는 artifact의 `CNAME`만으로 Pages custom domain이 설정되지 않으므로 **Settings → Pages의 custom domain, DNS, 인증서, Enforce HTTPS를 별도로 확인**해야 합니다. 자세한 내용은 [SEO 배포](docs/SEO_DEPLOYMENT.md)와 [호스팅·수익화](docs/HOSTING_AND_MONETIZATION.md)를 참고하세요.
 
-저장소의 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**로 설정되어 있습니다. `main`에 반영하면 품질 검사를 통과한 `dist`가 위 공개 URL로 배포됩니다.
+저장소의 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**로 설정되어 있습니다. `main`에 반영하면 품질 검사를 통과한 `dist`가 배포되지만, 배포 job 성공과 custom-domain HTTPS 성공은 서로 다른 판정입니다.
+
+## 운영 환경 변수
+
+| 변수                           | 역할                                       | 기본·운영 원칙                                                 |
+| ------------------------------ | ------------------------------------------ | -------------------------------------------------------------- |
+| `CUSTOM_DOMAIN`                | CNAME·root-domain 빌드 기준                | 운영값 `moyeoplay.studio`                                      |
+| `SITE_URL`                     | canonical·OG·JSON-LD·sitemap·공유 URL 기준 | 운영값 `https://moyeoplay.studio/`                             |
+| `PAGES_BASE_PATH`              | Vite·manifest·asset base                   | 운영값 `/`                                                     |
+| `ADSENSE_ACCOUNT_META_ENABLED` | AdSense 사이트 소유권 확인 meta만 생성     | 승인 전 기본 `false`; 실제 `ADSENSE_CLIENT_ID` 필요            |
+| `ADSENSE_ADS_ENABLED`          | 홈과 8개 가이드의 수동 광고 slot 생성      | 승인·CMP 연결 전 기본 `false`                                  |
+| `ADSENSE_ENABLED`              | 이전 설정 호환용 광고 flag                 | 신규 설정으로 이전하며 상충 값은 허용하지 않음                 |
+| `ADSENSE_CLIENT_ID`            | `ca-pub-` 16자리 account/client ID         | 실제 계정 값만 사용                                            |
+| `ADSENSE_PUBLISHER_ID`         | root `ads.txt`의 `pub-` ID                 | 실제 계정 값만 사용                                            |
+| `ADSENSE_CONTENT_SLOT_ID`      | 수동 반응형 slot ID                        | 실제 승인 후 광고 profile에서만 사용                           |
+| `SITE_OPERATOR_NAME`           | About·가이드 작성 주체                     | 실제 주체가 없으면 비워 두고 readiness 미완료로 기록           |
+| `PUBLIC_CONTACT_EMAIL`         | 공개 문의 이메일                           | 실제 관리 가능한 도메인 이메일만 사용                          |
+| `PUBLIC_CMP_PROVIDER_NAME`     | 실제 연결한 CMP 이름                       | settings URL과 함께 설정하거나 둘 다 비움                      |
+| `PUBLIC_CMP_SETTINGS_URL`      | 동의 설정·철회 경로                        | provider 이름과 함께 설정; 설정만으로 CMP 인증을 주장하지 않음 |
+
+`ADSENSE_ACCOUNT_META_ENABLED=true`는 소유권 확인 meta만 만들며 slot·Google 광고 script·광고 요청을 만들지 않습니다. `ADSENSE_ADS_ENABLED=true`여도 실제 광고 요청은 CMP adapter가 동의 허용을 전달한 뒤에만 가능하고, 거부·철회·CMP 실패에서는 요청하지 않습니다. `moyeoplay:ads-consent-granted`는 CMP 자체가 아니라 호환 integration event입니다.
 
 ## 브라우저 지원
 
@@ -113,8 +135,8 @@ workflow는 저장소 이름과 `SITE_URL`/`CUSTOM_DOMAIN` 변수를 이용해 b
 
 - 사용자 입력은 HTML로 해석하지 않고 DOM `textContent`/form value로만 다룹니다.
 - 계정·서비스 DB·분석 SDK·런타임 CDN이 없습니다. 설정과 최근 전적은 `moyeoplay:settings`, `moyeoplay:session`에만 저장합니다.
-- AdSense는 기본 off입니다. 실제 ID와 custom root domain이 없으면 광고 DOM·태그·`ads.txt`를 만들지 않으며 `/play/`에는 어떤 profile에서도 광고를 넣지 않습니다. 운영 활성화에는 별도의 Google 인증 CMP와 수동 심사가 필요합니다.
+- AdSense 광고는 기본 off입니다. account meta와 광고 slot·script·request는 분리되어 있고 `/play/`에는 어떤 profile에서도 광고 slot을 넣지 않습니다. 운영 활성화에는 실제 ID, AdSense의 Verify·Request review 결과, Google 인증 CMP 연결과 수동 배치 검토가 필요합니다.
 - 그래픽은 Canvas·CSS·자체 SVG와 프로젝트용 ImageGen 아이콘으로 구성됩니다. 생성·chroma 제거·최적화 기록은 [자산 provenance](docs/ASSET_PROVENANCE.md)에 있습니다.
 - 저장 데이터가 손상되거나 `localStorage`가 차단되어도 메모리 기본값으로 실행합니다.
 
-환경변수와 활성화 전 게이트는 [AdSense 준비 체크리스트](docs/ADSENSE_READINESS.md)에 정리했습니다. 실제 AdSense ID, custom domain, Search Console 등록, CMP, 사이트 심사는 저장소에 설정되어 있지 않습니다.
+환경변수와 활성화 전 게이트는 [AdSense 준비 체크리스트](docs/ADSENSE_READINESS.md)에 정리했습니다. 코드 준비와 별개로 실제 운영자 정보·문의 이메일·AdSense ID·Search Console 등록·CMP·사이트 심사 결과는 운영자가 외부 계정에서 확인하고 기록해야 합니다.
