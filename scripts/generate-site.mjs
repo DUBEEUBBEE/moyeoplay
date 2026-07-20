@@ -43,9 +43,17 @@ const GAME_PLAYER_COUNTS = Object.freeze({
 });
 
 const NAV_ITEMS = Object.freeze([
-  { label: '홈', path: '/', icon: 'home' },
-  { label: '게임', path: '/#games', icon: 'game' },
-  { label: '도움말', path: '/how-to-play/', icon: 'help' },
+  { key: 'home', label: '홈', path: '/', icon: 'home' },
+  { key: 'games', label: '게임', path: '/#games', icon: 'game', mobileSecondary: true },
+  { key: 'about', label: '소개', path: '/about/', icon: 'about' },
+  { key: 'fairness', label: '공정성', path: '/fairness/', icon: 'fairness' },
+  {
+    key: 'how-to-play',
+    label: '도움말',
+    path: '/how-to-play/',
+    icon: 'help',
+    mobileSecondary: true,
+  },
 ]);
 
 function escapeHtml(value) {
@@ -97,13 +105,17 @@ function renderHead({
 }) {
   const canonical = absoluteUrl(canonicalPath);
   const image = absoluteUrl(ogImagePath);
+  const accountMeta =
+    config.adsense.accountMetaEnabled && !robots.includes('noindex')
+      ? `\n    <meta name="google-adsense-account" content="${escapeHtml(config.adsense.clientId)}" />`
+      : '';
   return `
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="${escapeHtml(themeColor)}" />
     <meta name="color-scheme" content="${escapeHtml(colorScheme)}" />
     <meta name="robots" content="${escapeHtml(robots)}" />
-    <meta name="description" content="${escapeHtml(description)}" />
+    <meta name="description" content="${escapeHtml(description)}" />${accountMeta}
     <link rel="canonical" href="${escapeHtml(canonical)}" />
     <meta property="og:type" content="${escapeHtml(ogType)}" />
     <meta property="og:locale" content="ko_KR" />
@@ -137,10 +149,16 @@ function renderNavIcon(icon) {
   if (icon === 'game') {
     return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.5 8h7a4 4 0 0 1 3.8 2.8l1.5 4.7a2.6 2.6 0 0 1-4.3 2.7l-1.7-1.5H9.2l-1.7 1.5a2.6 2.6 0 0 1-4.3-2.7l1.5-4.7A4 4 0 0 1 8.5 8ZM8 11v4m-2-2h4m6-1h.01M18 14h.01"/></svg>';
   }
+  if (icon === 'about') {
+    return '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5.5 20c.8-4.3 3-6.5 6.5-6.5s5.7 2.2 6.5 6.5"/></svg>';
+  }
+  if (icon === 'fairness') {
+    return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v17M6 6h12M6 6l-3 6h6L6 6Zm12 0-3 6h6l-3-6ZM8 20h8"/></svg>';
+  }
   return '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.7-2.2 2-2.2 3.5M12 17h.01"/></svg>';
 }
 
-function renderHeader(activePath) {
+function renderHeader(activeNav) {
   return `<header class="content-header">
       <a class="content-brand" href="${sitePath()}" aria-label="모여PLAY 홈">
         <span class="content-brand__mark" aria-hidden="true">M</span>
@@ -148,8 +166,9 @@ function renderHeader(activePath) {
       </a>
       <nav class="content-nav" aria-label="주요 메뉴">
         ${NAV_ITEMS.map((item) => {
-          const isActive = item.path === activePath;
-          return `<a href="${sitePath(item.path)}"${isActive ? ' aria-current="page"' : ''}>${renderNavIcon(item.icon)}<span>${escapeHtml(item.label)}</span></a>`;
+          const isActive = item.key === activeNav;
+          const className = item.mobileSecondary ? ' class="content-nav__mobile-secondary"' : '';
+          return `<a${className} href="${sitePath(item.path)}"${isActive ? ' aria-current="page"' : ''}>${renderNavIcon(item.icon)}<span>${escapeHtml(item.label)}</span></a>`;
         }).join('')}
         <a class="content-nav__play" href="${sitePath('play/#lobby')}">바로 플레이</a>
       </nav>
@@ -161,6 +180,7 @@ function renderFooter() {
       <div><strong>모여PLAY</strong><p>게임 설정과 최근 전적은 운영 서버에 업로드하지 않고 현재 브라우저에 저장합니다.</p></div>
       <nav class="content-footer__nav" aria-label="정책 및 안내">
         <a href="${sitePath()}">게임</a>
+        <a href="${sitePath('about/')}">소개</a>
         <a href="${sitePath('how-to-play/')}">사용법</a>
         <a href="${sitePath('fairness/')}">공정성</a>
         <a href="${sitePath('privacy/')}">개인정보</a>
@@ -186,15 +206,15 @@ function renderBreadcrumb(items) {
 }
 
 function renderAdSlot() {
-  if (!config.adsense.enabled) return '';
+  if (!config.adsense.adsEnabled) return '';
   return `<aside class="ad-slot" aria-label="광고" data-adsense-slot data-adsense-client="${escapeHtml(config.adsense.clientId)}" data-adsense-test-mode="${String(config.adsense.testMode)}">
-      <span class="ad-slot__label">광고</span>
+      <span class="ad-slot__label">광고 · Advertisement</span>
       <ins class="adsbygoogle" data-ad-client="${escapeHtml(config.adsense.clientId)}" data-ad-slot="${escapeHtml(config.adsense.contentSlotId)}" data-ad-format="auto" data-full-width-responsive="true"></ins>
       <noscript>광고는 동의와 JavaScript가 모두 준비된 경우에만 요청됩니다.</noscript>
     </aside>`;
 }
 
-function renderLayout({ outputFile, head, activePath, body, inlineHeadScript = '' }) {
+function renderLayout({ outputFile, head, activeNav, body, inlineHeadScript = '' }) {
   return `<!doctype html>
 <html lang="ko">
   <head>${head}${inlineHeadScript}</head>
@@ -203,7 +223,7 @@ function renderLayout({ outputFile, head, activePath, body, inlineHeadScript = '
     <div class="ambient ambient--one" aria-hidden="true"></div>
     <div class="ambient ambient--two" aria-hidden="true"></div>
     <div class="content-site">
-      ${renderHeader(activePath)}
+      ${renderHeader(activeNav)}
       <main class="content-main" id="main-content">${body}</main>
       ${renderFooter()}
     </div>
@@ -340,7 +360,7 @@ function renderRoot(outputFile) {
     ${renderAdSlot()}`;
   return renderLayout({
     outputFile,
-    activePath: '/',
+    activeNav: 'home',
     inlineHeadScript: legacyScript,
     head: renderHead({
       title: '모여PLAY — 설치 없이 함께 즐기는 8가지 파티 게임',
@@ -438,11 +458,11 @@ function renderGuide(game, outputFile) {
       <section><h2>접근성과 화면 방향</h2>${renderStringList(game.accessibility)}</section>
       <section><h2>관련 게임</h2><div class="related-grid">${related.map(renderRelatedCard).join('')}</div></section>
       <section><h2>바로 한 판 시작하기</h2><p>${escapeHtml(game.shortDescription)}</p><a class="content-button content-button--primary" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 열기</a></section>
-      <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보</h2><p>작성·운영: 모여PLAY 프로젝트</p><p>최초 작성: <time datetime="${escapeHtml(SITE_META.created)}">${escapeHtml(SITE_META.created)}</time> · 최종 수정: <time datetime="${escapeHtml(game.updated)}">${escapeHtml(game.updated)}</time></p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
+      <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보</h2><p>작성·운영: <a href="${sitePath('about/#operator-and-authorship')}">${escapeHtml(config.siteOperatorName || '모여PLAY 프로젝트')}</a></p><p>최초 작성: <time datetime="${escapeHtml(SITE_META.created)}">${escapeHtml(SITE_META.created)}</time> · 최종 수정: <time datetime="${escapeHtml(game.updated)}">${escapeHtml(game.updated)}</time></p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
     </div>`;
   return renderLayout({
     outputFile,
-    activePath: '/',
+    activeNav: 'games',
     head: renderHead({
       title: GAME_SEO_TITLES[game.id],
       description: game.shortDescription,
@@ -485,35 +505,82 @@ function pageStructuredData(page) {
 
 function renderContactChannels(page) {
   const email = config.publicContactEmail
-    ? `<article class="feature-card"><strong>${escapeHtml(page.channels.email.label)}</strong><p>공개 문의 주소로 이메일을 보낼 수 있습니다.</p><a class="content-button" href="mailto:${escapeHtml(config.publicContactEmail)}">이메일 보내기</a></article>`
+    ? `<article class="feature-card"><strong>${escapeHtml(page.channels.email.label)}</strong><p>공개 문의 주소: <a href="mailto:${escapeHtml(config.publicContactEmail)}">${escapeHtml(config.publicContactEmail)}</a></p><a class="content-button" href="mailto:${escapeHtml(config.publicContactEmail)}">이메일 보내기</a></article>`
     : '';
   const fallback = page.channels.fallback;
   const repository = page.channels.repository;
-  return `<section><h2>문의 채널</h2><div class="feature-grid">${email}<article class="feature-card"><strong>${escapeHtml(fallback.label)}</strong><p>${escapeHtml(fallback.description)}</p><a class="content-button" href="${escapeHtml(fallback.href)}" rel="noopener noreferrer">GitHub Issues 열기</a></article><article class="feature-card"><strong>${escapeHtml(repository.label)}</strong><p>${escapeHtml(repository.description)}</p><a class="content-button" href="${escapeHtml(repository.href)}" rel="noopener noreferrer">저장소 열기</a></article></div></section>`;
+  const readinessNote = config.publicContactEmail
+    ? ''
+    : '<aside class="article-callout"><strong>공개 이메일 미설정</strong><p>현재 문의는 GitHub Issues를 사용합니다. AdSense 신청 전 실제 도메인에서 운영하는 공개 연락처 설정이 권장되며, 가짜 주소는 표시하지 않습니다.</p></aside>';
+  return `<section><h2>문의 채널</h2>${readinessNote}<div class="feature-grid">${email}<article class="feature-card"><strong>${escapeHtml(fallback.label)}</strong><p>${escapeHtml(fallback.description)}</p><a class="content-button" href="${escapeHtml(fallback.href)}" rel="noopener noreferrer">GitHub Issues 열기</a></article><article class="feature-card"><strong>${escapeHtml(repository.label)}</strong><p>${escapeHtml(repository.description)}</p><a class="content-button" href="${escapeHtml(repository.href)}" rel="noopener noreferrer">저장소 열기</a></article></div></section>`;
+}
+
+function privacyAdProfileDisclosure() {
+  if (config.adsense.adsEnabled) {
+    const mode = config.adsense.testMode ? 'ads-enabled-test' : 'ads-enabled';
+    const detail = config.adsense.testMode
+      ? '이 격리 테스트 빌드에는 광고 영역이 있지만 Google 광고 스크립트와 외부 요청은 만들지 않습니다.'
+      : '이 빌드에는 광고 영역이 있지만, 실제 CMP adapter가 동의 상태를 granted로 전달하기 전에는 Google 광고 스크립트나 요청을 만들지 않습니다.';
+    return `<aside class="article-callout" data-privacy-ad-profile="${mode}"><strong>이 빌드의 광고 처리</strong><p>${detail}</p></aside>`;
+  }
+  if (config.adsense.accountMetaEnabled) {
+    return '<aside class="article-callout" data-privacy-ad-profile="account-meta-only"><strong>AdSense 계정 확인 메타만 사용 중</strong><p>색인 가능한 페이지에는 사이트 소유권 확인용 계정 메타가 있지만 광고 영역, Google 광고 스크립트와 광고 요청은 없습니다.</p></aside>';
+  }
+  return '<aside class="article-callout" data-privacy-ad-profile="off"><strong>광고 꺼짐</strong><p>현재 빌드는 AdSense 계정 확인 메타, 광고 영역, Google 광고 스크립트와 광고 요청을 만들지 않습니다.</p></aside>';
+}
+
+function privacyAdvertisingSection(section) {
+  const paragraphs = config.adsense.adsEnabled
+    ? [
+        '이 빌드에는 홈 콘텐츠 하단과 8개 게임 가이드 본문의 수동 반응형 광고 영역이 활성화되어 있습니다. /play/와 소개·사용법·공정성·개인정보·이용약관·문의 페이지에는 광고 영역을 두지 않습니다.',
+        'Google과 승인된 광고 파트너는 광고 제공·측정·부정행위 방지·사용자 선택에 따른 개인화를 위해 쿠키, 웹 비콘 또는 유사 기술, IP 주소, 페이지 URL, 브라우저·기기 정보를 처리할 수 있습니다. 비개인화 광고도 모든 기술적 처리가 사라진다는 뜻은 아닙니다.',
+        'moyeoplay:ads-consent-granted와 상태 이벤트는 CMP 자체가 아니라 연결 adapter의 신호입니다. 동의 전, 거부, 철회 또는 CMP 오류 상태에서는 새 광고 요청을 허용하지 않으며, 실제 CMP가 선택·거부·철회 UI와 적용 지역의 요구사항을 담당해야 합니다.',
+      ]
+    : [
+        config.adsense.accountMetaEnabled
+          ? '현재 빌드는 AdSense 사이트 소유권 확인용 계정 메타만 사용하며 광고 게재는 활성화하지 않습니다. 메타만으로 광고 영역, Google 광고 스크립트 또는 광고 요청을 만들지 않습니다.'
+          : '현재 빌드에서 AdSense 사이트 확인과 광고 게재는 모두 비활성화되어 있습니다. 이 사실이 호스팅 인프라의 기술 로그나 외부 문의 플랫폼의 데이터 처리까지 없다는 뜻은 아닙니다.',
+        '향후 광고를 활성화하면 Google과 승인된 광고 파트너가 광고 제공·측정·부정행위 방지·사용자 선택에 따른 개인화를 위해 쿠키, 웹 비콘 또는 유사 기술, IP 주소, 페이지 URL, 브라우저·기기 정보를 처리할 수 있습니다.',
+        '광고를 켜기 전 실제 Google 인증 CMP를 연결하고 동의, 거부, 설정 변경과 철회 경로를 제공해야 합니다.',
+      ];
+  if (config.adsense.cmpProviderName) {
+    paragraphs.push(
+      `이 빌드에 공개된 CMP는 ${config.adsense.cmpProviderName}입니다. 실제 동의 선택과 철회는 아래 설정 링크에서 관리합니다.`,
+    );
+  }
+  return {
+    ...section,
+    paragraphs,
+    links: config.adsense.cmpProviderName
+      ? [
+          ...section.links,
+          {
+            label: `${config.adsense.cmpProviderName} 개인정보 설정`,
+            href: config.adsense.cmpSettingsUrl,
+            external: true,
+          },
+        ]
+      : section.links,
+  };
 }
 
 function renderContentPage(page, outputFile) {
   const contact = page.slug === 'contact' ? renderContactChannels(page) : '';
-  const privacyDisclosure =
-    page.slug === 'privacy' && config.adsense.enabled
-      ? `<aside class="article-callout"><strong>이 빌드의 광고 처리</strong><p>이 빌드는 Google AdSense 광고 영역을 포함하지만, 필요한 동의가 확인되기 전에는 Google 광고 태그를 요청하지 않습니다. 운영 전 Google 인증 CMP가 동의·거부·철회 상태를 실제로 관리하고 동의가 확인된 경우에만 광고 gate 이벤트를 보내도록 연결해야 합니다.</p></aside>`
+  const privacyDisclosure = page.slug === 'privacy' ? privacyAdProfileDisclosure() : '';
+  const operatorDisclosure =
+    page.slug === 'about'
+      ? `<aside class="article-callout"><strong>공개 운영·제작 주체</strong><p>${
+          config.siteOperatorName
+            ? escapeHtml(config.siteOperatorName)
+            : 'SITE_OPERATOR_NAME이 아직 설정되지 않아 개인 또는 법인 이름을 임의로 표시하지 않습니다. 현재 작성 주체는 모여PLAY 프로젝트로 공개합니다.'
+        }</p></aside>`
       : '';
   const sections = page.sections
     .map((section) => {
-      if (
-        page.slug !== 'privacy' ||
-        section.id !== 'ads-and-measurement' ||
-        !config.adsense.enabled
-      ) {
-        return section;
+      if (page.slug === 'privacy' && section.id === 'ads-and-measurement') {
+        return privacyAdvertisingSection(section);
       }
-      return {
-        ...section,
-        paragraphs: [
-          '이 빌드에는 Google AdSense용 콘텐츠 광고 영역이 활성화되어 있습니다. Google과 승인된 광고 파트너는 광고 제공·측정·부정행위 방지·사용자 선택에 따른 개인화를 위해 쿠키, 웹 비콘 또는 유사 기술, IP 주소, 페이지 URL, 브라우저·기기 정보를 처리할 수 있습니다.',
-          '광고 태그는 필요한 동의가 확인되기 전에는 요청하지 않도록 gate되어 있습니다. 운영 전 Google 인증 CMP가 EEA·영국·스위스 등 적용 지역의 동의·거부·철회를 실제로 관리하고, Privacy 문구를 실제 사업자와 보관 정책에 맞춰 검토해야 합니다.',
-        ],
-      };
+      return section;
     })
     .map(renderSection)
     .join('');
@@ -522,10 +589,10 @@ function renderContentPage(page, outputFile) {
     { label: page.title, path: page.path },
   ])}
     <header class="article-hero"><p class="content-kicker">모여PLAY 안내</p><h1>${escapeHtml(page.heading)}</h1><p class="content-lead">${escapeHtml(page.lead)}</p></header>
-    <div class="article-body">${privacyDisclosure}${contact}${sections}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
+    <div class="article-body">${privacyDisclosure}${operatorDisclosure}${contact}${sections}${page.effective ? `<p>시행일: <time datetime="${escapeHtml(page.effective)}">${escapeHtml(page.effective)}</time></p>` : ''}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
   return renderLayout({
     outputFile,
-    activePath: page.path,
+    activeNav: page.slug,
     head: renderHead({
       title: `${page.title} | 모여PLAY`,
       description: page.description,
@@ -620,7 +687,7 @@ async function generate() {
   if (config.customDomain) await writeGenerated('CNAME', `${config.customDomain}\n`);
 
   console.log(
-    `Generated 16 HTML entries for ${config.siteUrl} (${config.basePath}) with AdSense ${config.adsense.enabled ? 'enabled' : 'disabled'}.`,
+    `Generated 16 HTML entries for ${config.siteUrl} (${config.basePath}) with AdSense account metadata ${config.adsense.accountMetaEnabled ? 'enabled' : 'disabled'} and ads ${config.adsense.adsEnabled ? 'enabled' : 'disabled'}.`,
   );
 }
 

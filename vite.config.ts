@@ -77,6 +77,12 @@ const htmlInputs = Object.fromEntries(
 export default defineConfig({
   root: config.generatedDirectory,
   base: config.basePath,
+  resolve: {
+    alias: [{ find: /^\/src\//u, replacement: `${path.resolve('src')}/` }],
+  },
+  define: {
+    'import.meta.env.VITE_SITE_URL': JSON.stringify(config.siteUrl),
+  },
   publicDir: path.resolve('public'),
   appType: 'mpa',
   plugins: [

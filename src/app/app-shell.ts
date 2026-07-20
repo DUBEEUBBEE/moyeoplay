@@ -46,7 +46,7 @@ function sitePath(path = ''): string {
 }
 
 function cleanAbsoluteSiteUrl(path = ''): string {
-  const url = new URL(sitePath(path), window.location.origin);
+  const url = new URL(path.replace(/^\/+/, ''), import.meta.env.VITE_SITE_URL);
   url.search = '';
   url.hash = '';
   return url.href;
@@ -163,6 +163,14 @@ export class AppShell {
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.5 8h7a4 4 0 0 1 3.8 2.8l1.5 4.7a2.6 2.6 0 0 1-4.3 2.7l-1.7-1.5H9.2l-1.7 1.5a2.6 2.6 0 0 1-4.3-2.7l1.5-4.7A4 4 0 0 1 8.5 8ZM8 11v4m-2-2h4m6-1h.01M18 14h.01"/></svg>
               <span>게임</span>
             </button>
+            <a class="app-nav__item app-nav__item--secondary" href="${sitePath('about/')}">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+              <span>소개</span>
+            </a>
+            <a class="app-nav__item app-nav__item--secondary" href="${sitePath('fairness/')}">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.8 8.1 7 10 4.2-1.9 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+              <span>공정성</span>
+            </a>
             <a class="app-nav__item" href="${sitePath('how-to-play/')}">
               <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.7-2.2 2-2.2 3.5M12 17h.01"/></svg>
               <span>도움말</span>
@@ -276,6 +284,7 @@ export class AppShell {
           <div class="site-footer__summary"><a class="site-footer__home" href="${sitePath('')}"><strong>모여PLAY</strong></a><p>게임 설정과 최근 전적은 현재 브라우저에 저장되며 운영 서버로 업로드하지 않습니다.</p></div>
           <nav class="site-footer__nav" aria-label="사이트 정책과 안내">
             <a href="${sitePath('')}">게임</a>
+            <a href="${sitePath('about/')}">소개</a>
             <a href="${sitePath('how-to-play/')}">이용 방법</a>
             <a href="${sitePath('fairness/')}">공정성</a>
             <a href="${sitePath('privacy/')}">개인정보</a>
@@ -368,6 +377,10 @@ export class AppShell {
     this.#stage.hidden = true;
     this.#lobby.hidden = false;
     document.body.dataset.view = 'lobby';
+    queryRequired<HTMLElement>(this.#root, '.app-nav [data-action="lobby"]').setAttribute(
+      'aria-current',
+      'page',
+    );
     delete document.body.dataset.oneScreenGame;
     document.title = '모여PLAY — 친구들이 모이면 바로 한 판';
     const scrollToGames = this.#scrollToGamesOnLobby;
@@ -393,6 +406,9 @@ export class AppShell {
   async #showGame(gameId: GameId, focusView: boolean, retryLoad = false): Promise<void> {
     const game = getGameDefinition(gameId);
     if (!game) return;
+    queryRequired<HTMLElement>(this.#root, '.app-nav [data-action="lobby"]').removeAttribute(
+      'aria-current',
+    );
     const token = ++this.#loadToken;
     this.#destroyController();
     this.#retryRequiresReload = false;

@@ -15,6 +15,16 @@ const requiredHtml = [
     .filter(([key]) => key !== 'root')
     .map(([, page]) => `${page.slug}/index.html`),
 ];
+const indexableRoutes = [
+  { file: 'index.html', path: '' },
+  ...GAME_CONTENT.map((game) => ({
+    file: `games/${game.slug}/index.html`,
+    path: `games/${game.slug}/`,
+  })),
+  ...Object.entries(PAGE_CONTENT)
+    .filter(([key]) => key !== 'root')
+    .map(([, page]) => ({ file: `${page.slug}/index.html`, path: page.path.replace(/^\/+/, '') })),
+];
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -38,6 +48,16 @@ async function exists(file) {
 
 function fail(errors, message) {
   errors.push(message);
+}
+
+function collectAbsoluteUrls(value, urls = []) {
+  if (typeof value === 'string' && /^https?:\/\//u.test(value)) urls.push(value);
+  else if (Array.isArray(value)) {
+    for (const item of value) collectAbsoluteUrls(item, urls);
+  } else if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) collectAbsoluteUrls(item, urls);
+  }
+  return urls;
 }
 
 const files = await listFiles(outputDirectory);
@@ -68,6 +88,23 @@ for (const [relativePath, source] of textSources) {
     fail(errors, `Unresolved template token remains in ${relativePath}.`);
   }
 }
+if (!config.adsense.testMode) {
+  const deployableText = [...textSources.values()].join('\n');
+  const forbiddenMarkers = [
+    'https://dubeeubbee.github.io/moyeoplay',
+    'moyeoplay.example',
+    'ca-pub-0000000000000000',
+    'ca-pub-1234567890123456',
+    'pub-1234567890123456',
+    '/Users/',
+    '.generated-pages',
+    'file://',
+  ];
+  for (const marker of forbiddenMarkers) {
+    if (deployableText.includes(marker))
+      fail(errors, `Deployable output contains forbidden marker: ${marker}`);
+  }
+}
 
 const indexSource = textSources.get('index.html') ?? '';
 if (!indexSource.includes('<h1>') || !indexSource.includes('games/omok/')) {
@@ -88,14 +125,30 @@ if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle
 const canonicals = [];
 const titles = [];
 const descriptions = [];
-for (const relativePath of requiredHtml.filter((entry) => entry !== 'play/index.html')) {
+for (const route of indexableRoutes) {
+  const relativePath = route.file;
   const source = textSources.get(relativePath) ?? '';
   const canonical = source.match(/<link rel="canonical" href="([^"]+)"/u)?.[1];
+  const openGraphUrl = source.match(/<meta property="og:url" content="([^"]+)"/u)?.[1];
+  const openGraphImage = source.match(/<meta property="og:image" content="([^"]+)"/u)?.[1];
+  const twitterImage = source.match(/<meta name="twitter:image" content="([^"]+)"/u)?.[1];
   const title = source.match(/<title>([^<]+)<\/title>/u)?.[1];
   const description = source.match(/<meta name="description" content="([^"]+)"/u)?.[1];
-  if (!canonical || !title || !description || !source.includes('<h1')) {
+  const h1Count = source.match(/<h1(?:\s|>)/gu)?.length ?? 0;
+  const expectedCanonical = new URL(route.path, config.siteUrl).href;
+  if (!canonical || !title || !description || h1Count !== 1) {
     fail(errors, `${relativePath} is missing canonical, title, description, or h1.`);
     continue;
+  }
+  if (canonical !== expectedCanonical || openGraphUrl !== expectedCanonical) {
+    fail(errors, `${relativePath} canonical and og:url must equal ${expectedCanonical}.`);
+  }
+  if (
+    !openGraphImage?.startsWith(config.siteUrl) ||
+    !twitterImage?.startsWith(config.siteUrl) ||
+    openGraphImage !== twitterImage
+  ) {
+    fail(errors, `${relativePath} OG and Twitter images must share the configured site origin.`);
   }
   const openGraphImageAlts = source.match(/<meta property="og:image:alt"/gu) ?? [];
   const twitterImageAlts = source.match(/<meta name="twitter:image:alt"/gu) ?? [];
@@ -111,7 +164,13 @@ for (const relativePath of requiredHtml.filter((entry) => entry !== 'play/index.
   if (!structuredData) fail(errors, `${relativePath} is missing JSON-LD.`);
   else {
     try {
-      JSON.parse(structuredData);
+      const parsed = JSON.parse(structuredData);
+      const outsideSiteUrls = collectAbsoluteUrls(parsed).filter(
+        (url) => !url.startsWith(config.siteUrl) && !url.startsWith('https://schema.org'),
+      );
+      if (outsideSiteUrls.length > 0) {
+        fail(errors, `${relativePath} JSON-LD contains URLs outside SITE_URL.`);
+      }
     } catch {
       fail(errors, `${relativePath} contains invalid JSON-LD.`);
     }
@@ -137,6 +196,12 @@ if (
 if (sitemapUrls.some((url) => !url.startsWith(config.siteUrl))) {
   fail(errors, 'sitemap.xml contains a URL outside SITE_URL.');
 }
+const expectedSitemapUrls = new Set(
+  indexableRoutes.map((route) => new URL(route.path, config.siteUrl).href),
+);
+if (sitemapUrls.some((url) => !expectedSitemapUrls.has(url))) {
+  fail(errors, 'sitemap.xml does not match the expected 15 canonical routes.');
+}
 
 const cnameExists = await exists(path.join(outputDirectory, 'CNAME'));
 const robotsExists = await exists(path.join(outputDirectory, 'robots.txt'));
@@ -151,6 +216,15 @@ if (config.customDomain) {
 } else if (cnameExists) fail(errors, 'CNAME exists without CUSTOM_DOMAIN.');
 if (config.basePath === '/') {
   if (!robotsExists) fail(errors, 'Root-base output needs robots.txt.');
+  else {
+    const robotsSource = await readFile(path.join(outputDirectory, 'robots.txt'), 'utf8');
+    if (
+      !robotsSource.includes(`Sitemap: ${new URL('sitemap.xml', config.siteUrl).href}`) ||
+      /Disallow:\s*\/play\//iu.test(robotsSource)
+    ) {
+      fail(errors, 'robots.txt must advertise the configured sitemap without blocking /play/.');
+    }
+  }
   if (config.adsense.publisherId) {
     if (!adsTxtExists) fail(errors, 'A configured root publisher requires ads.txt.');
     else {
@@ -168,17 +242,47 @@ const indexableHtml = requiredHtml
   .filter((entry) => entry !== 'play/index.html')
   .map((entry) => textSources.get(entry) ?? '')
   .join('\n');
-if (!config.adsense.enabled && /data-adsense-slot|class="adsbygoogle"/.test(indexableHtml)) {
+const playAccountMetaCount = playSource.match(/name="google-adsense-account"/gu)?.length ?? 0;
+if (playAccountMetaCount !== 0) fail(errors, '/play/ must not contain AdSense account metadata.');
+for (const route of indexableRoutes) {
+  const source = textSources.get(route.file) ?? '';
+  const accountMetaCount = source.match(/name="google-adsense-account"/gu)?.length ?? 0;
+  const expectedMetaCount = config.adsense.accountMetaEnabled ? 1 : 0;
+  if (accountMetaCount !== expectedMetaCount) {
+    fail(errors, `${route.file} has an unexpected AdSense account meta count.`);
+  }
+  if (
+    config.adsense.accountMetaEnabled &&
+    !source.includes(`content="${config.adsense.clientId}"`)
+  ) {
+    fail(errors, `${route.file} AdSense account metadata does not match ADSENSE_CLIENT_ID.`);
+  }
+  if (/pagead2\.googlesyndication\.com[^<]*<\/script>/iu.test(source)) {
+    fail(errors, `${route.file} must not preload the Google ad script before consent.`);
+  }
+  const slotCount = source.match(/data-adsense-slot/gu)?.length ?? 0;
+  const allowsSlot = route.file === 'index.html' || route.file.startsWith('games/');
+  const expectedSlotCount = config.adsense.adsEnabled && allowsSlot ? 1 : 0;
+  if (slotCount !== expectedSlotCount) {
+    fail(errors, `${route.file} has an unexpected manual ad slot count.`);
+  }
+}
+if (!config.adsense.adsEnabled && /data-adsense-slot|class="adsbygoogle"/.test(indexableHtml)) {
   fail(errors, 'Disabled AdSense output contains ad DOM.');
 }
-if (config.adsense.enabled && !/data-adsense-slot/.test(indexableHtml)) {
+if (config.adsense.adsEnabled && !/data-adsense-slot/.test(indexableHtml)) {
   fail(errors, 'Enabled AdSense output is missing content-page slots.');
 }
-if (!config.adsense.testMode) {
-  const allText = [...textSources.values()].join('\n');
-  if (allText.includes('1234567890123456') || allText.includes('moyeoplay.example')) {
-    fail(errors, 'Test AdSense IDs or reserved test domains leaked into deployable output.');
-  }
+const privacySource = textSources.get('privacy/index.html') ?? '';
+const expectedPrivacyProfile = config.adsense.adsEnabled
+  ? config.adsense.testMode
+    ? 'ads-enabled-test'
+    : 'ads-enabled'
+  : config.adsense.accountMetaEnabled
+    ? 'account-meta-only'
+    : 'off';
+if (!privacySource.includes(`data-privacy-ad-profile="${expectedPrivacyProfile}"`)) {
+  fail(errors, 'Privacy page does not describe the active AdSense build profile.');
 }
 
 const manifest = JSON.parse(textSources.get('manifest.webmanifest') ?? '{}');

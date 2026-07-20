@@ -6,8 +6,8 @@ if (mode === 'live' && !liveUrl) {
   throw new Error('E2E_LIVE_URL is required when E2E_MODE=live');
 }
 
-const origin = 'http://127.0.0.1:4173';
-const requestedBasePath = process.env.E2E_BASE_PATH ?? (mode === 'prod' ? '/moyeoplay/' : '/');
+const origin = mode === 'dev' ? 'http://127.0.0.1:5173' : 'http://127.0.0.1:4173';
+const requestedBasePath = process.env.E2E_BASE_PATH ?? '/';
 const basePath = `/${requestedBasePath.replace(/^\/+|\/+$/g, '')}${requestedBasePath === '/' ? '' : '/'}`;
 
 function normalizeLiveUrl(value: string): string {
@@ -49,7 +49,7 @@ export default defineConfig({
           command:
             mode === 'prod'
               ? 'npm run preview:pages -- --host 127.0.0.1 --port 4173'
-              : 'npm run dev -- --host 127.0.0.1 --port 4173',
+              : 'npm run dev -- --host 127.0.0.1 --port 5173',
           url: baseURL,
           reuseExistingServer: mode === 'dev' && !process.env.CI,
           timeout: 120_000,
