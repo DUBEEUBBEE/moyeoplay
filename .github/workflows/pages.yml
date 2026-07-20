@@ -92,7 +92,7 @@ jobs:
         run: npm run verify:dist
 
       - name: Production Pages end-to-end tests
-        run: npm run test:e2e:prod:run
+        run: E2E_BASE_PATH="${PAGES_BASE_PATH}" npm run test:e2e:prod:run
 
       - name: Upload Playwright failure artifacts
         if: failure()

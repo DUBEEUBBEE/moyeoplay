@@ -83,14 +83,15 @@ test.describe('production Pages build', () => {
       ...metadata.styles,
     ];
     expect(assetUrls.length).toBeGreaterThanOrEqual(8);
+    const previewPath = new URL(previewRoot).pathname;
     for (const url of assetUrls) {
       const asset = await request.get(url);
       expect(asset.status(), url).toBe(200);
       const pathname = new URL(url).pathname;
-      expect(pathname, url).not.toMatch(/^\/assets\//);
-      expect(pathname.startsWith(new URL(previewRoot).pathname), url).toBe(true);
+      if (previewPath !== '/') expect(pathname, url).not.toMatch(/^\/assets\//);
+      expect(pathname.startsWith(previewPath), url).toBe(true);
     }
-    const controlsHostRoot = new URL(previewRoot).pathname === '/';
+    const controlsHostRoot = previewPath === '/';
     expect((await request.get(`${previewRoot}robots.txt`)).status()).toBe(
       controlsHostRoot ? 200 : 404,
     );
