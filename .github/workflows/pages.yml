@@ -46,6 +46,9 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Production dependency audit
+        run: npm audit --omit=dev
+
       - name: Root-base and AdSense mock end-to-end tests
         run: npm run test:e2e:root
 
@@ -54,10 +57,15 @@ jobs:
           SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
           CUSTOM_DOMAIN_VALUE: ${{ vars.CUSTOM_DOMAIN }}
           PUBLIC_CONTACT_EMAIL_VALUE: ${{ vars.PUBLIC_CONTACT_EMAIL }}
-          ADSENSE_ENABLED_VALUE: ${{ vars.ADSENSE_ENABLED || 'false' }}
+          ADSENSE_ACCOUNT_META_ENABLED_VALUE: ${{ vars.ADSENSE_ACCOUNT_META_ENABLED || 'false' }}
+          ADSENSE_ADS_ENABLED_VALUE: ${{ vars.ADSENSE_ADS_ENABLED || vars.ADSENSE_ENABLED || 'false' }}
+          ADSENSE_LEGACY_ENABLED_VALUE: ${{ vars.ADSENSE_ENABLED }}
           ADSENSE_CLIENT_ID_VALUE: ${{ vars.ADSENSE_CLIENT_ID }}
           ADSENSE_PUBLISHER_ID_VALUE: ${{ vars.ADSENSE_PUBLISHER_ID }}
           ADSENSE_CONTENT_SLOT_ID_VALUE: ${{ vars.ADSENSE_CONTENT_SLOT_ID }}
+          SITE_OPERATOR_NAME_VALUE: ${{ vars.SITE_OPERATOR_NAME }}
+          PUBLIC_CMP_PROVIDER_NAME_VALUE: ${{ vars.PUBLIC_CMP_PROVIDER_NAME }}
+          PUBLIC_CMP_SETTINGS_URL_VALUE: ${{ vars.PUBLIC_CMP_SETTINGS_URL }}
         run: |
           repository_name="${GITHUB_REPOSITORY#*/}"
           owner_lower="${GITHUB_REPOSITORY_OWNER,,}"
@@ -75,10 +83,15 @@ jobs:
           echo "SITE_URL=${resolved_site_url}" >> "$GITHUB_ENV"
           echo "CUSTOM_DOMAIN=${CUSTOM_DOMAIN_VALUE}" >> "$GITHUB_ENV"
           echo "PUBLIC_CONTACT_EMAIL=${PUBLIC_CONTACT_EMAIL_VALUE}" >> "$GITHUB_ENV"
-          echo "ADSENSE_ENABLED=${ADSENSE_ENABLED_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_ACCOUNT_META_ENABLED=${ADSENSE_ACCOUNT_META_ENABLED_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_ADS_ENABLED=${ADSENSE_ADS_ENABLED_VALUE}" >> "$GITHUB_ENV"
+          echo "ADSENSE_ENABLED=${ADSENSE_LEGACY_ENABLED_VALUE}" >> "$GITHUB_ENV"
           echo "ADSENSE_CLIENT_ID=${ADSENSE_CLIENT_ID_VALUE}" >> "$GITHUB_ENV"
           echo "ADSENSE_PUBLISHER_ID=${ADSENSE_PUBLISHER_ID_VALUE}" >> "$GITHUB_ENV"
           echo "ADSENSE_CONTENT_SLOT_ID=${ADSENSE_CONTENT_SLOT_ID_VALUE}" >> "$GITHUB_ENV"
+          echo "SITE_OPERATOR_NAME=${SITE_OPERATOR_NAME_VALUE}" >> "$GITHUB_ENV"
+          echo "PUBLIC_CMP_PROVIDER_NAME=${PUBLIC_CMP_PROVIDER_NAME_VALUE}" >> "$GITHUB_ENV"
+          echo "PUBLIC_CMP_SETTINGS_URL=${PUBLIC_CMP_SETTINGS_URL_VALUE}" >> "$GITHUB_ENV"
 
       - name: Configure GitHub Pages
         id: pages
@@ -156,7 +169,12 @@ jobs:
       - name: Verify live GitHub Pages
         run: npm run test:e2e:live
         env:
-          E2E_LIVE_URL: ${{ vars.SITE_URL || needs.deploy.outputs.page_url }}
+          E2E_LIVE_URL: ${{ vars.SITE_URL || 'https://moyeoplay.studio/' }}
+          E2E_CHECK_REDIRECTS: 'true'
+          ADSENSE_ACCOUNT_META_ENABLED: ${{ vars.ADSENSE_ACCOUNT_META_ENABLED || 'false' }}
+          ADSENSE_ADS_ENABLED: ${{ vars.ADSENSE_ADS_ENABLED || vars.ADSENSE_ENABLED || 'false' }}
+          ADSENSE_CLIENT_ID: ${{ vars.ADSENSE_CLIENT_ID }}
+          ADSENSE_PUBLISHER_ID: ${{ vars.ADSENSE_PUBLISHER_ID }}
 
       - name: Upload live smoke failure artifacts
         if: failure()
