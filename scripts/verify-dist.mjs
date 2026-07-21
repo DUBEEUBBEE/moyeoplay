@@ -125,6 +125,23 @@ if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle
   fail(errors, '/play/ must never contain an AdSense slot.');
 }
 
+const aboutSource = textSources.get('about/index.html') ?? '';
+const contactSource = textSources.get('contact/index.html') ?? '';
+for (const internalMarker of [
+  'SITE_OPERATOR_NAME',
+  'PUBLIC_CONTACT_EMAIL',
+  '공개 이메일 미설정',
+  'AdSense 신청 전',
+  '가짜 주소',
+]) {
+  if (aboutSource.includes(internalMarker) || contactSource.includes(internalMarker)) {
+    fail(errors, `Public trust pages expose an internal readiness marker: ${internalMarker}`);
+  }
+}
+if (!aboutSource.includes('모여PLAY 프로젝트') || !contactSource.includes('문의 방법')) {
+  fail(errors, 'Public trust pages are missing their visitor-facing operator or contact guidance.');
+}
+
 const canonicals = [];
 const titles = [];
 const descriptions = [];
@@ -185,6 +202,25 @@ for (const [label, values] of [
   ['description', descriptions],
 ]) {
   if (new Set(values).size !== 15) fail(errors, `Indexable ${label} values must be unique.`);
+}
+
+const rootStructuredData = indexSource.match(
+  /<script type="application\/ld\+json">([^<]+)<\/script>/u,
+)?.[1];
+if (rootStructuredData) {
+  try {
+    const parsed = JSON.parse(rootStructuredData);
+    const graph = Array.isArray(parsed['@graph']) ? parsed['@graph'] : [];
+    const types = graph.map((entry) => entry?.['@type']);
+    if (graph.length !== 1 || types[0] !== 'WebSite') {
+      fail(errors, 'Root JSON-LD must describe only the verified WebSite entity.');
+    }
+    if (types.includes('WebApplication') || types.includes('SoftwareApplication')) {
+      fail(errors, 'Root JSON-LD must not claim an app rich result without real review evidence.');
+    }
+  } catch {
+    // Invalid JSON-LD is already reported by the indexable-route validation above.
+  }
 }
 
 const sitemapSource = textSources.get('sitemap.xml') ?? '';

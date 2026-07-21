@@ -1,6 +1,8 @@
 const INITIAL_CONTENT_DATE = '2026-07-19';
 const GUIDE_UPDATED = '2026-07-21';
 const TRUST_UPDATED = '2026-07-21';
+const ABOUT_UPDATED = '2026-07-22';
+const CONTACT_UPDATED = '2026-07-22';
 
 export const SITE_META = Object.freeze({
   name: '모여PLAY',
@@ -530,7 +532,7 @@ export const PAGE_CONTENT = Object.freeze({
         title: '운영과 작성 정보',
         paragraphs: [
           '모여PLAY의 게임 규칙, 가이드, 접근성 설명과 공정성 문서는 모여PLAY 프로젝트가 실제 구현과 테스트 결과를 바탕으로 함께 작성합니다. 각 게임 가이드의 작성 정보는 이 섹션으로 연결됩니다.',
-          '공개 운영자 이름은 빌드 환경의 SITE_OPERATOR_NAME에 실제 값이 설정된 경우에만 표시합니다. 값이 없을 때 개인 이름을 추측하거나 만들어 내지 않습니다.',
+          '운영·제작 주체는 모여PLAY 프로젝트입니다. 구현과 문서 변경 이력은 공개 저장소에서 확인할 수 있고, 문의 방법은 문의 페이지에서 안내합니다.',
         ],
         links: [
           { label: '공정성 원칙', href: '/fairness/' },
@@ -580,7 +582,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: ABOUT_UPDATED,
   },
   'how-to-play': {
     slug: 'how-to-play',
@@ -925,8 +927,7 @@ export const PAGE_CONTENT = Object.freeze({
         envKey: 'PUBLIC_CONTACT_EMAIL',
         availability: 'when-configured',
         label: '이메일 문의',
-        description:
-          '빌드 시 PUBLIC_CONTACT_EMAIL이 설정된 경우에만 공개 이메일 문의 방법을 표시합니다.',
+        description: '공개 문의 주소가 제공되는 경우 이메일로 비공개 문의를 보낼 수 있습니다.',
       },
       fallback: {
         id: 'github-issues',
@@ -935,7 +936,7 @@ export const PAGE_CONTENT = Object.freeze({
         label: 'GitHub Issues에 문의하기',
         href: 'https://github.com/DUBEEUBBEE/moyeoplay/issues',
         description:
-          '공개 이메일이 설정되지 않았거나 공개 제보가 적합한 경우 GitHub Issues를 사용합니다.',
+          '버그·조작·접근성·콘텐츠 제보는 GitHub Issues에서 접수합니다. 공개 게시판이므로 민감한 정보는 제외해 주세요.',
       },
       repository: {
         id: 'github-repository',
@@ -972,7 +973,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: CONTACT_UPDATED,
   },
 });
 
