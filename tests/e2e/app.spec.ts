@@ -64,6 +64,38 @@ test('로비는 데스크톱과 모바일에서 오버플로 없이 로드된다
   expect(errors).toEqual([]);
 });
 
+test('randomUUID가 없는 환경에서도 밝은 게임 화면이 정상 부팅된다', async ({ page }) => {
+  const errors = collectPageErrors(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(Crypto.prototype, 'randomUUID', {
+      configurable: true,
+      value: undefined,
+    });
+  });
+
+  await page.goto('./play/#game/pong');
+  await expect(page.locator('body')).toHaveAttribute('data-view', 'game');
+  await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('.pong-game')).toBeVisible();
+  const theme = await page.evaluate(() => {
+    const bodyStyle = getComputedStyle(document.body);
+    const rootStyle = getComputedStyle(document.documentElement);
+    return {
+      bodyCanvas: bodyStyle.getPropertyValue('--canvas').trim(),
+      bodyColorScheme: bodyStyle.colorScheme,
+      rootBackground: rootStyle.backgroundColor,
+      rootColorScheme: rootStyle.colorScheme,
+    };
+  });
+  expect(theme).toEqual({
+    bodyCanvas: '#f7f3eb',
+    bodyColorScheme: 'light',
+    rootBackground: 'rgb(247, 243, 235)',
+    rootColorScheme: 'light',
+  });
+  expect(errors).toEqual([]);
+});
+
 test('모든 게임 카드가 열리고 로비로 돌아온다', async ({ page }) => {
   const errors = collectPageErrors(page);
   await page.goto('./play/#lobby');

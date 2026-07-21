@@ -615,7 +615,7 @@ function renderPlay(outputFile) {
     canonicalPath: 'play/',
     robots: 'noindex,follow',
   })}</head>
-  <body class="play-app">
+  <body class="play-app" data-view="lobby">
     <div id="app"></div>
     <noscript><p>게임 실행에는 JavaScript가 필요합니다. <a href="${sitePath()}">정적 게임 안내로 돌아가기</a></p></noscript>
     <script type="module" src="${moduleHref(outputFile, 'src/main.ts')}"></script>

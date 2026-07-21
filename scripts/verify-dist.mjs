@@ -118,6 +118,9 @@ if (
 }
 const playSource = textSources.get('play/index.html') ?? '';
 if (!playSource.includes('noindex,follow')) fail(errors, '/play/ must be noindex,follow.');
+if (!playSource.includes('<body class="play-app" data-view="lobby">')) {
+  fail(errors, '/play/ must render with the bright lobby theme before JavaScript starts.');
+}
 if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle')) {
   fail(errors, '/play/ must never contain an AdSense slot.');
 }
