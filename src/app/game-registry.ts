@@ -44,10 +44,10 @@ export const GAME_DEFINITIONS: readonly GameDefinition[] = [
   },
   {
     id: 'pong',
-    title: '네온 탁구',
+    title: '탁구',
     shortTitle: '탁구',
     eyebrow: 'REFLEX MATCH',
-    description: '각도와 움직임을 실어 받아치는 속도감 있는 네온 랠리.',
+    description: '각도와 움직임을 실어 공을 받아치는 속도감 있는 2인 랠리.',
     players: '2인',
     genre: '반응 액션',
     duration: '2–4분',

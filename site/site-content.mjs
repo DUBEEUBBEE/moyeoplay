@@ -71,7 +71,7 @@ export const GAME_CONTENT = Object.freeze([
   {
     id: 'pong',
     slug: 'pong',
-    title: '네온 탁구',
+    title: '탁구',
     shortDescription: '각도와 이동 방향을 실어 공을 받아치는 빠른 2인 랠리.',
     longDescription:
       '한 화면의 양쪽 패들을 나눠 조작하고 상대 뒤쪽 득점선으로 공을 보내는 반응 액션 게임입니다. 패들의 어느 위치에서 어떤 방향으로 움직이며 공을 맞히는지에 따라 반사 각도가 달라지고, 랠리가 이어질수록 공이 빨라집니다.',
@@ -488,7 +488,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: INITIAL_CONTENT_DATE,
+    updated: TRUST_UPDATED,
   },
   about: {
     slug: 'about',
@@ -625,7 +625,7 @@ export const PAGE_CONTENT = Object.freeze({
         title: '데스크톱과 모바일',
         paragraphs: [
           '데스크톱 액션 게임은 P1이 왼쪽 문자 키, P2가 오른쪽 또는 방향키를 사용하도록 나뉘어 있습니다. 모바일은 화면 양쪽의 독립된 버튼과 멀티터치를 사용합니다.',
-          '네온 탁구, 통통 배구, 핀볼 늦게 떨어지기는 모바일 가로 방향을 권장하지만 세로 화면에서 실행을 막지 않습니다.',
+          '탁구, 통통 배구, 핀볼 늦게 떨어지기는 모바일 가로 방향을 권장하지만 세로 화면에서 실행을 막지 않습니다.',
           '높이 500px 이하의 작은 가로 화면에서는 HUD, 점수, 게임 영역, 양쪽 핵심 조작을 한 visual viewport에 배치하고, 더 작은 화면과 확대 환경에서는 스크롤을 허용합니다.',
         ],
       },
@@ -646,7 +646,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: INITIAL_CONTENT_DATE,
+    updated: TRUST_UPDATED,
   },
   fairness: {
     slug: 'fairness',
@@ -669,7 +669,7 @@ export const PAGE_CONTENT = Object.freeze({
         title: '대칭 조건과 물리 판정',
         paragraphs: [
           '핀볼 늦게 떨어지기는 왼쪽 핀 배치를 오른쪽에 정확히 거울 복제하고, 출발 조건과 부스터 패턴을 같은 크기로 반대 방향 적용합니다. 배치를 만드는 seed는 보안 추첨이나 공개 감사 코드가 아닙니다.',
-          '네온 탁구와 통통 배구는 120Hz 고정 스텝과 충돌 보호 로직을 사용합니다. 오목과 탭 배틀을 포함한 이 게임들의 판정에는 결과를 바꾸는 난수가 없습니다.',
+          '탁구와 통통 배구는 120Hz 고정 스텝과 충돌 보호 로직을 사용합니다. 오목과 탭 배틀을 포함한 이 게임들의 판정에는 결과를 바꾸는 난수가 없습니다.',
         ],
       },
       {
@@ -734,7 +734,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: INITIAL_CONTENT_DATE,
+    updated: TRUST_UPDATED,
   },
   privacy: {
     slug: 'privacy',

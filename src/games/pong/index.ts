@@ -336,7 +336,7 @@ export function createGame(services: GameServices): MiniGameController {
       const canvas = document.createElement('canvas');
       canvas.className = 'game-canvas';
       canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', '네온 탁구 경기장');
+      canvas.setAttribute('aria-label', '탁구 경기장');
       canvas.style.width = '100%';
       canvas.style.maxWidth = `${String(PONG_WIDTH)}px`;
       canvas.style.display = 'block';

@@ -36,14 +36,14 @@ canonical, Open Graph, Twitter image, JSON-LD, sitemap, manifest, robots sitemap
 | apex A records               | 확인 완료        | 2026-07-21 공개 DNS에서 GitHub Pages의 4개 IPv4 확인                                          |
 | `www` CNAME                  | 확인 완료        | `dubeeubbee.github.io` 대상 확인                                                              |
 | Pages custom domain 연결     | 확인 완료        | 최신 Pages deployment가 `moyeoplay.studio`를 environment URL로 사용                           |
-| custom-domain TLS 인증서     | 미완료           | 마지막 live smoke와 직접 요청이 hostname 불일치로 실패                                        |
-| Enforce HTTPS                | 미완료           | HTTP apex가 200을 반환해 HTTPS로 강제 전환되지 않음                                           |
-| `www` → apex secure redirect | 미검증           | 올바른 custom 인증서가 없는 상태의 결과를 성공으로 기록하지 않음                              |
-| 이전 Pages URL → HTTPS apex  | 미완료           | 마지막 확인에서 같은 path의 HTTP custom URL로 이동                                            |
+| custom-domain TLS 인증서     | 확인 완료        | Let's Encrypt 인증서가 apex와 `www`를 포함하며 2026-10-19까지 유효                            |
+| Enforce HTTPS                | 확인 완료        | Pages API의 `https_enforced=true`, HTTP apex가 HTTPS apex로 301                               |
+| `www` → apex secure redirect | 확인 완료        | HTTPS `www`가 path와 query를 보존해 HTTPS apex로 301                                          |
+| 이전 Pages URL → HTTPS apex  | 확인 완료        | 이전 Pages root와 nested path가 HTTPS custom apex로 301                                       |
 | Search Console               | 운영자 수동 작업 | property·소유권·sitemap·색인 상태 미확인                                                      |
 | AdSense                      | 운영자 수동 작업 | Sites Verify·Request review·Google 결과 미확인                                                |
 
-최신 배포 artifact 자체가 성공했어도 TLS와 redirect가 통과하기 전에는 custom-domain 출시 완료가 아니다. GitHub는 custom domain의 **Enforce HTTPS** 옵션이 준비되기까지 시간이 걸릴 수 있다고 안내하므로, 추측으로 완료 처리하지 않고 live 결과를 다시 기록한다. [GitHub Pages custom domain 안내](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
+2026-07-21 live 재검증에서 custom-domain 인증서와 redirect 출시 게이트가 통과했다. 이후에도 배포 artifact 성공과 외부 TLS 상태를 분리해 검사한다. GitHub는 custom domain의 **Enforce HTTPS** 옵션이 준비되기까지 시간이 걸릴 수 있다고 안내하므로, 새 도메인이나 인증서 변경 때는 live 결과를 다시 기록한다. [GitHub Pages custom domain 안내](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
 
 ## 생성되는 검색 표면
 
@@ -79,6 +79,8 @@ GitHub Actions custom workflow에서는 artifact 안의 `CNAME`이 Pages custom 
 
 현재 apex는 GitHub가 안내하는 4개 `A` record를 사용하고 `www`는 `dubeeubbee.github.io`를 가리킨다. wildcard DNS는 사용하지 않는다. DNS가 맞더라도 TLS 인증서 발급과 HTTPS enforcement는 별도 확인 항목이다. [GitHub Pages custom domain 안내](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
 
+권한 네임서버와 관리 화면은 Namecheap이 아니라 Name.com이다. Name.com Security Center의 `SSL INACTIVE`는 Name.com 웹호스팅용 유료 인증서 상품 상태이며, GitHub Pages가 실제 origin에서 종료하는 HTTPS 상태가 아니다. 현재 Pages 인증서는 승인됐고 `https_enforced=true`이므로 별도 Name.com/Namecheap SSL을 구매하거나 활성화하지 않는다.
+
 `robots.txt`와 `ads.txt`는 host root에 있어야 한다. custom root profile은 이를 제어할 수 있지만 이전 Project Pages 경로의 `/moyeoplay/robots.txt`나 `/moyeoplay/ads.txt`를 root 파일로 간주하지 않는다. [Google robots.txt 위치 규칙](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt), [Google ads.txt 안내](https://support.google.com/adsense/answer/12171612)
 
 ## 이전 GitHub Pages URL
@@ -91,7 +93,7 @@ GitHub Actions custom workflow에서는 artifact 안의 `CNAME`이 Pages custom 
 - 최종 문서 canonical과 `og:url`이 custom apex다.
 - Search Console에서 이전 URL의 Google-selected canonical을 확인한다.
 
-2026-07-21 마지막 확인에서는 이전 URL이 같은 path의 `http://moyeoplay.studio/`로 이동했으므로 완료 조건을 충족하지 못했다.
+2026-07-21 재확인에서는 이전 Pages root와 nested path가 같은 path의 `https://moyeoplay.studio/`로 한 번에 이동했고 HTTP downgrade와 loop가 없었다.
 
 ## 다른 정적 호스트로 이전할 때
 

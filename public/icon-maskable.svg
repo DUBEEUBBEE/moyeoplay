@@ -1,5 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="#07111f"/>
-  <rect x="10" y="10" width="44" height="44" rx="12" fill="#ffd447" transform="rotate(-5 32 32)"/>
-  <path d="M20 42V22h5.5L32 32l6.5-10H44v20h-5.8V30.8L32 40l-6.2-9.2V42H20Z" fill="#07111f"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="tile" x1="7" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4b8bf4"/>
+      <stop offset="0.52" stop-color="#1f65d6"/>
+      <stop offset="1" stop-color="#164ea9"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(19 12) rotate(47) scale(42)">
+      <stop stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" fill="url(#tile)"/>
+  <rect width="64" height="64" fill="url(#glow)"/>
+  <rect x="8" y="8" width="48" height="48" rx="15" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.14"/>
+  <path d="M16 43V21h7.2L32 33.2 40.8 21H48v22h-7V32l-9 12-9-12v11h-7Z" fill="#fffdf8"/>
 </svg>

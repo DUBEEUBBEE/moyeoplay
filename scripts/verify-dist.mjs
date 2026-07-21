@@ -312,6 +312,63 @@ if (
   fail(errors, 'Manifest icon URLs must use the active deployment base path.');
 }
 
+const faviconSource = await readFile(path.join(outputDirectory, 'favicon.svg'), 'utf8');
+if (
+  !faviconSource.includes('#1f65d6') ||
+  !faviconSource.includes('#fffdf8') ||
+  /#(?:07111f|ffd447)/iu.test(faviconSource)
+) {
+  fail(errors, 'Favicon must use the current blue and warm-white brand mark.');
+}
+if (!indexSource.includes('type="image/svg+xml" sizes="any"')) {
+  fail(errors, 'Root favicon declaration must identify the scalable icon with sizes="any".');
+}
+if (!indexSource.includes('rel="apple-touch-icon"') || !indexSource.includes('sizes="180x180"')) {
+  fail(errors, 'Root apple touch icon declaration must include its 180x180 size.');
+}
+
+const brandIconSpecs = [
+  { name: 'apple-touch-icon.png', width: 180, height: 180 },
+  { name: 'icon-192.png', width: 192, height: 192 },
+  { name: 'icon-512.png', width: 512, height: 512 },
+  { name: 'icon-maskable-512.png', width: 512, height: 512 },
+];
+for (const icon of brandIconSpecs) {
+  const iconPath = path.join(outputDirectory, icon.name);
+  if (!(await exists(iconPath))) {
+    fail(errors, `Missing brand icon: ${icon.name}`);
+    continue;
+  }
+  const [metadata, imageStats] = await Promise.all([
+    sharp(iconPath).metadata(),
+    sharp(iconPath).stats(),
+  ]);
+  if (metadata.width !== icon.width || metadata.height !== icon.height) {
+    fail(errors, `${icon.name} must be ${icon.width}x${icon.height}.`);
+  }
+  const dominant = imageStats.dominant;
+  if (dominant.b < 120 || dominant.b <= dominant.r * 1.25 || dominant.b <= dominant.g * 1.08) {
+    fail(errors, `${icon.name} must be dominated by the current blue brand tile.`);
+  }
+}
+
+const rootOgPath = path.join(outputDirectory, 'og-cover.png');
+if (!(await exists(rootOgPath))) fail(errors, 'Missing root OG image: og-cover.png');
+else {
+  const [metadata, size, imageStats] = await Promise.all([
+    sharp(rootOgPath).metadata(),
+    stat(rootOgPath),
+    sharp(rootOgPath).stats(),
+  ]);
+  if (metadata.width !== 1200 || metadata.height !== 630) {
+    fail(errors, 'og-cover.png must be 1200x630.');
+  }
+  if (size.size > 320 * 1024) fail(errors, 'og-cover.png exceeds the 320KB budget.');
+  const mean =
+    imageStats.channels.slice(0, 3).reduce((total, channel) => total + channel.mean, 0) / 3;
+  if (mean < 170) fail(errors, 'og-cover.png must use the bright clay brand surface.');
+}
+
 const heroAssets = [
   { extension: 'avif', budget: 180 * 1024 },
   { extension: 'webp', budget: 280 * 1024 },
@@ -353,10 +410,18 @@ for (const game of GAME_CONTENT) {
   const ogPath = path.join(outputDirectory, `assets/og/${game.id}.png`);
   if (!(await exists(ogPath))) fail(errors, `Missing game OG image: ${game.id}.png`);
   else {
-    const metadata = await sharp(ogPath).metadata();
+    const [metadata, size, imageStats] = await Promise.all([
+      sharp(ogPath).metadata(),
+      stat(ogPath),
+      sharp(ogPath).stats(),
+    ]);
     if (metadata.width !== 1200 || metadata.height !== 630) {
       fail(errors, `${game.id} OG image must be 1200x630.`);
     }
+    if (size.size > 360 * 1024) fail(errors, `${game.id} OG image exceeds 360KB.`);
+    const mean =
+      imageStats.channels.slice(0, 3).reduce((total, channel) => total + channel.mean, 0) / 3;
+    if (mean < 165) fail(errors, `${game.id} OG image must use the bright clay brand surface.`);
   }
 }
 

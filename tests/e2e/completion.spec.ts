@@ -144,7 +144,7 @@ test('오목은 단판의 실제 5목으로 완료되고 결과와 세션을 기
   await expectCompletedSession(page, 'omok', 1);
 });
 
-test('네온 탁구는 5점 매치를 실제 프레임으로 완료하고 세션을 기록한다', async ({ page }) => {
+test('탁구는 5점 매치를 실제 프레임으로 완료하고 세션을 기록한다', async ({ page }) => {
   test.setTimeout(45_000);
   await openGame(page, 'pong');
   await page.getByRole('combobox', { name: '탁구 선취점' }).selectOption('5');
