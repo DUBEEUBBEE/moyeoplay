@@ -132,8 +132,8 @@ function renderHead({
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(image)}" />
     <meta name="twitter:image:alt" content="${escapeHtml(imageAlt)}" />
-    <link rel="icon" href="${escapeHtml(sitePath('favicon.svg'))}" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="${escapeHtml(sitePath('apple-touch-icon.png'))}" />
+    <link rel="icon" href="${escapeHtml(sitePath('favicon.svg'))}" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="${escapeHtml(sitePath('apple-touch-icon.png'))}" sizes="180x180" />
     <link rel="manifest" href="${escapeHtml(sitePath('manifest.webmanifest'))}" />
     <title>${escapeHtml(title)}</title>${
       structuredData

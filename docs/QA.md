@@ -119,6 +119,6 @@ npm audit --omit=dev
 
 redirect까지 함께 확인할 때는 `E2E_CHECK_REDIRECTS=true E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live`를 실행한다.
 
-2026-07-21 현재 DNS A/CNAME과 HTTP 콘텐츠는 확인했지만, live TLS 인증서가 custom hostname을 포함하지 않아 HTTPS smoke가 실패했다. HTTP apex도 HTTPS로 redirect되지 않았다. 따라서 위 HTTPS·redirect 항목은 **미완료 출시 차단 문제**이며 `main` artifact 배포 성공으로 대체할 수 없다.
+2026-07-21 재검증에서 apex·`www`를 포함한 인증서, Pages HTTPS enforcement, HTTP·`www`·이전 Pages URL redirect가 통과했다. 이후 배포도 Actions 성공만으로 대체하지 않고 이 live smoke를 계속 실행한다.
 
 실제 배포 권한이나 외부 브라우저가 없는 환경에서는 해당 항목을 성공으로 기록하지 않고 `미검증`으로 남긴다.

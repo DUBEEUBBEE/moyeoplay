@@ -93,7 +93,7 @@ black and white glossy stones, yellow accent, compact centered composition.
 
 문자 `五`를 이미지에 넣지 않는 조건을 함께 사용했다. 실제 호출은 warm wooden 9×9 fragment, 보드·돌 외 소품 금지, yellow last-move ring, green 아이콘 세부 금지를 더했다.
 
-### 네온 탁구 — `pong`
+### 탁구 — `pong`
 
 ```text
 Two vertical neon paddles facing each other, left cyan and right pink,
@@ -190,7 +190,7 @@ remove_chroma_key.py --input <input> --out <output> \
   --force
 ```
 
-네온 탁구·통통 배구·핀볼:
+탁구·통통 배구·핀볼:
 
 ```bash
 remove_chroma_key.py --input <input> --out <output> \

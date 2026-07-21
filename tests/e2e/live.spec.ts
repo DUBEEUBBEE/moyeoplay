@@ -193,10 +193,13 @@ test.describe('live custom-domain smoke', () => {
 
     const metadata = await page.evaluate(() => ({
       appleIcon: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.href,
+      appleIconSizes: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.sizes
+        .value,
       adsenseAccount:
         document.querySelector<HTMLMetaElement>('meta[name="google-adsense-account"]')?.content ??
         '',
       icon: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.href,
+      iconSizes: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.sizes.value,
       manifest: document.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.href,
       ogImage: document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content,
       scripts: [...document.querySelectorAll<HTMLScriptElement>('script[src]')].map(
@@ -210,6 +213,8 @@ test.describe('live custom-domain smoke', () => {
     const expectedOgImage = new URL('og-cover.png', EXPECTED_SITE).href;
     expect(metadata.ogImage).toBe(expectedOgImage);
     expect(metadata.twitterImage).toBe(expectedOgImage);
+    expect(metadata.iconSizes).toBe('any');
+    expect(metadata.appleIconSizes).toBe('180x180');
     if (accountMetaEnabled) {
       expect(
         expectedAdsenseClientId,
@@ -237,6 +242,14 @@ test.describe('live custom-domain smoke', () => {
       expect(new URL(url).origin, url).toBe(new URL(EXPECTED_SITE).origin);
       expect((await request.get(url)).status(), url).toBe(200);
     }
+    const [faviconResponse, appleIconResponse, ogImageResponse] = await Promise.all([
+      request.get(iconUrl),
+      request.get(appleIconUrl),
+      request.get(expectedOgImage),
+    ]);
+    expect(faviconResponse.headers()['content-type']).toContain('image/svg+xml');
+    expect(appleIconResponse.headers()['content-type']).toContain('image/png');
+    expect(ogImageResponse.headers()['content-type']).toContain('image/png');
 
     const sitemapResponse = await request.get(new URL('sitemap.xml', EXPECTED_SITE).href);
     expect(sitemapResponse.status()).toBe(200);
@@ -274,6 +287,7 @@ test.describe('live custom-domain smoke', () => {
         expect.objectContaining({ sizes: '192x192', purpose: 'any' }),
         expect.objectContaining({ sizes: '512x512', purpose: 'any' }),
         expect.objectContaining({ sizes: '512x512', purpose: 'maskable' }),
+        expect.objectContaining({ sizes: 'any', purpose: 'any' }),
       ]),
     );
     for (const icon of manifestIcons) {

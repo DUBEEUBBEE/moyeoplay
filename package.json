@@ -9,6 +9,7 @@
   "scripts": {
     "generate:site": "node scripts/generate-site.mjs",
     "assets:build": "node scripts/build-game-assets.mjs",
+    "assets:brand": "node scripts/build-brand-assets.mjs",
     "assets:screenshots": "node scripts/capture-game-screenshots.mjs",
     "dev": "CUSTOM_DOMAIN= PAGES_BASE_PATH=/ SITE_URL=http://127.0.0.1:5173/ node scripts/generate-site.mjs && CUSTOM_DOMAIN= PAGES_BASE_PATH=/ SITE_URL=http://127.0.0.1:5173/ vite",
     "build": "npm run generate:site && tsc -b && vite build",

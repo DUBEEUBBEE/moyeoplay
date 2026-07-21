@@ -6,23 +6,23 @@
 
 ## 현재 상태
 
-| 항목                                    | 분류          | 상태             |
-| --------------------------------------- | ------------- | ---------------- |
-| custom root production artifact         | 코드 준비     | 확인 완료        |
-| account meta와 광고 송출 분리           | 코드 준비     | 확인 완료(로컬)  |
-| `/play/` 광고 slot 금지                 | 코드 준비     | 확인 완료        |
-| CMP adapter의 granted 외 요청 차단      | 코드 준비     | 확인 완료(로컬)  |
-| custom-domain TLS·HTTPS redirect        | 외부 Pages    | 미완료 출시 차단 |
-| 실제 운영자 이름                        | 운영자 수동   | 미설정           |
-| 실제 공개 문의 이메일                   | 운영자 수동   | 미설정           |
-| 실제 AdSense client·publisher·slot ID   | 운영자 수동   | 미설정           |
-| AdSense Sites에 `moyeoplay.studio` 추가 | 운영자 수동   | 미확인           |
-| 사이트 소유권 Verify                    | Google 결과   | 미확인           |
-| Request review                          | 운영자 수동   | 미실행           |
-| 사이트 상태 `Ready`                     | Google 결과   | 미확인           |
-| Google-certified CMP 연결               | 운영자 수동   | 미연결           |
-| root `ads.txt` live                     | 운영자·Google | 미실행           |
-| 실제 광고 배치·CLS·오클릭 검토          | 운영자 수동   | 미실행           |
+| 항목                                    | 분류          | 상태            |
+| --------------------------------------- | ------------- | --------------- |
+| custom root production artifact         | 코드 준비     | 확인 완료       |
+| account meta와 광고 송출 분리           | 코드 준비     | 확인 완료(로컬) |
+| `/play/` 광고 slot 금지                 | 코드 준비     | 확인 완료       |
+| CMP adapter의 granted 외 요청 차단      | 코드 준비     | 확인 완료(로컬) |
+| custom-domain TLS·HTTPS redirect        | 외부 Pages    | 확인 완료       |
+| 실제 운영자 이름                        | 운영자 수동   | 미설정          |
+| 실제 공개 문의 이메일                   | 운영자 수동   | 미설정          |
+| 실제 AdSense client·publisher·slot ID   | 운영자 수동   | 미설정          |
+| AdSense Sites에 `moyeoplay.studio` 추가 | 운영자 수동   | 미확인          |
+| 사이트 소유권 Verify                    | Google 결과   | 미확인          |
+| Request review                          | 운영자 수동   | 미실행          |
+| 사이트 상태 `Ready`                     | Google 결과   | 미확인          |
+| Google-certified CMP 연결               | 운영자 수동   | 미연결          |
+| root `ads.txt` live                     | 운영자·Google | 미실행          |
+| 실제 광고 배치·CLS·오클릭 검토          | 운영자 수동   | 미실행          |
 
 승인 전 운영 기본값은 account meta와 광고 모두 `false`다. 실제 AdSense 값, 운영자 실명, 이메일과 CMP를 추측하거나 placeholder로 `dist`에 배포하지 않는다.
 
@@ -140,11 +140,11 @@ Google은 EEA, UK, Switzerland에서 personalized ads를 제공할 때 Google-ce
 
 ### 1. 호스팅·도메인
 
-- [ ] `https://moyeoplay.studio/`의 DNS, custom TLS 인증서와 HTTPS enforcement를 live에서 확인한다.
-- [ ] HTTP→HTTPS와 `www`→apex가 path를 보존하고 loop가 없는지 확인한다.
+- [x] `https://moyeoplay.studio/`의 DNS, custom TLS 인증서와 HTTPS enforcement를 live에서 확인한다.
+- [x] HTTP→HTTPS와 `www`→apex가 path를 보존하고 loop가 없는지 확인한다.
 - [ ] GitHub Pages의 현재 약관·한도와 광고 운영 목적의 적합성을 운영자가 검토한다.
 
-2026-07-21 현재 DNS는 확인됐지만 TLS·HTTPS redirect는 미완료이므로 이 단계는 아직 통과하지 않았다.
+2026-07-21 재확인에서 GitHub Pages 인증서 승인, `https_enforced=true`, apex·`www`·이전 Pages URL redirect가 통과했다. 이 완료는 AdSense Sites 등록·Verify·Request review·`Ready` 결과나 광고 승인을 뜻하지 않는다.
 
 ### 2. AdSense Sites 연결
 

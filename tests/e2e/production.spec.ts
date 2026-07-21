@@ -52,7 +52,10 @@ test.describe('production Pages build', () => {
       twitterImage: document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')?.content,
       manifest: document.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.href,
       icon: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.href,
+      iconSizes: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.sizes.value,
       appleIcon: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.href,
+      appleIconSizes: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.sizes
+        .value,
       scripts: [...document.querySelectorAll<HTMLScriptElement>('script[src]')].map(
         (element) => element.src,
       ),
@@ -66,6 +69,8 @@ test.describe('production Pages build', () => {
     expect(metadata.ogUrl).toBe(deployedSite);
     expect(metadata.ogImage).toBe(expectedOgImage);
     expect(metadata.twitterImage).toBe(expectedOgImage);
+    expect(metadata.iconSizes).toBe('any');
+    expect(metadata.appleIconSizes).toBe('180x180');
 
     const previewRoot = new URL('./', page.url()).href;
     const manifestUrl = requireAssetUrl(metadata.manifest, 'manifest');
@@ -119,6 +124,7 @@ test.describe('production Pages build', () => {
         expect.objectContaining({ sizes: '192x192', purpose: 'any' }),
         expect.objectContaining({ sizes: '512x512', purpose: 'any' }),
         expect.objectContaining({ sizes: '512x512', purpose: 'maskable' }),
+        expect.objectContaining({ sizes: 'any', purpose: 'any' }),
       ]),
     );
     for (const icon of manifestIcons) {
@@ -179,7 +185,7 @@ test.describe('production Pages build', () => {
     });
     await page.goto('./play/#game/pong');
     const error = page.getByRole('alert');
-    await expect(error).toContainText('네온 탁구를 불러오지 못했습니다');
+    await expect(error).toContainText('탁구를 불러오지 못했습니다');
     await expect(error.getByRole('button', { name: '다시 시도' })).toBeFocused();
 
     await error.getByRole('button', { name: '다시 시도' }).click();

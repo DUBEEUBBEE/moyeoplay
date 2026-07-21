@@ -1,5 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="17" fill="#07111f"/>
-  <path d="M9 18C9 11.4 14.4 6 21 6h22c6.6 0 12 5.4 12 12v28c0 6.6-5.4 12-12 12H21C14.4 58 9 52.6 9 46V18Z" fill="#ffd447" transform="rotate(-5 32 32)"/>
-  <path d="M19 43V21h6.2l6.8 10.4L38.8 21H45v22h-6.3V30.6L32 40.5l-6.7-9.9V43H19Z" fill="#07111f"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="tile" x1="10" y1="6" x2="54" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4b8bf4"/>
+      <stop offset="0.52" stop-color="#1f65d6"/>
+      <stop offset="1" stop-color="#164ea9"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="18" y1="8" x2="43" y2="45" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tile)"/>
+  <path d="M4 22C6 10 12 4 24 3h16c12 1 18 7 20 19-13-7-43-7-56 0Z" fill="url(#shine)"/>
+  <path d="M14 45V19h8.5L32 32.4 41.5 19H50v26h-8.2V31.6L32 45 22.2 31.6V45H14Z" fill="#fffdf8"/>
 </svg>
