@@ -13,7 +13,7 @@
 
 운영 빌드의 단일 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`입니다. 예전 `/#lobby`와 `/#game/<id>` 주소는 같은 상태의 `/play/` 주소로 `location.replace` 이동합니다. `/play/`는 `noindex,follow`이며 sitemap에는 15개 clean 콘텐츠 URL만 포함합니다.
 
-> 출시 상태 — 2026-07-21 점검에서 apex와 `www` DNS는 GitHub Pages를 가리켰지만, 커스텀 도메인용 TLS 인증서와 HTTPS 강제 전환은 아직 확인되지 않았습니다. 마지막 live smoke는 인증서 이름 불일치로 실패했고 HTTP apex도 HTTPS로 전환되지 않았습니다. 이 항목이 해소되기 전에는 HTTPS·redirect 완료 또는 Search Console·AdSense 준비 완료로 기록하지 않습니다.
+> 출시 상태 — 2026-07-22 점검에서 GitHub Pages 커스텀 도메인 TLS 인증서와 Enforce HTTPS가 활성화됐습니다. HTTP apex, HTTPS `www`, 이전 Pages URL은 path를 보존해 `https://moyeoplay.studio/`로 영구 redirect하며 live smoke를 통과했습니다. Search Console property·DNS 소유권·sitemap 제출과 AdSense 사이트 검증·심사 결과는 이 배포 상태와 분리해 확인합니다.
 
 ## 게임과 조작
 

@@ -1,6 +1,6 @@
 # Google Search Console 수동 체크리스트
 
-최종 갱신: 2026-07-21
+최종 갱신: 2026-07-22
 
 Search Console 작업은 저장소 배포와 별개다. 이 문서에서 체크되지 않은 항목은 완료로 간주하지 않으며, verification token과 계정 식별 정보는 공개 저장소에 기록하지 않는다.
 
@@ -48,9 +48,9 @@ npm run test:e2e:prod:run
 - [x] `http://moyeoplay.studio/<path>`가 같은 path의 HTTPS apex로 영구 redirect한다.
 - [x] `https://www.moyeoplay.studio/<path>`가 유효한 인증서로 같은 path의 apex에 redirect한다.
 - [x] 이전 `https://dubeeubbee.github.io/moyeoplay/<path>`가 custom-domain 전략과 일치한다.
-- [ ] unknown path는 실제 404이고 색인 문서는 soft 404가 아니다.
+- [x] unknown path는 실제 404이고 색인 문서는 soft 404가 아니다.
 
-2026-07-21 재확인에서 Let's Encrypt 인증서의 SAN이 apex와 `www`를 포함하고, Pages `https_enforced=true`, HTTP·`www`·이전 Pages URL의 영구 redirect가 path를 보존했다. Search Console property·TXT·sitemap 제출과 Google 색인 결과는 여전히 별도 수동 작업이다.
+2026-07-22 재확인에서 Let's Encrypt 인증서의 SAN이 apex와 `www`를 포함하고, Pages `https_enforced=true`, HTTP·`www`·이전 Pages URL의 영구 redirect가 path를 보존했다. 임의의 unknown path는 HTTP 404를 반환했고 15개 색인 문서는 고유 본문과 정상 200 응답을 제공했다. Search Console property·TXT·sitemap 제출과 Google 색인 결과는 여전히 별도 수동 작업이다.
 
 ## 3. Domain property 생성과 DNS 검증
 

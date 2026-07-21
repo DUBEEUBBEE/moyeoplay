@@ -311,18 +311,6 @@ function rootStructuredData() {
         description: PAGE_CONTENT.root.description,
         inLanguage: 'ko-KR',
       },
-      {
-        '@type': 'WebApplication',
-        '@id': `${config.siteUrl}#application`,
-        name: SITE_META.name,
-        url: absoluteUrl('play/'),
-        applicationCategory: 'GameApplication',
-        operatingSystem: 'Any',
-        browserRequirements: 'JavaScript와 최신 브라우저 필요',
-        isAccessibleForFree: true,
-        inLanguage: 'ko-KR',
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
-      },
     ],
   };
 }
@@ -511,7 +499,7 @@ function renderContactChannels(page) {
   const repository = page.channels.repository;
   const readinessNote = config.publicContactEmail
     ? ''
-    : '<aside class="article-callout"><strong>공개 이메일 미설정</strong><p>현재 문의는 GitHub Issues를 사용합니다. AdSense 신청 전 실제 도메인에서 운영하는 공개 연락처 설정이 권장되며, 가짜 주소는 표시하지 않습니다.</p></aside>';
+    : '<aside class="article-callout"><strong>문의 방법</strong><p>현재 문의는 GitHub Issues에서 접수합니다. 공개 공간이므로 계정 정보, 연락처, 비밀번호 같은 민감한 내용은 남기지 마세요.</p></aside>';
   return `<section><h2>문의 채널</h2>${readinessNote}<div class="feature-grid">${email}<article class="feature-card"><strong>${escapeHtml(fallback.label)}</strong><p>${escapeHtml(fallback.description)}</p><a class="content-button" href="${escapeHtml(fallback.href)}" rel="noopener noreferrer">GitHub Issues 열기</a></article><article class="feature-card"><strong>${escapeHtml(repository.label)}</strong><p>${escapeHtml(repository.description)}</p><a class="content-button" href="${escapeHtml(repository.href)}" rel="noopener noreferrer">저장소 열기</a></article></div></section>`;
 }
 
@@ -572,7 +560,7 @@ function renderContentPage(page, outputFile) {
       ? `<aside class="article-callout"><strong>공개 운영·제작 주체</strong><p>${
           config.siteOperatorName
             ? escapeHtml(config.siteOperatorName)
-            : 'SITE_OPERATOR_NAME이 아직 설정되지 않아 개인 또는 법인 이름을 임의로 표시하지 않습니다. 현재 작성 주체는 모여PLAY 프로젝트로 공개합니다.'
+            : '모여PLAY 프로젝트가 게임과 가이드의 운영·제작 및 문서 갱신을 맡습니다.'
         }</p></aside>`
       : '';
   const sections = page.sections
