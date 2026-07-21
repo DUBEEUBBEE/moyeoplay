@@ -15,7 +15,7 @@ const games = [
   'tap-battle',
   'roulette',
 ] as const;
-const deployedSite = processEnv.SITE_URL ?? 'https://dubeeubbee.github.io/moyeoplay/';
+const deployedSite = processEnv.SITE_URL ?? 'https://moyeoplay.studio/';
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];

@@ -1,6 +1,8 @@
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+let modalSequence = 0;
+
 export class Modal {
   readonly element: HTMLDialogElement;
   readonly body: HTMLElement;
@@ -9,7 +11,8 @@ export class Modal {
   constructor(title: string, className = '') {
     this.element = document.createElement('dialog');
     this.element.className = `modal ${className}`.trim();
-    this.element.setAttribute('aria-labelledby', `modal-${crypto.randomUUID()}`);
+    modalSequence += 1;
+    this.element.setAttribute('aria-labelledby', `modal-${String(modalSequence)}`);
 
     const panel = document.createElement('div');
     panel.className = 'modal__panel';

@@ -2,6 +2,11 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/static-site.css';
 import './styles/clay-theme.css';
+import {
+  createDomAdsConsentAdapter,
+  resolveAdsConsentAction,
+  type AdsConsentState,
+} from './ads-consent';
 
 type AdQueue = Record<string, never>[];
 
@@ -14,19 +19,24 @@ declare global {
 const adSlots = Array.from(document.querySelectorAll<HTMLElement>('[data-adsense-slot]'));
 let adScriptRequested = false;
 
-function requestAdsAfterConsent(): void {
+function requestAdsAfterConsent(
+  consentState: AdsConsentState,
+  getCurrentConsentState: () => AdsConsentState,
+): void {
   if (adScriptRequested || adSlots.length === 0) return;
-  adScriptRequested = true;
   const firstSlot = adSlots[0];
   const clientId = firstSlot?.dataset.adsenseClient;
   const isTestMode = firstSlot?.dataset.adsenseTestMode === 'true';
   if (!clientId) return;
 
-  if (isTestMode) {
+  const action = resolveAdsConsentAction(consentState, isTestMode);
+  if (action === 'none') return;
+  if (action === 'mark-test-ready') {
     for (const slot of adSlots) slot.dataset.adsenseConsentReady = 'true';
     return;
   }
 
+  adScriptRequested = true;
   const script = document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
@@ -34,6 +44,7 @@ function requestAdsAfterConsent(): void {
   script.addEventListener(
     'load',
     () => {
+      if (getCurrentConsentState() !== 'granted') return;
       window.adsbygoogle ??= [];
       for (const slot of adSlots) {
         window.adsbygoogle.push({});
@@ -46,7 +57,19 @@ function requestAdsAfterConsent(): void {
 }
 
 if (adSlots.length > 0) {
-  window.addEventListener('moyeoplay:ads-consent-granted', requestAdsAfterConsent, { once: true });
+  const consentAdapter = createDomAdsConsentAdapter(window);
+  const unsubscribe = consentAdapter.subscribe((state) => {
+    for (const slot of adSlots) slot.dataset.adsenseConsentState = state;
+    requestAdsAfterConsent(state, () => consentAdapter.getState());
+  });
+  window.addEventListener(
+    'pagehide',
+    () => {
+      unsubscribe();
+      consentAdapter.dispose();
+    },
+    { once: true },
+  );
 }
 
 const backToTop = document.querySelector<HTMLButtonElement>('[data-back-to-top]');

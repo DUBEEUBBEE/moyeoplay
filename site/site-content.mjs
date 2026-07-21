@@ -1,16 +1,17 @@
-const UPDATED = '2026-07-19';
+const INITIAL_CONTENT_DATE = '2026-07-19';
+const GUIDE_UPDATED = '2026-07-21';
+const TRUST_UPDATED = '2026-07-21';
 
 export const SITE_META = Object.freeze({
   name: '모여PLAY',
   language: 'ko-KR',
   tagline: '한 기기에서 바로 즐기는 로컬 멀티플레이 파티 아케이드',
   description: '로그인과 설치 없이 친구들이 한 기기에서 함께 즐기는 8가지 한국어 파티 게임입니다.',
-  siteUrl: 'https://dubeeubbee.github.io/moyeoplay/',
   repositoryUrl: 'https://github.com/DUBEEUBBEE/moyeoplay',
   issuesUrl: 'https://github.com/DUBEEUBBEE/moyeoplay/issues',
-  created: UPDATED,
+  created: INITIAL_CONTENT_DATE,
   gameRoutePattern: '#game/{id}',
-  updated: UPDATED,
+  updated: TRUST_UPDATED,
 });
 
 export const GAME_CONTENT = Object.freeze([
@@ -65,7 +66,7 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 세로 화면에서도 플레이할 수 있습니다.',
     ],
     related: ['pong', 'volleyball'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'pong',
@@ -113,7 +114,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'reaction-duel'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'volleyball',
@@ -164,7 +165,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['pong', 'pinball-drop'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'pinball-drop',
@@ -211,7 +212,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'pong'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'ladder',
@@ -260,7 +261,7 @@ export const GAME_CONTENT = Object.freeze([
       '모션 감소 설정에서 선택한 경로를 즉시 공개합니다.',
     ],
     related: ['roulette', 'reaction-duel'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'reaction-duel',
@@ -312,7 +313,7 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['tap-battle', 'pong'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'tap-battle',
@@ -365,7 +366,7 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['reaction-duel', 'pong'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
   {
     id: 'roulette',
@@ -412,7 +413,7 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 작은 화면에서는 스크롤로 항목을 편집할 수 있습니다.',
     ],
     related: ['ladder', 'tap-battle'],
-    updated: UPDATED,
+    updated: GUIDE_UPDATED,
   },
 ]);
 
@@ -487,7 +488,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: INITIAL_CONTENT_DATE,
   },
   about: {
     slug: 'about',
@@ -525,11 +526,42 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
       {
+        id: 'operator-and-authorship',
+        title: '운영과 작성 정보',
+        paragraphs: [
+          '모여PLAY의 게임 규칙, 가이드, 접근성 설명과 공정성 문서는 모여PLAY 프로젝트가 실제 구현과 테스트 결과를 바탕으로 함께 작성합니다. 각 게임 가이드의 작성 정보는 이 섹션으로 연결됩니다.',
+          '공개 운영자 이름은 빌드 환경의 SITE_OPERATOR_NAME에 실제 값이 설정된 경우에만 표시합니다. 값이 없을 때 개인 이름을 추측하거나 만들어 내지 않습니다.',
+        ],
+        links: [
+          { label: '공정성 원칙', href: '/fairness/' },
+          {
+            label: '공개 QA 기준',
+            href: 'https://github.com/DUBEEUBBEE/moyeoplay/blob/main/docs/QA.md',
+            external: true,
+          },
+        ],
+      },
+      {
         id: 'technology',
         title: '실행 방식',
         paragraphs: [
           '모여PLAY는 GitHub Pages에서 제공되는 정적 웹 사이트이며, 게임 코드는 필요할 때 브라우저에 불러와 실행합니다.',
           '플레이어 이름, 사운드·모션 설정, 최근 경기 기록은 현재 브라우저의 로컬 저장소에 저장될 수 있습니다.',
+        ],
+      },
+      {
+        id: 'production-and-assets',
+        title: '제작 과정과 이미지 자산',
+        paragraphs: [
+          '히어로 일러스트와 8개 게임 아이콘은 AI-assisted image generation으로 만든 원본 중 프로젝트에 맞는 결과를 사람이 선택하고, 배경 제거·여백 조정·형식 변환·용량 최적화를 거쳐 배포합니다.',
+          '게임 가이드의 플레이 화면 이미지는 생성 일러스트가 아니라 실제 production 게임을 Playwright로 실행해 캡처한 스크린샷입니다. 두 종류의 이미지를 같은 출처로 표현하지 않습니다.',
+        ],
+        links: [
+          {
+            label: '이미지 자산 제작·검수 기록',
+            href: 'https://github.com/DUBEEUBBEE/moyeoplay/blob/main/docs/ASSET_PROVENANCE.md',
+            external: true,
+          },
         ],
       },
       {
@@ -548,7 +580,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: TRUST_UPDATED,
   },
   'how-to-play': {
     slug: 'how-to-play',
@@ -614,7 +646,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: INITIAL_CONTENT_DATE,
   },
   fairness: {
     slug: 'fairness',
@@ -702,7 +734,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: INITIAL_CONTENT_DATE,
   },
   privacy: {
     slug: 'privacy',
@@ -712,6 +744,7 @@ export const PAGE_CONTENT = Object.freeze({
       '모여PLAY의 브라우저 로컬 저장, GitHub Pages 제공, 문의 이용 시 데이터 처리 범위를 안내합니다.',
     heading: '어떤 정보가 어디에 남는지 안내합니다',
     lead: '모여PLAY의 핵심 게임은 계정이나 별도 서버 전송을 요구하지 않는 정적 웹 사이트입니다. 다만 현재 브라우저의 로컬 저장, GitHub Pages 인프라, 사용자가 선택한 외부 문의 채널은 각각 다른 방식으로 정보를 처리할 수 있습니다.',
+    effective: '2026-07-21',
     sections: [
       {
         id: 'local-storage',
@@ -790,14 +823,15 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
       {
-        id: 'draft-status',
-        title: '운영 검토가 필요한 초안',
+        id: 'scope-and-contact',
+        title: '안내 범위와 문의',
         paragraphs: [
-          '이 안내는 현재 저장소와 예정된 광고 연결점을 설명하는 운영 초안이며 법률 자문을 받았다는 뜻이 아닙니다. 실제 호스팅 지역, 광고 사업자, CMP와 적용 법률을 확정한 뒤 운영자가 검토해야 합니다.',
+          '이 페이지는 현재 구현과 공개 운영 사실을 설명하며, 모든 지역의 법률 준수를 보증하거나 법률 자문을 제공하지 않습니다. 호스팅, 광고 사업자 또는 CMP가 바뀌면 실제 처리 방식과 적용 요구사항을 다시 확인해 갱신합니다.',
         ],
+        link: { label: '개인정보 관련 문의 방법', href: '/contact/' },
       },
     ],
-    updated: UPDATED,
+    updated: TRUST_UPDATED,
   },
   terms: {
     slug: 'terms',
@@ -875,7 +909,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: INITIAL_CONTENT_DATE,
   },
   contact: {
     slug: 'contact',
@@ -938,7 +972,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: UPDATED,
+    updated: TRUST_UPDATED,
   },
 });
 

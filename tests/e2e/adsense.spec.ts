@@ -3,8 +3,42 @@ import { expect, test, type Page } from '@playwright/test';
 const processEnv =
   (Reflect.get(globalThis, 'process') as { env?: Record<string, string | undefined> } | undefined)
     ?.env ?? {};
-const adsenseEnabled = processEnv.ADSENSE_ENABLED === 'true';
+const accountMetaEnabled = processEnv.ADSENSE_ACCOUNT_META_ENABLED === 'true';
+const adsEnabled =
+  processEnv.ADSENSE_ADS_ENABLED === 'true' || processEnv.ADSENSE_ENABLED === 'true';
 const adsenseTestMode = processEnv.ADSENSE_TEST_MODE === 'true';
+const clientId = processEnv.ADSENSE_CLIENT_ID ?? '';
+
+const games = [
+  'omok',
+  'pong',
+  'volleyball',
+  'pinball-drop',
+  'ladder',
+  'reaction-duel',
+  'tap-battle',
+  'roulette',
+] as const;
+const indexablePaths = [
+  './',
+  ...games.map((game) => `./games/${game}/`),
+  './about/',
+  './how-to-play/',
+  './fairness/',
+  './privacy/',
+  './terms/',
+  './contact/',
+] as const;
+const adEligiblePaths = ['./', ...games.map((game) => `./games/${game}/`)] as const;
+const adExcludedPaths = [
+  './about/',
+  './how-to-play/',
+  './fairness/',
+  './privacy/',
+  './terms/',
+  './contact/',
+  './play/#lobby',
+] as const;
 
 function collectGoogleAdRequests(page: Page): string[] {
   const requests: string[] = [];
@@ -16,62 +50,106 @@ function collectGoogleAdRequests(page: Page): string[] {
   return requests;
 }
 
-test('AdSense 기본 off 빌드는 ad DOM, 외부 tag, 광고 요청을 만들지 않는다', async ({ page }) => {
-  test.skip(adsenseEnabled, 'enabled profile has separate assertions');
+test('account meta는 색인 페이지에만 나타나고 광고 송출과 독립적이다', async ({ page }) => {
   const adRequests = collectGoogleAdRequests(page);
-  for (const target of ['./', './games/omok/', './privacy/', './play/#lobby']) {
+  for (const target of indexablePaths) {
     await page.goto(target);
+    const metas = page.locator('meta[name="google-adsense-account"]');
+    await expect(metas, target).toHaveCount(accountMetaEnabled ? 1 : 0);
+    if (accountMetaEnabled) await expect(metas, target).toHaveAttribute('content', clientId);
+  }
+
+  await page.goto('./play/#lobby');
+  await expect(page.locator('meta[name="google-adsense-account"]')).toHaveCount(0);
+  if (!adsEnabled) {
     await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
     await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
+    expect(adRequests).toEqual([]);
+  }
+});
+
+test('광고 off와 meta-only profile은 slot, 외부 tag, 광고 요청을 만들지 않는다', async ({
+  page,
+}) => {
+  test.skip(adsEnabled, 'enabled profile has separate assertions');
+  const adRequests = collectGoogleAdRequests(page);
+  for (const target of [...adEligiblePaths, ...adExcludedPaths]) {
+    await page.goto(target);
+    await expect(page.locator('[data-adsense-slot], .adsbygoogle'), target).toHaveCount(0);
+    await expect(page.locator('script[src*="pagead2.googlesyndication.com"]'), target).toHaveCount(
+      0,
+    );
   }
   await page.goto('./privacy/');
-  await expect(page.locator('main')).toContainText(
-    '현재 공개 서비스에서 광고 게재는 활성화되어 있지 않습니다',
+  await expect(page.locator('[data-privacy-ad-profile]')).toHaveAttribute(
+    'data-privacy-ad-profile',
+    accountMetaEnabled ? 'account-meta-only' : 'off',
   );
   await expect(page.locator('main')).toContainText('moyeoplay:settings');
   await expect(page.locator('main')).toContainText('moyeoplay:session');
   expect(adRequests).toEqual([]);
 });
 
-test('mock-on root profile은 콘텐츠에만 slot을 두고 consent 전후 외부 요청을 막는다', async ({
-  page,
-}) => {
-  test.skip(!adsenseEnabled, 'runs only for the isolated enabled profile');
+test('ads-on test profile은 홈과 8개 가이드에만 수동 slot을 둔다', async ({ page }) => {
+  test.skip(!adsEnabled, 'runs only for the isolated enabled profile');
   const adRequests = collectGoogleAdRequests(page);
 
-  await page.goto('./');
-  const rootSlot = page.locator('[data-adsense-slot]');
-  await expect(rootSlot).toHaveCount(1);
-  await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
+  for (const target of adEligiblePaths) {
+    await page.goto(target);
+    const slot = page.locator('[data-adsense-slot]');
+    await expect(slot, target).toHaveCount(1);
+    await expect(slot, target).toContainText('광고 · Advertisement');
+    await expect(page.locator('script[src*="pagead2.googlesyndication.com"]'), target).toHaveCount(
+      0,
+    );
+  }
+  for (const target of adExcludedPaths) {
+    await page.goto(target);
+    await expect(page.locator('[data-adsense-slot], .adsbygoogle'), target).toHaveCount(0);
+  }
   expect(adRequests).toEqual([]);
-  if (adsenseTestMode) {
-    await page.evaluate(() => window.dispatchEvent(new Event('moyeoplay:ads-consent-granted')));
-    await expect(rootSlot).toHaveAttribute('data-adsense-consent-ready', 'true');
+});
+
+test('거부, 철회, 미사용, 오류 상태에서는 광고 요청이 0이다', async ({ page }) => {
+  test.skip(!adsEnabled, 'runs only for the isolated enabled profile');
+  const adRequests = collectGoogleAdRequests(page);
+  await page.goto('./');
+  const slot = page.locator('[data-adsense-slot]');
+  await expect(slot).toHaveAttribute('data-adsense-consent-state', 'unknown');
+
+  for (const state of ['denied', 'withdrawn', 'unavailable', 'error'] as const) {
+    await page.evaluate((nextState) => {
+      window.dispatchEvent(
+        new CustomEvent('moyeoplay:ads-consent-state-changed', {
+          detail: { state: nextState },
+        }),
+      );
+    }, state);
+    await expect(slot).toHaveAttribute('data-adsense-consent-state', state);
     await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
     expect(adRequests).toEqual([]);
   }
+});
 
-  await page.goto('./games/omok/');
-  const guideSlot = page.locator('[data-adsense-slot]');
-  await expect(guideSlot).toHaveCount(1);
-  await expect(page.locator('canvas, .game-host, [data-action="reset"]')).toHaveCount(0);
-  const slotBox = await guideSlot.boundingBox();
-  expect(slotBox?.height ?? 0).toBeGreaterThanOrEqual(120);
-  expect(slotBox?.height ?? 0).toBeLessThan(260);
+test('test mode의 consent granted는 상태만 표시하고 외부 요청을 만들지 않는다', async ({
+  page,
+}) => {
+  test.skip(!adsEnabled || !adsenseTestMode, 'runs only for the isolated enabled test profile');
+  const adRequests = collectGoogleAdRequests(page);
+  await page.goto('./');
+  const slot = page.locator('[data-adsense-slot]');
+  await page.evaluate(() => window.dispatchEvent(new Event('moyeoplay:ads-consent-granted')));
+  await expect(slot).toHaveAttribute('data-adsense-consent-state', 'granted');
+  await expect(slot).toHaveAttribute('data-adsense-consent-ready', 'true');
+  await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
+  expect(adRequests).toEqual([]);
+
   await page.evaluate(() => {
-    location.hash = 'ad-safety-regression';
+    window.dispatchEvent(
+      new CustomEvent('moyeoplay:ads-consent-state-changed', { detail: 'withdrawn' }),
+    );
   });
-  await expect(guideSlot).toHaveCount(1);
-  await page.goto('./privacy/');
-  await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
-  await expect(page.locator('main')).toContainText(
-    '이 빌드에는 Google AdSense용 콘텐츠 광고 영역이 활성화되어 있습니다',
-  );
-  await expect(
-    page.getByRole('link', { name: 'Google 파트너 사이트 데이터 사용 안내' }),
-  ).toHaveAttribute('href', 'https://policies.google.com/technologies/partner-sites');
-  await page.goto('./play/#game/omok');
-  await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
+  await expect(slot).toHaveAttribute('data-adsense-consent-state', 'withdrawn');
   expect(adRequests).toEqual([]);
 });
 
@@ -83,10 +161,13 @@ test('root 파일은 host profile 제약을 따른다', async ({ request }) => {
     request.get('./sitemap.xml'),
   ]);
   expect(sitemap.status()).toBe(200);
+  const productionDefaults = (processEnv.E2E_MODE ?? 'dev') === 'prod';
   const publisherId = processEnv.ADSENSE_PUBLISHER_ID;
-  const expectedDomain = processEnv.CUSTOM_DOMAIN;
-  const expectedSiteUrl = processEnv.SITE_URL;
-  const controlsHostRoot = processEnv.PAGES_BASE_PATH === '/';
+  const expectedDomain = processEnv.CUSTOM_DOMAIN ?? (productionDefaults ? 'moyeoplay.studio' : '');
+  const expectedSiteUrl =
+    processEnv.SITE_URL ??
+    (productionDefaults ? 'https://moyeoplay.studio/' : 'http://127.0.0.1:5173/');
+  const controlsHostRoot = (processEnv.PAGES_BASE_PATH ?? processEnv.E2E_BASE_PATH ?? '/') === '/';
   if (controlsHostRoot && publisherId) {
     expect(adsTxt.status()).toBe(200);
     expect(adsTxt.headers()['content-type']).toContain('text/plain');
@@ -101,6 +182,8 @@ test('root 파일은 host profile 제약을 따른다', async ({ request }) => {
   if (controlsHostRoot) {
     expect(expectedSiteUrl).toBeTruthy();
     expect(robots.status()).toBe(200);
-    expect(await robots.text()).toContain(`Sitemap: ${expectedSiteUrl ?? ''}sitemap.xml`);
+    const robotsSource = await robots.text();
+    expect(robotsSource).toContain(`Sitemap: ${expectedSiteUrl}sitemap.xml`);
+    expect(robotsSource).not.toMatch(/Disallow:\s*\/play\//iu);
   } else expect(robots.status()).toBe(404);
 });

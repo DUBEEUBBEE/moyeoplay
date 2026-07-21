@@ -1,5 +1,9 @@
-/* Bright clay theme for the crawlable site and the interactive lobby.
-   Gameplay keeps the original dark arcade palette for canvas contrast. */
+/* Bright clay theme for the crawlable site and the interactive app shell. */
+html:has(body.play-app) {
+  color-scheme: light;
+  background: #f7f3eb;
+}
+
 .content-body,
 body[data-view='lobby'] {
   color-scheme: light;
@@ -1020,7 +1024,7 @@ body[data-view='lobby'] .toast {
     font-size: 12px;
   }
 
-  .content-body .content-nav a:nth-child(2) {
+  .content-body .content-nav a.content-nav__mobile-secondary {
     display: none;
   }
 
@@ -1057,6 +1061,10 @@ body[data-view='lobby'] .toast {
 
   body[data-view='lobby'] .app-nav__item {
     padding: 0 8px;
+  }
+
+  body[data-view='lobby'] .app-nav__item--secondary {
+    display: none;
   }
 
   body[data-view='lobby'] .app-nav__item svg {
