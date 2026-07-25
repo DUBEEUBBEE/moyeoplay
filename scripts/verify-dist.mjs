@@ -9,6 +9,7 @@ const outputDirectory = config.outputDirectory;
 const textAssetPattern = /\.(?:css|html|js|json|txt|webmanifest|xml)$/;
 const requiredHtml = [
   'index.html',
+  '404.html',
   'play/index.html',
   ...GAME_CONTENT.map((game) => `games/${game.slug}/index.html`),
   ...Object.entries(PAGE_CONTENT)
@@ -96,6 +97,7 @@ if (!config.adsense.testMode) {
     'ca-pub-0000000000000000',
     'ca-pub-1234567890123456',
     'pub-1234567890123456',
+    'google-site-verification',
     '/Users/',
     '.generated-pages',
     'file://',
@@ -123,6 +125,32 @@ if (!playSource.includes('<body class="play-app" data-view="lobby">')) {
 }
 if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle')) {
   fail(errors, '/play/ must never contain an AdSense slot.');
+}
+const notFoundSource = textSources.get('404.html') ?? '';
+if (
+  !notFoundSource.includes('noindex,follow') ||
+  !notFoundSource.includes('<h1>페이지를 찾을 수 없습니다</h1>')
+) {
+  fail(errors, '404.html must be a branded noindex,follow document with one clear heading.');
+}
+for (const requiredLink of [
+  config.basePath,
+  `${config.basePath}#games`,
+  `${config.basePath}contact/`,
+]) {
+  if (!notFoundSource.includes(`href="${requiredLink}"`)) {
+    fail(errors, `404.html is missing its recovery link: ${requiredLink}`);
+  }
+}
+if (
+  /rel="canonical"|type="application\/ld\+json"|name="google-adsense-account"|data-adsense-slot|class="adsbygoogle"|googlesyndication|googleadservices|doubleclick\.net/iu.test(
+    notFoundSource,
+  )
+) {
+  fail(errors, '404.html must not contain canonical, structured data, or AdSense metadata/code.');
+}
+if ((notFoundSource.match(/<h1(?:\s|>)/gu)?.length ?? 0) !== 1) {
+  fail(errors, '404.html must contain exactly one h1.');
 }
 
 const aboutSource = textSources.get('about/index.html') ?? '';
@@ -278,7 +306,7 @@ if (config.basePath === '/') {
 }
 
 const indexableHtml = requiredHtml
-  .filter((entry) => entry !== 'play/index.html')
+  .filter((entry) => entry !== 'play/index.html' && entry !== '404.html')
   .map((entry) => textSources.get(entry) ?? '')
   .join('\n');
 const playAccountMetaCount = playSource.match(/name="google-adsense-account"/gu)?.length ?? 0;
@@ -466,6 +494,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `Verified ${String(files.length)} production files, 16 routes, 15 sitemap URLs, dual-profile root rules, one responsive clay hero, and eight optimized game asset sets.`,
+    `Verified ${String(files.length)} production files, 17 HTML entries (15 indexable), 15 sitemap URLs, a noindex 404, dual-profile root rules, one responsive clay hero, and eight optimized game asset sets.`,
   );
 }

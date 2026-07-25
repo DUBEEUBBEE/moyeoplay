@@ -286,6 +286,7 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
   request,
 }) => {
   const internalUrls = new Set<string>();
+  const fragmentUrls = new Set<string>();
   let previewOrigin = '';
   for (const cleanPath of contentPaths) {
     await page.goto(relativeUrl(cleanPath));
@@ -296,12 +297,23 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
     for (const href of links) {
       const url = new URL(href);
       if (url.origin !== previewOrigin) continue;
+      if (url.hash && !url.pathname.includes('/play/')) fragmentUrls.add(url.href);
       url.hash = '';
       internalUrls.add(url.href);
     }
   }
   for (const href of internalUrls) {
     expect((await request.get(href)).status(), href).toBe(200);
+  }
+  for (const href of fragmentUrls) {
+    const url = new URL(href);
+    const fragmentId = decodeURIComponent(url.hash.slice(1));
+    url.hash = '';
+    await page.goto(url.href);
+    expect(
+      await page.evaluate((id) => Boolean(document.getElementById(id)), fragmentId),
+      href,
+    ).toBe(true);
   }
 });
 

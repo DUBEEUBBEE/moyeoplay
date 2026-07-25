@@ -33,6 +33,7 @@
     "test:e2e:root:ads": "npm run build:root-ads-test && PAGES_BASE_PATH=/ SITE_URL=https://moyeoplay.studio/ CUSTOM_DOMAIN=moyeoplay.studio BUILD_OUT_DIR=dist-ads-test ADSENSE_ACCOUNT_META_ENABLED=true ADSENSE_ADS_ENABLED=true ADSENSE_TEST_MODE=true ADSENSE_CLIENT_ID=ca-pub-1234567890123456 ADSENSE_PUBLISHER_ID=pub-1234567890123456 ADSENSE_CONTENT_SLOT_ID=1234567890 E2E_MODE=prod E2E_BASE_PATH=/ playwright test tests/e2e/seo.spec.ts tests/e2e/adsense.spec.ts",
     "test:e2e:root": "npm run test:e2e:root:meta && npm run test:e2e:root:ads",
     "test:e2e:live": "E2E_MODE=live playwright test tests/e2e/live.spec.ts --project=chromium-mobile",
+    "audit:live": "node scripts/audit-live.mjs",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "devDependencies": {

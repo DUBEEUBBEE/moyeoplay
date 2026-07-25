@@ -142,6 +142,20 @@ function renderHead({
     }`;
 }
 
+function renderErrorHead() {
+  return `
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f3eb" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex,follow" />
+    <meta name="description" content="요청한 모여PLAY 페이지를 찾을 수 없습니다. 홈, 게임 목록 또는 문의 페이지로 이동해 주세요." />
+    <link rel="icon" href="${escapeHtml(sitePath('favicon.svg'))}" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="${escapeHtml(sitePath('apple-touch-icon.png'))}" sizes="180x180" />
+    <link rel="manifest" href="${escapeHtml(sitePath('manifest.webmanifest'))}" />
+    <title>페이지를 찾을 수 없습니다 | 모여PLAY</title>`;
+}
+
 function renderNavIcon(icon) {
   if (icon === 'home') {
     return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10M9.5 19.5v-6h5v6"/></svg>';
@@ -612,6 +626,25 @@ function renderPlay(outputFile) {
 `;
 }
 
+function renderNotFound(outputFile) {
+  const body = `<header class="article-hero">
+      <p class="content-kicker">404 · 모여PLAY</p>
+      <h1>페이지를 찾을 수 없습니다</h1>
+      <p class="content-lead">주소가 바뀌었거나 존재하지 않는 페이지입니다. 아래 링크에서 다시 시작해 주세요.</p>
+      <div class="content-actions">
+        <a class="content-button content-button--primary" href="${sitePath()}">홈으로 이동</a>
+        <a class="content-button" href="${sitePath('/#games')}">게임 목록 보기</a>
+        <a class="content-button" href="${sitePath('contact/')}">문의하기</a>
+      </div>
+    </header>`;
+  return renderLayout({
+    outputFile,
+    activeNav: '',
+    head: renderErrorHead(),
+    body,
+  });
+}
+
 async function writeGenerated(relativePath, source) {
   const target = path.join(generatedRoot, relativePath);
   await mkdir(path.dirname(target), { recursive: true });
@@ -644,8 +677,10 @@ async function generate() {
 
   const rootFile = path.join(generatedRoot, 'index.html');
   const playFile = path.join(generatedRoot, 'play/index.html');
+  const notFoundFile = path.join(generatedRoot, '404.html');
   await writeGenerated('index.html', renderRoot(rootFile));
   await writeGenerated('play/index.html', renderPlay(playFile));
+  await writeGenerated('404.html', renderNotFound(notFoundFile));
 
   for (const game of GAME_CONTENT) {
     const relativePath = `games/${game.slug}/index.html`;
@@ -675,7 +710,7 @@ async function generate() {
   if (config.customDomain) await writeGenerated('CNAME', `${config.customDomain}\n`);
 
   console.log(
-    `Generated 16 HTML entries for ${config.siteUrl} (${config.basePath}) with AdSense account metadata ${config.adsense.accountMetaEnabled ? 'enabled' : 'disabled'} and ads ${config.adsense.adsEnabled ? 'enabled' : 'disabled'}.`,
+    `Generated 17 HTML entries (15 indexable, /play/, and 404) for ${config.siteUrl} (${config.basePath}) with AdSense account metadata ${config.adsense.accountMetaEnabled ? 'enabled' : 'disabled'} and ads ${config.adsense.adsEnabled ? 'enabled' : 'disabled'}.`,
   );
 }
 

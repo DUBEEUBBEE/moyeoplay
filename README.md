@@ -59,6 +59,7 @@ npm run test:e2e:root   # custom-domain root + AdSense mock 격리 profile
 npm run test:e2e:dev    # 빠른 개발 서버 E2E
 E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live
                         # 지정한 배포 URL의 Pages smoke
+npm run audit:live      # 공개 상태만 기록하는 비식별 live 감사
 npm run check           # typecheck + lint + unit + production build
 ```
 
@@ -85,7 +86,7 @@ public/           최적화 아이콘·히어로, 실제 게임 스크린샷, OG
 docs/             아키텍처, QA, SEO·호스팅·AdSense·자산 provenance
 ```
 
-`scripts/generate-site.mjs`가 build 전에 `.generated-pages/`에 16개 HTML entry와 sitemap을 만듭니다. 각 게임은 `/play/`에서 진입할 때 동적으로 import되며 `mount → enter → start/pause/resume/reset → destroy` 생명주기를 따릅니다. 자세한 내용은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
+`scripts/generate-site.mjs`가 build 전에 `.generated-pages/`에 색인 문서 15개, `/play/`, branded `404.html`을 포함한 17개 HTML entry와 sitemap을 만듭니다. 각 게임은 `/play/`에서 진입할 때 동적으로 import되며 `mount → enter → start/pause/resume/reset → destroy` 생명주기를 따릅니다. 자세한 내용은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
 
 게임 아이콘·히어로와 OG는 저장소 master에서 다시 만들 수 있습니다. 실제 게임 화면은 production preview를 연 Playwright로 캡처합니다.
 
@@ -139,4 +140,4 @@ workflow는 `SITE_URL`/`CUSTOM_DOMAIN`을 운영 URL의 단일 공급원으로 �
 - 그래픽은 Canvas·CSS·자체 SVG와 프로젝트용 ImageGen 아이콘으로 구성됩니다. 생성·chroma 제거·최적화 기록은 [자산 provenance](docs/ASSET_PROVENANCE.md)에 있습니다.
 - 저장 데이터가 손상되거나 `localStorage`가 차단되어도 메모리 기본값으로 실행합니다.
 
-환경변수와 활성화 전 게이트는 [AdSense 준비 체크리스트](docs/ADSENSE_READINESS.md)에 정리했습니다. 코드 준비와 별개로 실제 운영자 정보·문의 이메일·AdSense ID·Search Console 등록·CMP·사이트 심사 결과는 운영자가 외부 계정에서 확인하고 기록해야 합니다.
+환경변수와 활성화 전 게이트는 [AdSense 준비 체크리스트](docs/ADSENSE_READINESS.md), 심사 중 동결 규칙은 [신청 후 안정화 운영](docs/POST_SUBMISSION_STABILITY.md)에 정리했습니다. 코드 준비와 별개로 실제 운영자 정보·문의 이메일·AdSense ID·Search Console·CMP·사이트 심사 결과는 운영자가 외부 계정에서 확인하고 기록해야 합니다.

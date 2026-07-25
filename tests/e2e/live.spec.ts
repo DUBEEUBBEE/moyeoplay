@@ -5,10 +5,13 @@ const processEnv =
     ?.env ?? {};
 const e2eMode = processEnv.E2E_MODE ?? 'dev';
 const checkRedirects = processEnv.E2E_CHECK_REDIRECTS === 'true';
+const requireBranded404 = processEnv.E2E_REQUIRE_BRANDED_404 !== 'false';
 const expectedAdsenseClientId = processEnv.ADSENSE_CLIENT_ID?.trim() ?? '';
 const expectedAdsensePublisherId = processEnv.ADSENSE_PUBLISHER_ID?.trim() ?? '';
-const accountMetaEnabled = processEnv.ADSENSE_ACCOUNT_META_ENABLED === 'true';
-const adsEnabled = processEnv.ADSENSE_ADS_ENABLED === 'true';
+const accountMetaProfile = processEnv.ADSENSE_ACCOUNT_META_ENABLED ?? 'true';
+const adsProfile = processEnv.ADSENSE_ADS_ENABLED ?? 'false';
+const accountMetaEnabled = accountMetaProfile === 'true';
+const adsEnabled = adsProfile === 'true';
 const EXPECTED_SITE = 'https://moyeoplay.studio/';
 const EXPECTED_HOST = 'moyeoplay.studio';
 const SOFT_404_PATTERN = /(?:\b404\b|not found|페이지를? 찾을 수|찾을 수 없습니다|페이지 없음)/iu;
@@ -59,27 +62,37 @@ function isGoogleAdEndpoint(value: string): boolean {
   );
 }
 
-function monitorPage(page: Page): { adRequests: string[]; errors: string[] } {
-  const adRequests: string[] = [];
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-  });
-  page.on('request', (browserRequest) => {
-    if (isGoogleAdEndpoint(browserRequest.url())) adRequests.push(browserRequest.url());
-  });
-  return { adRequests, errors };
+function redactSensitive(value: string): string {
+  return value
+    .replace(/\b(ca-pub-|pub-)(\d{4})\d+(\d{4})\b/giu, '$1$2…$3')
+    .replace(
+      /([?&](?:client|slot|publisher|google_ad_client|google_ad_slot)=)[^&\s]+/giu,
+      '$1<redacted>',
+    )
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, '<redacted-email>')
+    .replace(/\b\d{10,20}\b/gu, '<redacted-number>');
 }
 
-function expectNoRuntimeFailures(signals: { adRequests: string[]; errors: string[] }): void {
+function monitorPage(page: Page): { adRequestCount: number; errors: string[] } {
+  const signals = { adRequestCount: 0, errors: [] as string[] };
+  page.on('pageerror', (error) => signals.errors.push(redactSensitive(error.message)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') signals.errors.push(redactSensitive(message.text()));
+  });
+  page.on('request', (browserRequest) => {
+    if (isGoogleAdEndpoint(browserRequest.url())) signals.adRequestCount += 1;
+  });
+  return signals;
+}
+
+function expectNoRuntimeFailures(signals: { adRequestCount: number; errors: string[] }): void {
   expect(signals.errors, 'live pages must not emit console errors or uncaught exceptions').toEqual(
     [],
   );
   expect(
-    signals.adRequests,
+    signals.adRequestCount,
     'the live profile must not request Google ad endpoints before granted consent',
-  ).toEqual([]);
+  ).toBe(0);
 }
 
 async function expectNoHorizontalOverflow(page: Page, label: string): Promise<void> {
@@ -122,6 +135,30 @@ async function expectPermanentRedirect(
 test.describe('live custom-domain smoke', () => {
   test.skip(e2eMode !== 'live', 'runs only against the deployed custom-domain URL');
 
+  test.beforeAll(() => {
+    expect(
+      accountMetaProfile,
+      'the post-submission review profile must keep account metadata enabled',
+    ).toBe('true');
+    expect(adsProfile, 'the post-submission review profile must keep ad delivery disabled').toBe(
+      'false',
+    );
+    expect(accountMetaEnabled).toBe(true);
+    expect(adsEnabled).toBe(false);
+    if (expectedAdsenseClientId) {
+      expect(
+        /^ca-pub-\d{16}$/u.test(expectedAdsenseClientId),
+        'the configured client ID must have a valid format',
+      ).toBe(true);
+    }
+    if (expectedAdsensePublisherId) {
+      expect(
+        /^pub-\d{16}$/u.test(expectedAdsensePublisherId),
+        'the configured publisher ID must have a valid format',
+      ).toBe(true);
+    }
+  });
+
   test('15 indexable routes are real custom-domain documents rather than soft 404s', async ({
     baseURL,
     page,
@@ -129,32 +166,83 @@ test.describe('live custom-domain smoke', () => {
     expectCustomBaseUrl(baseURL);
     const signals = monitorPage(page);
     const titles = new Set<string>();
+    const descriptions = new Set<string>();
 
     for (const route of indexableRoutes) {
       const expectedUrl = new URL(route.path, EXPECTED_SITE).href;
       const response = await page.goto(expectedUrl, { waitUntil: 'load' });
       expect(response?.status(), route.label).toBe(200);
 
-      const metadata = await page.evaluate(() => ({
-        adsenseAccount:
-          document.querySelector<HTMLMetaElement>('meta[name="google-adsense-account"]')?.content ??
-          '',
-        adsbygoogleElements: document.querySelectorAll('.adsbygoogle').length,
-        adsenseSlots: document.querySelectorAll('[data-adsense-slot]').length,
-        googleAdScripts: document.querySelectorAll(
-          'script[src*="googlesyndication"], script[src*="googleadservices"], script[src*="doubleclick.net"], script[src*="/pagead/"]',
-        ).length,
-        canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
-        h1Count: document.querySelectorAll('h1').length,
-        h1Text: document.querySelector('h1')?.textContent.trim() ?? '',
-        mainText: document.querySelector('main')?.textContent.trim() ?? '',
-        ogUrl: document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.content,
-        title: document.title.trim(),
-      }));
+      const metadata = await page.evaluate(
+        ({ expectedClientId, expectedOrigin }) => {
+          const accountMetas = [
+            ...document.querySelectorAll<HTMLMetaElement>('meta[name="google-adsense-account"]'),
+          ];
+          const accountMetaValue = accountMetas[0]?.content ?? '';
+          const structuredData = [
+            ...document.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]'),
+          ];
+          const absoluteUrls: string[] = [];
+          const collectUrls = (value: unknown): void => {
+            if (typeof value === 'string' && /^https?:\/\//u.test(value)) {
+              absoluteUrls.push(value);
+            } else if (Array.isArray(value)) {
+              value.forEach(collectUrls);
+            } else if (value && typeof value === 'object') {
+              Object.values(value).forEach(collectUrls);
+            }
+          };
+          let structuredDataValid = structuredData.length > 0;
+          for (const script of structuredData) {
+            try {
+              collectUrls(JSON.parse(script.textContent));
+            } catch {
+              structuredDataValid = false;
+            }
+          }
+          return {
+            accountMetaCount: accountMetas.length,
+            accountMetaFormatValid:
+              /^ca-pub-\d{16}$/u.test(accountMetaValue) &&
+              !/(?:0000000000000000|1234567890123456)$/u.test(accountMetaValue),
+            accountMetaMatchesExpected: expectedClientId
+              ? accountMetaValue === expectedClientId
+              : null,
+            adsbygoogleElements: document.querySelectorAll('.adsbygoogle').length,
+            adsenseSlots: document.querySelectorAll('[data-adsense-slot]').length,
+            description:
+              document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content.trim() ??
+              '',
+            googleAdScripts: document.querySelectorAll(
+              'script[src*="googlesyndication"], script[src*="googleadservices"], script[src*="doubleclick.net"], script[src*="/pagead/"]',
+            ).length,
+            canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
+            h1Count: document.querySelectorAll('h1').length,
+            h1Text: document.querySelector('h1')?.textContent.trim() ?? '',
+            mainText: document.querySelector('main')?.textContent.trim() ?? '',
+            ogUrl: document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.content,
+            structuredDataValid,
+            structuredDataUrlsUseCanonicalHost: absoluteUrls.every((url) => {
+              try {
+                const origin = new URL(url).origin;
+                return origin === expectedOrigin || origin === 'https://schema.org';
+              } catch {
+                return false;
+              }
+            }),
+            title: document.title.trim(),
+          };
+        },
+        {
+          expectedClientId: expectedAdsenseClientId,
+          expectedOrigin: new URL(EXPECTED_SITE).origin,
+        },
+      );
 
       expect(metadata.h1Count, route.label).toBe(1);
       expect(metadata.h1Text.length, route.label).toBeGreaterThan(1);
       expect(metadata.title.length, route.label).toBeGreaterThan(10);
+      expect(metadata.description.length, route.label).toBeGreaterThan(30);
       expect(metadata.mainText.length, route.label).toBeGreaterThan(250);
       expect(
         SOFT_404_PATTERN.test(`${metadata.title}\n${metadata.h1Text}\n${metadata.mainText}`),
@@ -162,21 +250,25 @@ test.describe('live custom-domain smoke', () => {
       ).toBe(false);
       expect(metadata.canonical, route.label).toBe(expectedUrl);
       expect(metadata.ogUrl, route.label).toBe(expectedUrl);
-      if (accountMetaEnabled) {
-        expect(expectedAdsenseClientId).toMatch(/^ca-pub-\d{16}$/u);
-        expect(metadata.adsenseAccount, route.label).toBe(expectedAdsenseClientId);
-      } else {
-        expect(metadata.adsenseAccount, route.label).toBe('');
+      expect(metadata.structuredDataValid, route.label).toBe(true);
+      expect(metadata.structuredDataUrlsUseCanonicalHost, route.label).toBe(true);
+      expect(metadata.accountMetaCount, route.label).toBe(1);
+      expect(metadata.accountMetaFormatValid, route.label).toBe(true);
+      if (expectedAdsenseClientId) {
+        expect(
+          metadata.accountMetaMatchesExpected,
+          `${route.label} account metadata must match the configured ID`,
+        ).toBe(true);
       }
-      const isAdEligible = route.path === '' || route.path.startsWith('games/');
-      const expectedAdElementCount = adsEnabled && isAdEligible ? 1 : 0;
-      expect(metadata.adsenseSlots, route.label).toBe(expectedAdElementCount);
-      expect(metadata.adsbygoogleElements, route.label).toBe(expectedAdElementCount);
+      expect(metadata.adsenseSlots, route.label).toBe(0);
+      expect(metadata.adsbygoogleElements, route.label).toBe(0);
       expect(metadata.googleAdScripts, route.label).toBe(0);
       titles.add(metadata.title);
+      descriptions.add(metadata.description);
     }
 
     expect(titles.size).toBe(indexableRoutes.length);
+    expect(descriptions.size).toBe(indexableRoutes.length);
     expectNoRuntimeFailures(signals);
   });
 
@@ -191,38 +283,46 @@ test.describe('live custom-domain smoke', () => {
     expect(response?.status()).toBe(200);
     await expect(page.locator('article.static-game-card')).toHaveCount(8);
 
-    const metadata = await page.evaluate(() => ({
-      appleIcon: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.href,
-      appleIconSizes: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.sizes
-        .value,
-      adsenseAccount:
-        document.querySelector<HTMLMetaElement>('meta[name="google-adsense-account"]')?.content ??
-        '',
-      icon: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.href,
-      iconSizes: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.sizes.value,
-      manifest: document.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.href,
-      ogImage: document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content,
-      scripts: [...document.querySelectorAll<HTMLScriptElement>('script[src]')].map(
-        (element) => element.src,
-      ),
-      styles: [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map(
-        (element) => element.href,
-      ),
-      twitterImage: document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')?.content,
-    }));
+    const metadata = await page.evaluate((expectedClientId) => {
+      const accountMetas = [
+        ...document.querySelectorAll<HTMLMetaElement>('meta[name="google-adsense-account"]'),
+      ];
+      const accountMetaValue = accountMetas[0]?.content ?? '';
+      return {
+        appleIcon: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.href,
+        appleIconSizes: document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')
+          ?.sizes.value,
+        accountMetaCount: accountMetas.length,
+        accountMetaFormatValid:
+          /^ca-pub-\d{16}$/u.test(accountMetaValue) &&
+          !/(?:0000000000000000|1234567890123456)$/u.test(accountMetaValue),
+        accountMetaMatchesExpected: expectedClientId ? accountMetaValue === expectedClientId : null,
+        icon: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.href,
+        iconSizes: document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.sizes.value,
+        manifest: document.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.href,
+        ogImage: document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content,
+        scripts: [...document.querySelectorAll<HTMLScriptElement>('script[src]')].map(
+          (element) => element.src,
+        ),
+        styles: [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map(
+          (element) => element.href,
+        ),
+        twitterImage: document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')
+          ?.content,
+      };
+    }, expectedAdsenseClientId);
     const expectedOgImage = new URL('og-cover.png', EXPECTED_SITE).href;
     expect(metadata.ogImage).toBe(expectedOgImage);
     expect(metadata.twitterImage).toBe(expectedOgImage);
     expect(metadata.iconSizes).toBe('any');
     expect(metadata.appleIconSizes).toBe('180x180');
-    if (accountMetaEnabled) {
+    expect(metadata.accountMetaCount).toBe(1);
+    expect(metadata.accountMetaFormatValid).toBe(true);
+    if (expectedAdsenseClientId) {
       expect(
-        expectedAdsenseClientId,
-        'live account-meta profile requires the expected client ID',
-      ).toMatch(/^ca-pub-\d{16}$/u);
-      expect(metadata.adsenseAccount).toBe(expectedAdsenseClientId);
-    } else {
-      expect(metadata.adsenseAccount).toBe('');
+        metadata.accountMetaMatchesExpected,
+        'live account metadata must match the configured ID',
+      ).toBe(true);
     }
 
     const manifestUrl = requireAssetUrl(metadata.manifest, 'manifest');
@@ -302,15 +402,19 @@ test.describe('live custom-domain smoke', () => {
     const adsTxtResponse = await request.get(new URL('ads.txt', EXPECTED_SITE).href, {
       failOnStatusCode: false,
     });
+    expect(adsTxtResponse.status()).toBe(200);
+    expect(adsTxtResponse.headers()['content-type']).toContain('text/plain');
+    const adsTxtSource = (await adsTxtResponse.text()).trim();
+    const adsTxtFormatValid =
+      /^google\.com, pub-\d{16}, DIRECT, f08c47fec0942fa0$/u.test(adsTxtSource) &&
+      !/(?:pub-0000000000000000|pub-1234567890123456)/u.test(adsTxtSource);
+    expect(adsTxtFormatValid, 'live ads.txt must contain one valid non-placeholder record').toBe(
+      true,
+    );
     if (expectedAdsensePublisherId) {
-      expect(expectedAdsensePublisherId).toMatch(/^pub-\d{16}$/u);
-      expect(adsTxtResponse.status()).toBe(200);
-      expect(adsTxtResponse.headers()['content-type']).toContain('text/plain');
-      expect((await adsTxtResponse.text()).trim()).toBe(
-        `google.com, ${expectedAdsensePublisherId}, DIRECT, f08c47fec0942fa0`,
-      );
-    } else {
-      expect(adsTxtResponse.status()).toBe(404);
+      const adsTxtMatches =
+        adsTxtSource === `google.com, ${expectedAdsensePublisherId}, DIRECT, f08c47fec0942fa0`;
+      expect(adsTxtMatches, 'live ads.txt must match the configured publisher').toBe(true);
     }
 
     const playResponse = await page.goto(new URL('play/#lobby', EXPECTED_SITE).href, {
@@ -327,6 +431,14 @@ test.describe('live custom-domain smoke', () => {
       ),
     ).toHaveCount(0);
     await expect(page.locator('#game-grid article.game-card')).toHaveCount(8);
+
+    expect(
+      (await page.goto(new URL('privacy/', EXPECTED_SITE).href, { waitUntil: 'load' }))?.status(),
+    ).toBe(200);
+    await expect(page.locator('[data-privacy-ad-profile]')).toHaveAttribute(
+      'data-privacy-ad-profile',
+      'account-meta-only',
+    );
     expectNoRuntimeFailures(signals);
   });
 
@@ -360,10 +472,11 @@ test.describe('live custom-domain smoke', () => {
     const bounds = await canvas.boundingBox();
     expect(bounds?.width ?? 0).toBeGreaterThan(200);
     expect(bounds?.height ?? 0).toBeGreaterThan(100);
+    await expectNoHorizontalOverflow(page, '844x390 Pong game');
     expectNoRuntimeFailures(signals);
   });
 
-  test('HTTP apex and HTTPS www permanently redirect once to the canonical host', async ({
+  test('HTTP, www, and legacy Pages URLs permanently redirect once with paths intact', async ({
     baseURL,
     request,
   }) => {
@@ -372,9 +485,122 @@ test.describe('live custom-domain smoke', () => {
       'set E2E_CHECK_REDIRECTS=true after DNS, TLS, and Pages HTTPS enforcement are ready',
     );
     expectCustomBaseUrl(baseURL);
-    const path = 'games/omok/';
-    const expectedTarget = new URL(path, EXPECTED_SITE).href;
-    await expectPermanentRedirect(request, `http://${EXPECTED_HOST}/${path}`, expectedTarget);
-    await expectPermanentRedirect(request, `https://www.${EXPECTED_HOST}/${path}`, expectedTarget);
+    for (const path of ['', 'games/omok/']) {
+      const expectedTarget = new URL(path, EXPECTED_SITE).href;
+      await expectPermanentRedirect(request, `http://${EXPECTED_HOST}/${path}`, expectedTarget);
+      await expectPermanentRedirect(
+        request,
+        `https://www.${EXPECTED_HOST}/${path}`,
+        expectedTarget,
+      );
+      await expectPermanentRedirect(
+        request,
+        new URL(path, 'https://dubeeubbee.github.io/moyeoplay/').href,
+        expectedTarget,
+      );
+    }
+  });
+
+  test('unknown documents and assets return real 404 responses', async ({
+    baseURL,
+    page,
+    request,
+  }) => {
+    expectCustomBaseUrl(baseURL);
+    const unknownPageUrl = new URL(
+      `this-page-should-not-exist-${String(Date.now())}/`,
+      EXPECTED_SITE,
+    ).href;
+    const response = await page.goto(unknownPageUrl, { waitUntil: 'load' });
+    expect(response?.status()).toBe(404);
+
+    if (requireBranded404) {
+      await expect(page).toHaveTitle('페이지를 찾을 수 없습니다 | 모여PLAY');
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('페이지를 찾을 수 없습니다');
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        'noindex,follow',
+      );
+      await expect(page.getByRole('link', { name: '홈으로 이동' })).toHaveAttribute('href', '/');
+      await expect(page.getByRole('link', { name: '게임 목록 보기' })).toHaveAttribute(
+        'href',
+        '/#games',
+      );
+      await expect(page.getByRole('link', { name: '문의하기' })).toHaveAttribute(
+        'href',
+        '/contact/',
+      );
+      await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+      await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+      await expect(page.locator('meta[name="google-adsense-account"]')).toHaveCount(0);
+      await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
+    }
+
+    const unknownAsset = await request.get(
+      new URL(`assets/this-asset-should-not-exist-${String(Date.now())}.js`, EXPECTED_SITE).href,
+      { failOnStatusCode: false },
+    );
+    expect(unknownAsset.status()).toBe(404);
+  });
+
+  test('all game routes, screenshots, recovery flow, and footer links stay usable', async ({
+    baseURL,
+    page,
+    request,
+  }) => {
+    expectCustomBaseUrl(baseURL);
+    const signals = monitorPage(page);
+
+    for (const game of games) {
+      const screenshotResponse = await request.get(
+        new URL(`assets/screenshots/${game}.webp`, EXPECTED_SITE).href,
+      );
+      expect(screenshotResponse.status(), `${game} screenshot`).toBe(200);
+      expect(screenshotResponse.headers()['content-type'], `${game} screenshot`).toContain(
+        'image/webp',
+      );
+
+      const routeResponse = await page.goto(new URL(`play/#game/${game}`, EXPECTED_SITE).href, {
+        waitUntil: 'load',
+      });
+      expect(
+        routeResponse === null || routeResponse.status() === 200,
+        `${game} hash navigation must stay on the live play document`,
+      ).toBe(true);
+      await expect(page.locator('#game-host'), game).toHaveAttribute('aria-busy', 'false');
+      const reloadResponse = await page.reload({ waitUntil: 'load' });
+      expect(reloadResponse?.status(), `${game} cold reload`).toBe(200);
+      await expect(page.locator('#game-host'), `${game} cold reload`).toHaveAttribute(
+        'aria-busy',
+        'false',
+      );
+    }
+
+    await page.goto(EXPECTED_SITE, { waitUntil: 'load' });
+    const omokCard = page.locator('article.static-game-card').filter({ hasText: '오목' });
+    await omokCard.getByRole('link', { name: '가이드' }).click();
+    await expect(page).toHaveURL(new URL('games/omok/', EXPECTED_SITE).href);
+    await page.getByRole('link', { name: '오목 바로 플레이' }).click();
+    await expect(page).toHaveURL(/\/play\/#game\/omok$/u);
+    await expect(page.locator('#game-host')).toHaveAttribute('aria-busy', 'false');
+    await page.getByRole('button', { name: '로비로 이동' }).first().click();
+    await expect(page).toHaveURL(/\/play\/#lobby$/u);
+    await expect(page.locator('#game-grid article.game-card')).toHaveCount(8);
+
+    await page.goto(EXPECTED_SITE, { waitUntil: 'load' });
+    const footerUrls = await page
+      .locator('footer a[href]')
+      .evaluateAll((links) =>
+        links
+          .map((link) => (link as HTMLAnchorElement).href)
+          .filter((href) => new URL(href).origin === location.origin),
+      );
+    expect(footerUrls.length).toBeGreaterThanOrEqual(7);
+    for (const href of new Set(footerUrls)) {
+      const footerResponse = await request.get(href, { failOnStatusCode: false });
+      expect(footerResponse.status(), new URL(href).pathname).toBe(200);
+    }
+
+    expectNoRuntimeFailures(signals);
   });
 });

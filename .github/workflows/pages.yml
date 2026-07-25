@@ -67,6 +67,25 @@ jobs:
           PUBLIC_CMP_PROVIDER_NAME_VALUE: ${{ vars.PUBLIC_CMP_PROVIDER_NAME }}
           PUBLIC_CMP_SETTINGS_URL_VALUE: ${{ vars.PUBLIC_CMP_SETTINGS_URL }}
         run: |
+          for sensitive_value in \
+            "${ADSENSE_CLIENT_ID_VALUE}" \
+            "${ADSENSE_PUBLISHER_ID_VALUE}" \
+            "${ADSENSE_CONTENT_SLOT_ID_VALUE}"; do
+            if [[ -n "${sensitive_value}" ]]; then
+              echo "::add-mask::${sensitive_value}"
+            fi
+          done
+          if [[ -n "${ADSENSE_LEGACY_ENABLED_VALUE}" ]]; then
+            echo "::warning::ADSENSE_ENABLED is deprecated. Set ADSENSE_ADS_ENABLED=false explicitly, verify one deployment, then remove the legacy variable."
+          fi
+          if [[ "${ADSENSE_ACCOUNT_META_ENABLED_VALUE}" != "true" ]]; then
+            echo "::error::The post-submission review profile requires ADSENSE_ACCOUNT_META_ENABLED=true."
+            exit 1
+          fi
+          if [[ "${ADSENSE_ADS_ENABLED_VALUE}" != "false" ]]; then
+            echo "::error::The post-submission review freeze requires ADSENSE_ADS_ENABLED=false."
+            exit 1
+          fi
           repository_name="${GITHUB_REPOSITORY#*/}"
           owner_lower="${GITHUB_REPOSITORY_OWNER,,}"
           if [[ -n "${CUSTOM_DOMAIN_VALUE}" ]]; then
@@ -105,7 +124,7 @@ jobs:
         run: npm run verify:dist
 
       - name: Production Pages end-to-end tests
-        run: E2E_BASE_PATH="${PAGES_BASE_PATH}" npm run test:e2e:prod:run
+        run: E2E_BASE_PATH="${PAGES_BASE_PATH}" E2E_SENSITIVE_PROFILE=true npm run test:e2e:prod:run
 
       - name: Upload Playwright failure artifacts
         if: failure()
@@ -166,11 +185,36 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Mask review identifiers
+        env:
+          ADSENSE_CLIENT_ID_VALUE: ${{ vars.ADSENSE_CLIENT_ID }}
+          ADSENSE_PUBLISHER_ID_VALUE: ${{ vars.ADSENSE_PUBLISHER_ID }}
+          ADSENSE_CONTENT_SLOT_ID_VALUE: ${{ vars.ADSENSE_CONTENT_SLOT_ID }}
+        run: |
+          for sensitive_value in \
+            "${ADSENSE_CLIENT_ID_VALUE}" \
+            "${ADSENSE_PUBLISHER_ID_VALUE}" \
+            "${ADSENSE_CONTENT_SLOT_ID_VALUE}"; do
+            if [[ -n "${sensitive_value}" ]]; then
+              echo "::add-mask::${sensitive_value}"
+            fi
+          done
+
+      - name: Audit live review surface
+        run: npm run audit:live
+        env:
+          E2E_LIVE_URL: ${{ vars.SITE_URL || 'https://moyeoplay.studio/' }}
+          AUDIT_REQUIRE_BRANDED_404: 'true'
+          ADSENSE_ACCOUNT_META_ENABLED: ${{ vars.ADSENSE_ACCOUNT_META_ENABLED || 'false' }}
+          ADSENSE_ADS_ENABLED: ${{ vars.ADSENSE_ADS_ENABLED || vars.ADSENSE_ENABLED || 'false' }}
+          ADSENSE_CLIENT_ID: ${{ vars.ADSENSE_CLIENT_ID }}
+
       - name: Verify live GitHub Pages
         run: npm run test:e2e:live
         env:
           E2E_LIVE_URL: ${{ vars.SITE_URL || 'https://moyeoplay.studio/' }}
           E2E_CHECK_REDIRECTS: 'true'
+          E2E_REQUIRE_BRANDED_404: 'true'
           ADSENSE_ACCOUNT_META_ENABLED: ${{ vars.ADSENSE_ACCOUNT_META_ENABLED || 'false' }}
           ADSENSE_ADS_ENABLED: ${{ vars.ADSENSE_ADS_ENABLED || vars.ADSENSE_ENABLED || 'false' }}
           ADSENSE_CLIENT_ID: ${{ vars.ADSENSE_CLIENT_ID }}

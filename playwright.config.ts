@@ -2,11 +2,13 @@ import { defineConfig, devices } from '@playwright/test';
 
 const mode = process.env.E2E_MODE ?? 'dev';
 const liveUrl = process.env.E2E_LIVE_URL;
+const sensitiveProfile = mode === 'live' || process.env.E2E_SENSITIVE_PROFILE === 'true';
 if (mode === 'live' && !liveUrl) {
   throw new Error('E2E_LIVE_URL is required when E2E_MODE=live');
 }
 
-const origin = mode === 'dev' ? 'http://127.0.0.1:5173' : 'http://127.0.0.1:4173';
+const localPort = process.env.E2E_PORT ?? (mode === 'dev' ? '5173' : '4173');
+const origin = `http://127.0.0.1:${localPort}`;
 const requestedBasePath = process.env.E2E_BASE_PATH ?? '/';
 const basePath = `/${requestedBasePath.replace(/^\/+|\/+$/g, '')}${requestedBasePath === '/' ? '' : '/'}`;
 
@@ -31,9 +33,9 @@ export default defineConfig({
   outputDir: 'test-results',
   use: {
     baseURL,
-    trace: 'retain-on-failure',
+    trace: sensitiveProfile ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: sensitiveProfile ? 'off' : 'retain-on-failure',
   },
   projects:
     mode === 'live'
@@ -48,8 +50,8 @@ export default defineConfig({
         webServer: {
           command:
             mode === 'prod'
-              ? 'npm run preview:pages -- --host 127.0.0.1 --port 4173'
-              : 'npm run dev -- --host 127.0.0.1 --port 5173',
+              ? `npm run preview:pages -- --host 127.0.0.1 --port ${localPort}`
+              : `npm run dev -- --host 127.0.0.1 --port ${localPort}`,
           url: baseURL,
           reuseExistingServer: mode === 'dev' && !process.env.CI,
           timeout: 120_000,

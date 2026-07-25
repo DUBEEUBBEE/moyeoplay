@@ -1,30 +1,32 @@
 # AdSense 준비 체크리스트
 
-최종 갱신: 2026-07-21
+최종 갱신: 2026-07-26
 
 이 문서는 **코드 준비**, **운영자 수동 작업**, **Google 결과**를 구분한다. 코드와 테스트가 통과해도 AdSense 사이트 연결, 심사 또는 광고 승인을 의미하지 않는다.
 
+신청 이후의 변경 동결·감사 절차는 [신청 후 안정화 운영](POST_SUBMISSION_STABILITY.md)을 함께 따른다.
+
 ## 현재 상태
 
-| 항목                                    | 분류          | 상태            |
-| --------------------------------------- | ------------- | --------------- |
-| custom root production artifact         | 코드 준비     | 확인 완료       |
-| account meta와 광고 송출 분리           | 코드 준비     | 확인 완료(로컬) |
-| `/play/` 광고 slot 금지                 | 코드 준비     | 확인 완료       |
-| CMP adapter의 granted 외 요청 차단      | 코드 준비     | 확인 완료(로컬) |
-| custom-domain TLS·HTTPS redirect        | 외부 Pages    | 확인 완료       |
-| 실제 운영자 이름                        | 운영자 수동   | 미설정          |
-| 실제 공개 문의 이메일                   | 운영자 수동   | 미설정          |
-| 실제 AdSense client·publisher·slot ID   | 운영자 수동   | 미설정          |
-| AdSense Sites에 `moyeoplay.studio` 추가 | 운영자 수동   | 미확인          |
-| 사이트 소유권 Verify                    | Google 결과   | 미확인          |
-| Request review                          | 운영자 수동   | 미실행          |
-| 사이트 상태 `Ready`                     | Google 결과   | 미확인          |
-| Google-certified CMP 연결               | 운영자 수동   | 미연결          |
-| root `ads.txt` live                     | 운영자·Google | 미실행          |
-| 실제 광고 배치·CLS·오클릭 검토          | 운영자 수동   | 미실행          |
+| 항목                                    | 분류          | 2026-07-26 상태                                         |
+| --------------------------------------- | ------------- | ------------------------------------------------------- |
+| custom root production artifact         | 코드 준비     | 확인 완료                                               |
+| account meta와 광고 송출 분리           | 코드·라이브   | account-meta-only 확인 완료                             |
+| `/play/` 광고 slot 금지                 | 코드·라이브   | 확인 완료                                               |
+| CMP adapter의 granted 외 요청 차단      | 코드 준비     | 격리 테스트 확인, 실제 CMP는 미연결                     |
+| custom-domain TLS·HTTPS redirect        | 외부 Pages    | apex·www·이전 Pages path 보존 확인 완료                 |
+| 방문자용 운영·제작 주체                 | 라이브        | 프로젝트 주체·공개 저장소·제작 과정 표시 확인           |
+| 실제 공개 문의 이메일                   | 운영자 수동   | 미설정, 관리 가능한 GitHub Issues fallback 확인         |
+| 실제 AdSense client·publisher ID        | 운영자·라이브 | 설정·형식 확인, 값은 문서·로그에 기록하지 않음          |
+| AdSense Sites에 `moyeoplay.studio` 추가 | 운영자 수동   | 완료 보고                                               |
+| 사이트 소유권 Verify                    | 운영자 수동   | 완료 보고                                               |
+| Request review                          | 운영자 수동   | 완료 보고                                               |
+| 사이트 상태 `Ready`                     | Google 결과   | 현재 계정 화면에서 직접 확인 필요                       |
+| Google-certified CMP 연결               | 운영자 수동   | 미연결                                                  |
+| root `ads.txt` live                     | 라이브        | 200·plain text·production 형식 확인, Google 상태는 별도 |
+| 실제 광고 배치·CLS·오클릭 검토          | 운영자 수동   | 승인 후로 보류                                          |
 
-승인 전 운영 기본값은 account meta와 광고 모두 `false`다. 실제 AdSense 값, 운영자 실명, 이메일과 CMP를 추측하거나 placeholder로 `dist`에 배포하지 않는다.
+심사 중 운영 profile은 account meta `true`, 광고 송출 `false`다. 실제 AdSense 값, 운영자 실명, 이메일과 CMP를 추측하거나 placeholder로 `dist`에 배포하지 않는다.
 
 ## 환경 변수와 책임 경계
 
@@ -144,16 +146,16 @@ Google은 EEA, UK, Switzerland에서 personalized ads를 제공할 때 Google-ce
 - [x] HTTP→HTTPS와 `www`→apex가 path를 보존하고 loop가 없는지 확인한다.
 - [ ] GitHub Pages의 현재 약관·한도와 광고 운영 목적의 적합성을 운영자가 검토한다.
 
-2026-07-21 재확인에서 GitHub Pages 인증서 승인, `https_enforced=true`, apex·`www`·이전 Pages URL redirect가 통과했다. 이 완료는 AdSense Sites 등록·Verify·Request review·`Ready` 결과나 광고 승인을 뜻하지 않는다.
+2026-07-26 재확인에서 GitHub Pages 인증서, apex·`www`·이전 Pages URL redirect가 통과했다. 이 완료는 AdSense의 현재 `Ready` 결과나 광고 승인을 뜻하지 않는다.
 
 ### 2. AdSense Sites 연결
 
-- [ ] AdSense 계정에서 실제 publisher·client ID를 확인한다.
-- [ ] AdSense **Sites**에 `moyeoplay.studio`를 추가한다.
-- [ ] Google이 계정 화면에서 제공한 실제 verification 방법을 선택한다.
-- [ ] meta 방식이면 `ADSENSE_ACCOUNT_META_ENABLED=true`와 실제 client ID를 배포한다.
-- [ ] live HTML에서 meta를 확인하고 AdSense에서 **Verify**를 실행한다.
-- [ ] 운영자가 **Request review**를 실행한다.
+- [x] AdSense 계정에서 실제 publisher·client ID를 확인한다.
+- [x] AdSense **Sites**에 `moyeoplay.studio`를 추가한다.
+- [x] Google이 계정 화면에서 제공한 meta verification 방법을 선택한다.
+- [x] `ADSENSE_ACCOUNT_META_ENABLED=true`와 실제 client ID를 배포한다.
+- [x] live HTML에서 meta를 확인하고 AdSense에서 **Verify**를 실행한다.
+- [x] 운영자가 **Request review**를 실행한다.
 
 Verify 또는 review 요청을 코드가 대신 완료했다고 기록하지 않는다.
 
@@ -179,8 +181,8 @@ Verify 또는 review 요청을 코드가 대신 완료했다고 기록하지 않
 google.com, <GOOGLE_PROVIDED_PUBLISHER_ID>, DIRECT, f08c47fec0942fa0
 ```
 
-- [ ] `https://moyeoplay.studio/ads.txt`가 유효한 TLS로 200을 반환한다.
-- [ ] Content-Type이 plain text이며 HTML fallback이 아니다.
+- [x] `https://moyeoplay.studio/ads.txt`가 유효한 TLS로 200을 반환한다.
+- [x] Content-Type이 plain text이며 HTML fallback이 아니다.
 - [ ] publisher ID가 AdSense 계정과 정확히 일치한다.
 - [ ] AdSense Sites의 `ads.txt` 상태를 Google 결과로 별도 기록한다.
 - [ ] `/moyeoplay/ads.txt`나 placeholder file을 성공 증거로 쓰지 않는다.
