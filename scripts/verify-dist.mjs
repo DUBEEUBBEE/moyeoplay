@@ -6,6 +6,7 @@ import { resolveSiteConfig } from './site-config.mjs';
 
 const config = resolveSiteConfig();
 const outputDirectory = config.outputDirectory;
+const NAVER_SITE_VERIFICATION = '050d11bd1415bffdff627eb871a17814f1770115';
 const textAssetPattern = /\.(?:css|html|js|json|txt|webmanifest|xml)$/;
 const requiredHtml = [
   'index.html',
@@ -109,6 +110,16 @@ if (!config.adsense.testMode) {
 }
 
 const indexSource = textSources.get('index.html') ?? '';
+const naverVerificationMeta = `<meta name="naver-site-verification" content="${NAVER_SITE_VERIFICATION}" />`;
+if ((indexSource.match(/name="naver-site-verification"/gu)?.length ?? 0) !== 1) {
+  fail(errors, 'Root landing must contain exactly one Naver ownership verification meta tag.');
+}
+if (!indexSource.includes(naverVerificationMeta)) {
+  fail(
+    errors,
+    'Root landing Naver ownership verification value does not match the registered site.',
+  );
+}
 if (!indexSource.includes('<h1>') || !indexSource.includes('games/omok/')) {
   fail(errors, 'Root landing is missing crawlable heading or game guide links.');
 }
@@ -119,6 +130,9 @@ if (
   fail(errors, 'Root landing is missing the optimized clay hero picture sources.');
 }
 const playSource = textSources.get('play/index.html') ?? '';
+if (playSource.includes('name="naver-site-verification"')) {
+  fail(errors, '/play/ must not contain Naver ownership verification metadata.');
+}
 if (!playSource.includes('noindex,follow')) fail(errors, '/play/ must be noindex,follow.');
 if (!playSource.includes('<body class="play-app" data-view="lobby">')) {
   fail(errors, '/play/ must render with the bright lobby theme before JavaScript starts.');
@@ -127,6 +141,9 @@ if (playSource.includes('data-adsense-slot') || playSource.includes('adsbygoogle
   fail(errors, '/play/ must never contain an AdSense slot.');
 }
 const notFoundSource = textSources.get('404.html') ?? '';
+if (notFoundSource.includes('name="naver-site-verification"')) {
+  fail(errors, '404.html must not contain Naver ownership verification metadata.');
+}
 if (
   !notFoundSource.includes('noindex,follow') ||
   !notFoundSource.includes('<h1>페이지를 찾을 수 없습니다</h1>')

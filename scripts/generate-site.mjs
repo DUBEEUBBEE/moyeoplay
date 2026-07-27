@@ -8,6 +8,7 @@ const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 const config = resolveSiteConfig();
 const generatedRoot = config.generatedDirectory;
 const gameById = new Map(GAME_CONTENT.map((game) => [game.id, game]));
+const NAVER_SITE_VERIFICATION = '050d11bd1415bffdff627eb871a17814f1770115';
 
 const GAME_SEO_TITLES = Object.freeze({
   omok: '웹 오목 2인용 — 규칙·조작·바로 플레이 | 모여PLAY',
@@ -102,6 +103,7 @@ function renderHead({
   structuredData,
   themeColor = '#f7f3eb',
   colorScheme = 'light',
+  includeNaverVerification = false,
 }) {
   const canonical = absoluteUrl(canonicalPath);
   const image = absoluteUrl(ogImagePath);
@@ -109,13 +111,16 @@ function renderHead({
     config.adsense.accountMetaEnabled && !robots.includes('noindex')
       ? `\n    <meta name="google-adsense-account" content="${escapeHtml(config.adsense.clientId)}" />`
       : '';
+  const naverVerificationMeta = includeNaverVerification
+    ? `\n    <meta name="naver-site-verification" content="${escapeHtml(NAVER_SITE_VERIFICATION)}" />`
+    : '';
   return `
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="${escapeHtml(themeColor)}" />
     <meta name="color-scheme" content="${escapeHtml(colorScheme)}" />
     <meta name="robots" content="${escapeHtml(robots)}" />
-    <meta name="description" content="${escapeHtml(description)}" />${accountMeta}
+    <meta name="description" content="${escapeHtml(description)}" />${accountMeta}${naverVerificationMeta}
     <link rel="canonical" href="${escapeHtml(canonical)}" />
     <meta property="og:type" content="${escapeHtml(ogType)}" />
     <meta property="og:locale" content="ko_KR" />
@@ -369,6 +374,7 @@ function renderRoot(outputFile) {
       description: page.description,
       canonicalPath: '',
       structuredData: rootStructuredData(),
+      includeNaverVerification: true,
     }),
     body,
   });
