@@ -31,6 +31,7 @@ const indexablePaths = [
 ] as const;
 const adEligiblePaths = ['./', ...games.map((game) => `./games/${game}/`)] as const;
 const adExcludedPaths = [
+  './404.html',
   './about/',
   './how-to-play/',
   './fairness/',
@@ -40,11 +41,11 @@ const adExcludedPaths = [
   './play/#lobby',
 ] as const;
 
-function collectGoogleAdRequests(page: Page): string[] {
-  const requests: string[] = [];
+function collectGoogleAdRequests(page: Page): { count: number } {
+  const requests = { count: 0 };
   page.on('request', (request) => {
     if (/googlesyndication|doubleclick|googleadservices/iu.test(request.url())) {
-      requests.push(request.url());
+      requests.count += 1;
     }
   });
   return requests;
@@ -56,7 +57,14 @@ test('account meta는 색인 페이지에만 나타나고 광고 송출과 독�
     await page.goto(target);
     const metas = page.locator('meta[name="google-adsense-account"]');
     await expect(metas, target).toHaveCount(accountMetaEnabled ? 1 : 0);
-    if (accountMetaEnabled) await expect(metas, target).toHaveAttribute('content', clientId);
+    if (accountMetaEnabled) {
+      const matchesExpected = await metas.evaluateAll(
+        (elements, expected) =>
+          elements.length === 1 && elements[0]?.getAttribute('content') === expected,
+        clientId,
+      );
+      expect(matchesExpected, `${target} account metadata must match the configured ID`).toBe(true);
+    }
   }
 
   await page.goto('./play/#lobby');
@@ -64,7 +72,7 @@ test('account meta는 색인 페이지에만 나타나고 광고 송출과 독�
   if (!adsEnabled) {
     await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
     await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
-    expect(adRequests).toEqual([]);
+    expect(adRequests.count).toBe(0);
   }
 });
 
@@ -87,7 +95,7 @@ test('광고 off와 meta-only profile은 slot, 외부 tag, 광고 요청을 만�
   );
   await expect(page.locator('main')).toContainText('moyeoplay:settings');
   await expect(page.locator('main')).toContainText('moyeoplay:session');
-  expect(adRequests).toEqual([]);
+  expect(adRequests.count).toBe(0);
 });
 
 test('ads-on test profile은 홈과 8개 가이드에만 수동 slot을 둔다', async ({ page }) => {
@@ -107,7 +115,7 @@ test('ads-on test profile은 홈과 8개 가이드에만 수동 slot을 둔다',
     await page.goto(target);
     await expect(page.locator('[data-adsense-slot], .adsbygoogle'), target).toHaveCount(0);
   }
-  expect(adRequests).toEqual([]);
+  expect(adRequests.count).toBe(0);
 });
 
 test('거부, 철회, 미사용, 오류 상태에서는 광고 요청이 0이다', async ({ page }) => {
@@ -127,7 +135,7 @@ test('거부, 철회, 미사용, 오류 상태에서는 광고 요청이 0이다
     }, state);
     await expect(slot).toHaveAttribute('data-adsense-consent-state', state);
     await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
-    expect(adRequests).toEqual([]);
+    expect(adRequests.count).toBe(0);
   }
 });
 
@@ -142,7 +150,7 @@ test('test mode의 consent granted는 상태만 표시하고 외부 요청을 �
   await expect(slot).toHaveAttribute('data-adsense-consent-state', 'granted');
   await expect(slot).toHaveAttribute('data-adsense-consent-ready', 'true');
   await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
-  expect(adRequests).toEqual([]);
+  expect(adRequests.count).toBe(0);
 
   await page.evaluate(() => {
     window.dispatchEvent(
@@ -150,7 +158,7 @@ test('test mode의 consent granted는 상태만 표시하고 외부 요청을 �
     );
   });
   await expect(slot).toHaveAttribute('data-adsense-consent-state', 'withdrawn');
-  expect(adRequests).toEqual([]);
+  expect(adRequests.count).toBe(0);
 });
 
 test('root 파일은 host profile 제약을 따른다', async ({ request }) => {
@@ -171,9 +179,9 @@ test('root 파일은 host profile 제약을 따른다', async ({ request }) => {
   if (controlsHostRoot && publisherId) {
     expect(adsTxt.status()).toBe(200);
     expect(adsTxt.headers()['content-type']).toContain('text/plain');
-    expect((await adsTxt.text()).trim()).toBe(
-      `google.com, ${publisherId}, DIRECT, f08c47fec0942fa0`,
-    );
+    const adsTxtMatches =
+      (await adsTxt.text()).trim() === `google.com, ${publisherId}, DIRECT, f08c47fec0942fa0`;
+    expect(adsTxtMatches, 'ads.txt must match the configured publisher').toBe(true);
   } else expect(adsTxt.status()).toBe(404);
   if (expectedDomain) {
     expect(cname.status()).toBe(200);

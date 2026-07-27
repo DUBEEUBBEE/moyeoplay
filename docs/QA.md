@@ -25,6 +25,7 @@ npm run verify:dist
 npm run test:e2e:prod
 npm run test:e2e:root
 npm audit --omit=dev
+npm run audit:live
 ```
 
 운영 profile의 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`이다. `test:e2e:prod`는 실제 광고 off 배포 profile의 `dist`를 다시 만든 뒤 `vite preview`를 검사한다. `test:e2e:root`는 배포되지 않는 `dist-meta-test`와 `dist-ads-test`에 base `/`와 mock ID를 적용해 AdSense account-meta-only, mock ad-on과 CMP adapter를 Chromium·WebKit에서 검사한다. 테스트 placeholder는 `dist`에 들어가면 안 된다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
@@ -33,6 +34,7 @@ npm audit --omit=dev
 
 - JavaScript를 끈 별도 browser context에서 루트, 8개 가이드, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
 - sitemap은 15개 clean canonical만 포함하고 `/play/`와 hash URL을 제외한다.
+- `404.html`은 `noindex,follow`이며 canonical, JSON-LD, account meta와 광고 코드 없이 홈·게임·문의 복구 링크를 제공한다.
 - 모든 OG·Twitter image alt는 페이지당 정확히 하나이며 모든 콘텐츠 이미지에 width·height가 있다.
 - deployable `dist`의 canonical, OG/Twitter, JSON-LD, sitemap, manifest, robots sitemap과 공유 URL은 모두 `https://moyeoplay.studio/`에서 파생되어야 한다. 이전 Pages URL, example domain, placeholder AdSense ID가 하나라도 남으면 실패한다.
 - base `/`에는 `robots.txt`, custom domain에는 `CNAME`, 실제 publisher가 있을 때에만 `ads.txt`가 있어야 한다. `/play/`는 robots에서 차단하지 않는다.

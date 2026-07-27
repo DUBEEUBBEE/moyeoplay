@@ -6,6 +6,7 @@ import { resolveSiteConfig } from './scripts/site-config.mjs';
 
 const CLEAN_PAGE_PATHS = [
   'index.html',
+  '404.html',
   'play/index.html',
   'games/omok/index.html',
   'games/pong/index.html',

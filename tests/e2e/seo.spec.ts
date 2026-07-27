@@ -8,6 +8,7 @@ const e2eMode = processEnv.E2E_MODE ?? 'dev';
 const expectedSiteUrl =
   processEnv.SITE_URL ??
   (e2eMode === 'prod' ? 'https://moyeoplay.studio/' : 'http://127.0.0.1:5173/');
+const expectedNaverVerification = '050d11bd1415bffdff627eb871a17814f1770115';
 
 const games = [
   'omok',
@@ -143,6 +144,18 @@ test('15개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 
   expect(descriptions.size).toBe(15);
   expect(canonicals.size).toBe(15);
   await context.close();
+});
+
+test('네이버 소유권 확인 태그는 루트 홈페이지에만 존재한다', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('meta[name="naver-site-verification"]')).toHaveAttribute(
+    'content',
+    expectedNaverVerification,
+  );
+  await expect(page.locator('meta[name="naver-site-verification"]')).toHaveCount(1);
+
+  await page.goto('./play/');
+  await expect(page.locator('meta[name="naver-site-verification"]')).toHaveCount(0);
 });
 
 test('구조화 데이터는 실제 사이트·게임·breadcrumb만 설명한다', async ({ page }) => {
@@ -286,6 +299,7 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
   request,
 }) => {
   const internalUrls = new Set<string>();
+  const fragmentUrls = new Set<string>();
   let previewOrigin = '';
   for (const cleanPath of contentPaths) {
     await page.goto(relativeUrl(cleanPath));
@@ -296,12 +310,23 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
     for (const href of links) {
       const url = new URL(href);
       if (url.origin !== previewOrigin) continue;
+      if (url.hash && !url.pathname.includes('/play/')) fragmentUrls.add(url.href);
       url.hash = '';
       internalUrls.add(url.href);
     }
   }
   for (const href of internalUrls) {
     expect((await request.get(href)).status(), href).toBe(200);
+  }
+  for (const href of fragmentUrls) {
+    const url = new URL(href);
+    const fragmentId = decodeURIComponent(url.hash.slice(1));
+    url.hash = '';
+    await page.goto(url.href);
+    expect(
+      await page.evaluate((id) => Boolean(document.getElementById(id)), fragmentId),
+      href,
+    ).toBe(true);
   }
 });
 

@@ -135,6 +135,40 @@ test.describe('production Pages build', () => {
     expect(errors).toEqual([]);
   });
 
+  test('ships a branded noindex 404 artifact and keeps missing resources as 404', async ({
+    page,
+    request,
+  }) => {
+    const response = await page.goto('./404.html');
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveTitle('페이지를 찾을 수 없습니다 | 모여PLAY');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('페이지를 찾을 수 없습니다');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,follow');
+    await expect(page.getByRole('link', { name: '홈으로 이동' })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: '게임 목록 보기' })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: '문의하기' })).toHaveCount(1);
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="google-adsense-account"]')).toHaveCount(0);
+    await expect(page.locator('[data-adsense-slot], .adsbygoogle')).toHaveCount(0);
+
+    const suffix = String(Date.now());
+    expect(
+      (
+        await request.get(`./this-page-should-not-exist-${suffix}/`, {
+          failOnStatusCode: false,
+        })
+      ).status(),
+    ).toBe(404);
+    expect(
+      (
+        await request.get(`./assets/this-asset-should-not-exist-${suffix}.js`, {
+          failOnStatusCode: false,
+        })
+      ).status(),
+    ).toBe(404);
+  });
+
   test('opens every direct hash route, starts Canvas, reloads, and falls back safely', async ({
     page,
   }) => {
