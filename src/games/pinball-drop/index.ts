@@ -36,7 +36,9 @@ function statusMessage(state: PinballState, playerName: (player: 1 | 2) => strin
     case 'roundOver': {
       const result = state.lastResult;
       if (!result) return '라운드 종료';
-      if (result.winner === 0) return `무승부 · 차이 ${result.difference.toFixed(3)}초`;
+      if (result.decidedByTieBreaker) {
+        return `${playerName(result.winner)} 라운드 승리 · 초접전 판정`;
+      }
       return `${playerName(result.winner)} 라운드 승리 · 차이 ${result.difference.toFixed(2)}초`;
     }
     case 'matchOver':
@@ -130,12 +132,11 @@ export function createGame(services: GameServices): MiniGameController {
       services.audio.hit(0.3);
     }
     if (event.roundResult) {
-      if (event.roundResult.winner === 0) {
-        services.announce(`라운드 무승부, 차이 ${event.roundResult.difference.toFixed(3)}초`);
-      } else {
-        services.audio.score(event.roundResult.winner);
-        services.announce(`${services.getPlayerName(event.roundResult.winner)} 라운드 승리`);
-      }
+      services.audio.score(event.roundResult.winner);
+      const decision = event.roundResult.decidedByTieBreaker ? ', 초접전 판정' : '';
+      services.announce(
+        `${services.getPlayerName(event.roundResult.winner)} 라운드 승리${decision}`,
+      );
     }
     if (event.matchWinner && !completed) {
       completed = true;
@@ -296,14 +297,12 @@ export function createGame(services: GameServices): MiniGameController {
       context.fillRect(155, 220, PINBALL_WIDTH - 310, 150);
       context.fillStyle = '#172136';
       context.font = '900 36px system-ui, sans-serif';
-      const headline =
-        state.lastResult.winner === 0
-          ? '무승부!'
-          : `${services.getPlayerName(state.lastResult.winner)} 승리`;
+      const headline = `${services.getPlayerName(state.lastResult.winner)} 승리`;
       context.fillText(headline, PINBALL_WIDTH / 2, 267);
       context.font = '700 25px system-ui, sans-serif';
+      const decision = state.lastResult.decidedByTieBreaker ? ' · 초접전 판정' : '';
       context.fillText(
-        `${state.lastResult.times[0].toFixed(2)}초 : ${state.lastResult.times[1].toFixed(2)}초 · Δ ${state.lastResult.difference.toFixed(3)}초`,
+        `${state.lastResult.times[0].toFixed(2)}초 : ${state.lastResult.times[1].toFixed(2)}초 · Δ ${state.lastResult.difference.toFixed(3)}초${decision}`,
         PINBALL_WIDTH / 2,
         323,
       );

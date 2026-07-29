@@ -4,10 +4,14 @@ import {
   PINBALL_TIE_TOLERANCE,
   PINBALL_WIDTH,
   applyPinballBoost,
+  createPinballRoundSetup,
   createPinballState,
   generateMirroredPegs,
   judgePinballRound,
   recordPinballLanding,
+  resolvePinballRound,
+  startPinballMatch,
+  updatePinball,
 } from './logic';
 
 describe('pinball drop logic', () => {
@@ -36,6 +40,53 @@ describe('pinball drop logic', () => {
     expect(judgePinballRound(4, 4 + PINBALL_TIE_TOLERANCE)).toBe(0);
     expect(judgePinballRound(4, 4.051)).toBe(2);
     expect(judgePinballRound(4.051, 4)).toBe(1);
+  });
+
+  it('alternates seeded launch variation and tie-break priority between players', () => {
+    const first = createPinballRoundSetup(12_345, 1);
+    const repeated = createPinballRoundSetup(12_345, 1);
+    const second = createPinballRoundSetup(12_345, 2);
+    const third = createPinballRoundSetup(12_345, 3);
+
+    expect(repeated).toEqual(first);
+    expect(second.variationPlayer).not.toBe(first.variationPlayer);
+    expect(second.tieBreaker).not.toBe(first.tieBreaker);
+    expect(third.variationPlayer).toBe(first.variationPlayer);
+    expect(third.tieBreaker).toBe(first.tieBreaker);
+    expect(Math.abs(first.launchVelocityX[0])).not.toBe(Math.abs(first.launchVelocityX[1]));
+    expect(first.launchVelocityY[0]).not.toBe(first.launchVelocityY[1]);
+  });
+
+  it('resolves an exact or near tie with the round tie-break player', () => {
+    expect(resolvePinballRound(4, 4, 2)).toEqual({
+      winner: 2,
+      times: [4, 4],
+      difference: 0,
+      decidedByTieBreaker: true,
+    });
+    expect(resolvePinballRound(4.04, 4, 1)).toMatchObject({
+      winner: 1,
+      decidedByTieBreaker: true,
+    });
+    expect(resolvePinballRound(4.051, 4, 1)).toMatchObject({
+      winner: 1,
+      decidedByTieBreaker: false,
+    });
+  });
+
+  it('finishes a no-input match instead of repeating mirrored draws forever', () => {
+    const state = createPinballState('no-input-match');
+    startPinballMatch(state);
+
+    for (let step = 0; step < 20_000 && state.phase !== 'matchOver'; step += 1) {
+      updatePinball(state, 1 / 120);
+    }
+
+    expect(state.phase).toBe('matchOver');
+    expect(state.roundNumber).toBeLessThanOrEqual(3);
+    expect(state.winner).not.toBe(0);
+    expect(state.roundWins[state.winner - 1]).toBe(2);
+    expect(state.lastResult?.winner).toBe(state.winner);
   });
 
   it('limits each player to three boosts per round', () => {
