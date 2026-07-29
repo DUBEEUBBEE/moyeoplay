@@ -188,6 +188,48 @@ test('구조화 데이터는 실제 사이트·게임·breadcrumb만 설명한�
     expect(types, game).toEqual(expect.arrayContaining(['WebPage', 'VideoGame', 'BreadcrumbList']));
     const videoGame = graph.find((entry) => entry['@type'] === 'VideoGame');
     expect(videoGame?.numberOfPlayers, game).toMatchObject({ '@type': 'QuantitativeValue' });
+    expect(videoGame?.alternateName, game).toEqual(
+      expect.arrayContaining([expect.any(String), expect.any(String), expect.any(String)]),
+    );
+    expect(videoGame?.image, game).toBe(`${expectedSiteUrl}assets/og/${game}.png`);
+    expect(videoGame?.genre, game).toEqual(expect.any(String));
+    expect(videoGame?.dateModified, game).toBe('2026-07-29');
+  }
+});
+
+test('검색 의도별 탐색과 게임별 FAQ가 설명형 내부 링크로 연결된다', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('[data-game-discovery]')).toHaveCount(1);
+  await expect(page.locator('[data-game-discovery]')).toContainText('1~4분 초단기 승부');
+  const rootCardLinkLabels = await page.locator('.static-game-card__links a').allTextContents();
+  expect(rootCardLinkLabels).toHaveLength(16);
+  expect(rootCardLinkLabels).not.toContain('게임 시작');
+  expect(rootCardLinkLabels).not.toContain('가이드');
+
+  for (const game of games) {
+    await page.goto(`./games/${game}/`);
+    const description =
+      (await page.locator('meta[name="description"]').getAttribute('content')) ?? '';
+    expect(description.length, game).toBeGreaterThanOrEqual(70);
+    await expect(page.locator('[data-game-use-cases] li')).toHaveCount(3);
+    await expect(page.locator('[data-game-faq] details')).toHaveCount(3);
+    await expect(page.locator('[data-game-faq] summary').first()).not.toBeEmpty();
+    const disclosureMarker = await page
+      .locator('[data-game-faq] summary')
+      .first()
+      .evaluate((element) => getComputedStyle(element, '::after').content);
+    expect(disclosureMarker, game).not.toBe('none');
+    if (game === 'pinball-drop') {
+      await expect(page.locator('[data-game-faq]')).toContainText('공떨어지기 게임');
+    }
+  }
+
+  for (const path of ['./how-to-play/', './fairness/']) {
+    await page.goto(path);
+    const hrefs = await page
+      .locator('[data-game-guide-directory] a[href*="/games/"]')
+      .evaluateAll((links) => links.map((link) => (link as HTMLAnchorElement).pathname));
+    expect(new Set(hrefs).size, path).toBe(8);
   }
 });
 

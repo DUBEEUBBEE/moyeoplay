@@ -23,7 +23,7 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run && node --test scripts/site-config.test.mjs",
+    "test": "vitest run && node --test scripts/site-config.test.mjs scripts/site-content.test.mjs",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npm run test:e2e:prod",
     "test:e2e:dev": "E2E_MODE=dev playwright test",
