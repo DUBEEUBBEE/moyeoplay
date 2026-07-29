@@ -49,9 +49,17 @@ export interface PinballBall {
 }
 
 export interface PinballRoundResult {
-  winner: 0 | 1 | 2;
+  winner: 1 | 2;
   times: [number, number];
   difference: number;
+  decidedByTieBreaker: boolean;
+}
+
+export interface PinballRoundSetup {
+  launchVelocityX: [number, number];
+  launchVelocityY: [number, number];
+  variationPlayer: 1 | 2;
+  tieBreaker: 1 | 2;
 }
 
 export interface PinballState {
@@ -62,6 +70,7 @@ export interface PinballState {
   roundNumber: number;
   roundWins: [number, number];
   pegs: MirroredPegs;
+  roundSetup: PinballRoundSetup;
   balls: [PinballBall, PinballBall];
   countdownRemaining: number;
   elapsed: number;
@@ -131,6 +140,38 @@ function roundSeed(baseSeed: number, roundNumber: number): number {
   return (baseSeed + Math.imul(roundNumber, 0x9e3779b1)) >>> 0;
 }
 
+function alternatingPlayer(firstPlayer: 1 | 2, roundNumber: number): 1 | 2 {
+  return roundNumber % 2 === 1 ? firstPlayer : firstPlayer === 1 ? 2 : 1;
+}
+
+export function createPinballRoundSetup(baseSeed: number, roundNumber: number): PinballRoundSetup {
+  const assignmentRandom = createSeededRandom(`${String(baseSeed)}:assignments`);
+  const firstVariationPlayer: 1 | 2 = assignmentRandom() < 0.5 ? 1 : 2;
+  const firstTieBreaker: 1 | 2 = assignmentRandom() < 0.5 ? 1 : 2;
+  const variationPlayer = alternatingPlayer(firstVariationPlayer, roundNumber);
+  const tieBreaker = alternatingPlayer(firstTieBreaker, roundNumber);
+  const variationRandom = createSeededRandom(`${String(roundSeed(baseSeed, roundNumber))}:launch`);
+  const horizontalVariation = 10 + variationRandom() * 10;
+  const verticalVariation = 8 + variationRandom() * 8;
+  const launchVelocityX: [number, number] = [24, -24];
+  const launchVelocityY: [number, number] = [28, 28];
+
+  if (variationPlayer === 1) {
+    launchVelocityX[0] += horizontalVariation;
+    launchVelocityY[0] += verticalVariation;
+  } else {
+    launchVelocityX[1] -= horizontalVariation;
+    launchVelocityY[1] += verticalVariation;
+  }
+
+  return {
+    launchVelocityX,
+    launchVelocityY,
+    variationPlayer,
+    tieBreaker,
+  };
+}
+
 export function createPinballState(seed: string | number = 20_260_718): PinballState {
   const baseSeed = hashSeed(seed);
   const firstSeed = roundSeed(baseSeed, 1);
@@ -142,6 +183,7 @@ export function createPinballState(seed: string | number = 20_260_718): PinballS
     roundNumber: 1,
     roundWins: [0, 0],
     pegs: generateMirroredPegs(firstSeed),
+    roundSetup: createPinballRoundSetup(baseSeed, 1),
     balls: [ball(1), ball(2)],
     countdownRemaining: 0,
     elapsed: 0,
@@ -158,6 +200,7 @@ export function resetPinballState(state: PinballState, preserveMatchScore = fals
   }
   state.roundSeed = roundSeed(state.baseSeed, state.roundNumber);
   state.pegs = generateMirroredPegs(state.roundSeed);
+  state.roundSetup = createPinballRoundSetup(state.baseSeed, state.roundNumber);
   state.balls = [ball(1), ball(2)];
   state.countdownRemaining = 0;
   state.elapsed = 0;
@@ -171,6 +214,7 @@ export function resetPinballState(state: PinballState, preserveMatchScore = fals
 export function preparePinballRound(state: PinballState, countdownSeconds = 3.15): void {
   state.roundSeed = roundSeed(state.baseSeed, state.roundNumber);
   state.pegs = generateMirroredPegs(state.roundSeed);
+  state.roundSetup = createPinballRoundSetup(state.baseSeed, state.roundNumber);
   state.balls = [ball(1), ball(2)];
   state.countdownRemaining = countdownSeconds;
   state.elapsed = 0;
@@ -187,10 +231,10 @@ export function startPinballMatch(state: PinballState): void {
 }
 
 function launchBalls(state: PinballState): void {
-  state.balls[0].velocityX = 24;
-  state.balls[1].velocityX = -24;
-  state.balls[0].velocityY = 28;
-  state.balls[1].velocityY = 28;
+  state.balls[0].velocityX = state.roundSetup.launchVelocityX[0];
+  state.balls[1].velocityX = state.roundSetup.launchVelocityX[1];
+  state.balls[0].velocityY = state.roundSetup.launchVelocityY[0];
+  state.balls[1].velocityY = state.roundSetup.launchVelocityY[1];
   state.countdownRemaining = 0;
   state.phase = 'playing';
 }
@@ -219,6 +263,22 @@ export function isPinballTie(
   tolerance = PINBALL_TIE_TOLERANCE,
 ): boolean {
   return judgePinballRound(player1Time, player2Time, tolerance) === 0;
+}
+
+export function resolvePinballRound(
+  player1Time: number,
+  player2Time: number,
+  tieBreaker: 1 | 2,
+  tolerance = PINBALL_TIE_TOLERANCE,
+): PinballRoundResult {
+  const judgedWinner = judgePinballRound(player1Time, player2Time, tolerance);
+  const decidedByTieBreaker = judgedWinner === 0;
+  return {
+    winner: decidedByTieBreaker ? tieBreaker : judgedWinner,
+    times: [player1Time, player2Time],
+    difference: Math.abs(player1Time - player2Time),
+    decidedByTieBreaker,
+  };
 }
 
 export function applyPinballBoost(state: PinballState, player: 1 | 2): boolean {
@@ -356,17 +416,13 @@ function finishRound(state: PinballState): PinballRoundResult | null {
   const firstTime = state.balls[0].landedAt;
   const secondTime = state.balls[1].landedAt;
   if (firstTime === null || secondTime === null) return null;
-  const winner = judgePinballRound(firstTime, secondTime);
-  const result: PinballRoundResult = {
-    winner,
-    times: [firstTime, secondTime],
-    difference: Math.abs(firstTime - secondTime),
-  };
+  const result = resolvePinballRound(firstTime, secondTime, state.roundSetup.tieBreaker);
+  const { winner } = result;
   state.lastResult = result;
   if (winner === 1) state.roundWins[0] += 1;
-  else if (winner === 2) state.roundWins[1] += 1;
-  const winnerScore = winner === 1 ? state.roundWins[0] : winner === 2 ? state.roundWins[1] : 0;
-  if (winner !== 0 && winnerScore >= 2) {
+  else state.roundWins[1] += 1;
+  const winnerScore = winner === 1 ? state.roundWins[0] : state.roundWins[1];
+  if (winnerScore >= 2) {
     state.winner = winner;
     state.phase = 'matchOver';
   } else {

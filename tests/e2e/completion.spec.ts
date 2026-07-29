@@ -174,21 +174,14 @@ test('통통 배구는 5점 매치를 실제 프레임으로 완료하고 세션
   await expectCompletedSession(page, 'volleyball', 'either');
 });
 
-test('핀볼은 부스터를 사용한 2선승 매치를 완료하고 세션을 기록한다', async ({ page }) => {
+test('핀볼은 입력이 없어도 무승부를 반복하지 않고 2선승 매치를 완료한다', async ({ page }) => {
   test.setTimeout(45_000);
   await openGame(page, 'pinball-drop');
   await page.locator('#game-start').click();
-  const boost = page.locator('.pinball-boost').first();
   const dialog = page.getByRole('dialog', { name: '경기 결과' });
 
   for (let elapsed = 0; elapsed <= 100_000; elapsed += 100) {
     if (await dialog.isVisible()) break;
-    if (
-      (await page.locator('#game-phase').textContent()) === '경기 중' &&
-      (await boost.isEnabled())
-    ) {
-      await page.keyboard.press('a');
-    }
     await page.clock.runFor(100);
   }
   await expect(dialog).toBeVisible();
