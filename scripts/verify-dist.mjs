@@ -249,6 +249,40 @@ for (const [label, values] of [
   if (new Set(values).size !== 15) fail(errors, `Indexable ${label} values must be unique.`);
 }
 
+for (const game of GAME_CONTENT) {
+  const relativePath = `games/${game.slug}/index.html`;
+  const source = textSources.get(relativePath) ?? '';
+  const description = source.match(/<meta name="description" content="([^"]+)"/u)?.[1] ?? '';
+  const faqCount = source.match(/class="faq-item"/gu)?.length ?? 0;
+  if (!source.includes(`<title>${game.seo.title}</title>`)) {
+    fail(errors, `${relativePath} does not use its search title.`);
+  }
+  if (description.length < 70 || description.length > 160) {
+    fail(errors, `${relativePath} search description must be 70-160 characters.`);
+  }
+  if (!source.includes('data-game-use-cases') || faqCount !== 3) {
+    fail(errors, `${relativePath} must expose three use cases and three visible FAQ items.`);
+  }
+  if (source.includes('>게임 시작</a>') || source.includes('>가이드 보기</a>')) {
+    fail(errors, `${relativePath} contains a generic game link label.`);
+  }
+}
+
+for (const relativePath of ['how-to-play/index.html', 'fairness/index.html']) {
+  const source = textSources.get(relativePath) ?? '';
+  if (!source.includes('data-game-guide-directory')) {
+    fail(errors, `${relativePath} is missing its game guide directory.`);
+  }
+  for (const game of GAME_CONTENT) {
+    if (!source.includes(`href="${config.basePath}games/${game.slug}/"`)) {
+      fail(errors, `${relativePath} is missing the ${game.slug} guide link.`);
+    }
+  }
+}
+if (!indexSource.includes('data-game-discovery')) {
+  fail(errors, 'Root landing is missing search-intent game discovery links.');
+}
+
 const rootStructuredData = indexSource.match(
   /<script type="application\/ld\+json">([^<]+)<\/script>/u,
 )?.[1];

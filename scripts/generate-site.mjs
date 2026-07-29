@@ -10,17 +10,6 @@ const generatedRoot = config.generatedDirectory;
 const gameById = new Map(GAME_CONTENT.map((game) => [game.id, game]));
 const NAVER_SITE_VERIFICATION = '050d11bd1415bffdff627eb871a17814f1770115';
 
-const GAME_SEO_TITLES = Object.freeze({
-  omok: '웹 오목 2인용 — 규칙·조작·바로 플레이 | 모여PLAY',
-  pong: '2인용 웹 탁구 — 키보드·모바일 대전 | 모여PLAY',
-  volleyball: '통통 배구 — 2인용 점프 액션 | 모여PLAY',
-  'pinball-drop': '핀볼 늦게 떨어지기 — 대칭 보드 대결 | 모여PLAY',
-  ladder: '사다리 타기 — 2~8명 공정한 결과 추첨 | 모여PLAY',
-  'reaction-duel': '반응속도 대결 — 2인용 웹 반응 테스트 | 모여PLAY',
-  'tap-battle': '탭 배틀 — 2인용 연타 대결 | 모여PLAY',
-  roulette: '벌칙 룰렛 — 같은 확률의 파티 추첨 | 모여PLAY',
-});
-
 const GAME_ACCENTS = Object.freeze({
   omok: '#ffd447',
   pong: '#45e4e0',
@@ -42,6 +31,47 @@ const GAME_PLAYER_COUNTS = Object.freeze({
   'tap-battle': { value: 2 },
   roulette: { minValue: 2, maxValue: 12 },
 });
+
+const DISCOVERY_GROUPS = Object.freeze([
+  {
+    title: '둘이 한 화면 액션',
+    text: '키보드나 화면 양쪽 터치로 동시에 조작하는 짧은 대결입니다.',
+    games: ['pong', 'volleyball', 'pinball-drop', 'reaction-duel', 'tap-battle'],
+  },
+  {
+    title: '차분한 두뇌전',
+    text: '빠른 입력보다 수읽기와 방어에 집중하고 싶을 때 고르세요.',
+    games: ['omok'],
+  },
+  {
+    title: '3명 이상 모임 추첨',
+    text: '순서, 팀, 벌칙처럼 여러 사람의 결과를 정할 때 어울립니다.',
+    games: ['ladder', 'roulette'],
+  },
+  {
+    title: '1~4분 초단기 승부',
+    text: '쉬는 시간이나 다음 순서를 정할 때 빠르게 끝낼 수 있습니다.',
+    games: ['pinball-drop', 'reaction-duel', 'tap-battle', 'roulette'],
+  },
+]);
+
+const FAIRNESS_GROUPS = Object.freeze([
+  {
+    title: '보안 난수와 균등 추첨',
+    text: '각 결과의 확률을 같게 만드는 그룹 추첨 게임입니다.',
+    games: ['ladder', 'roulette'],
+  },
+  {
+    title: '대칭 조건과 결정론적 판정',
+    text: '같은 조건, 입력과 규칙으로 승패를 판정하는 게임입니다.',
+    games: ['omok', 'pong', 'volleyball', 'pinball-drop'],
+  },
+  {
+    title: '입력 시각과 유효 입력 판정',
+    text: '반응 시간 또는 유효한 새 입력을 기준으로 결과를 냅니다.',
+    games: ['reaction-duel', 'tap-battle'],
+  },
+]);
 
 const NAV_ITEMS = Object.freeze([
   { key: 'home', label: '홈', path: '/', icon: 'home' },
@@ -277,10 +307,37 @@ function renderStaticGameCard(game) {
       <h3>${escapeHtml(game.title)}</h3>
       <p>${escapeHtml(game.shortDescription)}</p>
       <div class="static-game-card__links">
-        <a href="${sitePath(`play/#game/${game.id}`)}">게임 시작</a>
-        <a href="${sitePath(`games/${game.slug}/`)}">가이드</a>
+        <a href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 바로 플레이</a>
+        <a href="${sitePath(`games/${game.slug}/`)}">${escapeHtml(game.title)} 규칙·조작 가이드</a>
       </div>
     </article>`;
+}
+
+function renderGuideDirectory({ id, title, intro, groups, dataAttribute }) {
+  return `<section id="${escapeHtml(id)}" ${dataAttribute}><h2>${escapeHtml(title)}</h2><p class="section-intro">${escapeHtml(intro)}</p><div class="feature-grid">${groups
+    .map(
+      (group) =>
+        `<article class="feature-card"><strong>${escapeHtml(group.title)}</strong><p>${escapeHtml(group.text)}</p><ul class="content-link-list">${group.games
+          .map((id) => gameById.get(id))
+          .filter(Boolean)
+          .map(
+            (game) =>
+              `<li><a href="${sitePath(`games/${game.slug}/`)}">${escapeHtml(game.title)} 게임 가이드</a></li>`,
+          )
+          .join('')}</ul></article>`,
+    )
+    .join('')}</div></section>`;
+}
+
+function renderDiscoveryGroups() {
+  return `<div class="article-body article-body--wide">${renderGuideDirectory({
+    id: 'find-a-game',
+    title: '인원과 분위기로 게임 찾기',
+    intro:
+      '원하는 플레이 방식부터 고르면 상세 규칙과 조작법을 확인한 뒤 바로 게임을 시작할 수 있습니다.',
+    groups: DISCOVERY_GROUPS,
+    dataAttribute: 'data-game-discovery',
+  })}</div>`;
 }
 
 function renderItems(items) {
@@ -363,6 +420,7 @@ function renderRoot(outputFile) {
       <div class="hero-art">${renderHeroPicture()}</div>
     </section>
     <section class="section-block" id="games"><h2>8가지 게임 가이드</h2><p class="section-intro">제목과 규칙을 먼저 살펴보거나 바로 게임을 열 수 있습니다. 모든 링크는 JavaScript 없이도 이동합니다.</p><div class="static-game-grid">${GAME_CONTENT.map(renderStaticGameCard).join('')}</div></section>
+    ${renderDiscoveryGroups()}
     <div class="article-body">${sections}</div>
     ${renderAdSlot()}`;
   return renderLayout({
@@ -370,7 +428,7 @@ function renderRoot(outputFile) {
     activeNav: 'home',
     inlineHeadScript: legacyScript,
     head: renderHead({
-      title: '모여PLAY — 설치 없이 함께 즐기는 8가지 파티 게임',
+      title: page.title,
       description: page.description,
       canonicalPath: '',
       structuredData: rootStructuredData(),
@@ -389,8 +447,8 @@ function guideStructuredData(game) {
         '@type': 'WebPage',
         '@id': `${url}#webpage`,
         url,
-        name: GAME_SEO_TITLES[game.id],
-        description: game.shortDescription,
+        name: game.seo.title,
+        description: game.seo.description,
         inLanguage: 'ko-KR',
         dateModified: game.updated,
         breadcrumb: { '@id': `${url}#breadcrumb` },
@@ -400,8 +458,12 @@ function guideStructuredData(game) {
         '@type': 'VideoGame',
         '@id': `${url}#game`,
         name: game.title,
+        alternateName: game.seo.aliases,
         description: game.longDescription,
         url,
+        image: absoluteUrl(`assets/og/${game.id}.png`),
+        genre: game.genre,
+        dateModified: game.updated,
         gamePlatform: 'Web browser',
         numberOfPlayers: {
           '@type': 'QuantitativeValue',
@@ -429,7 +491,16 @@ function renderStringList(items) {
 }
 
 function renderRelatedCard(game) {
-  return `<article class="feature-card"><strong>${escapeHtml(game.title)}</strong><p>${escapeHtml(game.shortDescription)}</p><a class="content-button" href="${sitePath(`games/${game.slug}/`)}">가이드 보기</a></article>`;
+  return `<article class="feature-card"><strong>${escapeHtml(game.title)}</strong><p>${escapeHtml(game.shortDescription)}</p><a class="content-button" href="${sitePath(`games/${game.slug}/`)}">${escapeHtml(game.title)} 게임 가이드</a></article>`;
+}
+
+function renderFaq(items) {
+  return `<div class="faq-list" data-game-faq>${items
+    .map(
+      (item) =>
+        `<details class="faq-item"><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`,
+    )
+    .join('')}</div>`;
 }
 
 function renderGuide(game, outputFile) {
@@ -442,7 +513,7 @@ function renderGuide(game, outputFile) {
     <section class="guide-hero">
       <div>
         <p class="content-kicker">${escapeHtml(game.genre)} · ${escapeHtml(game.players)}</p>
-        <h1>${escapeHtml(game.title)} 게임 가이드</h1>
+        <h1>${escapeHtml(game.seo.heading)}</h1>
         <p class="content-lead">${escapeHtml(game.longDescription)}</p>
         <div class="content-actions"><a class="content-button content-button--primary" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 바로 플레이</a><a class="content-button" href="${sitePath('fairness/')}">공정성 원칙</a></div>
       </div>
@@ -456,7 +527,7 @@ function renderGuide(game, outputFile) {
     </div>
     <img class="guide-screenshot" src="${sitePath(`assets/screenshots/${game.id}.webp`)}" width="1280" height="720" loading="lazy" decoding="async" alt="${escapeHtml(`${game.title} 실제 게임 화면`)}" />
     <div class="article-body">
-      <section><h2>이 게임이 잘 맞는 상황</h2><p>${escapeHtml(game.bestFor)}</p></section>
+      <section data-game-use-cases><h2>이런 때 추천합니다</h2><p>${escapeHtml(game.bestFor)}</p>${renderStringList(game.useCases)}</section>
       <section><h2>시작 전 준비</h2>${renderStringList(game.setup)}</section>
       <section><h2>규칙과 승리 조건</h2>${renderStringList(game.rules)}<div class="article-callout"><strong>승리 조건</strong><p>${escapeHtml(game.winCondition)}</p></div></section>
       <section><h2>조작 방법</h2><h3>데스크톱</h3>${renderStringList(game.controls.desktop)}<h3>모바일</h3>${renderStringList(game.controls.mobile)}</section>
@@ -464,6 +535,7 @@ function renderGuide(game, outputFile) {
       ${renderAdSlot()}
       <section><h2>실수하기 쉬운 점과 팁</h2>${renderStringList(game.tips)}</section>
       <section><h2>접근성과 화면 방향</h2>${renderStringList(game.accessibility)}</section>
+      <section><h2>${escapeHtml(game.title)} 자주 묻는 질문</h2>${renderFaq(game.faq)}</section>
       <section><h2>관련 게임</h2><div class="related-grid">${related.map(renderRelatedCard).join('')}</div></section>
       <section><h2>바로 한 판 시작하기</h2><p>${escapeHtml(game.shortDescription)}</p><a class="content-button content-button--primary" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)} 열기</a></section>
       <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보</h2><p>작성·운영: <a href="${sitePath('about/#operator-and-authorship')}">${escapeHtml(config.siteOperatorName || '모여PLAY 프로젝트')}</a></p><p>최초 작성: <time datetime="${escapeHtml(SITE_META.created)}">${escapeHtml(SITE_META.created)}</time> · 최종 수정: <time datetime="${escapeHtml(game.updated)}">${escapeHtml(game.updated)}</time></p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
@@ -472,8 +544,8 @@ function renderGuide(game, outputFile) {
     outputFile,
     activeNav: 'games',
     head: renderHead({
-      title: GAME_SEO_TITLES[game.id],
-      description: game.shortDescription,
+      title: game.seo.title,
+      description: game.seo.description,
       canonicalPath: `games/${game.slug}/`,
       ogImagePath: `assets/og/${game.id}.png`,
       imageAlt: `${game.title} — 모여PLAY 게임 가이드 미리보기`,
@@ -592,12 +664,31 @@ function renderContentPage(page, outputFile) {
     })
     .map(renderSection)
     .join('');
+  const gameGuideDirectory =
+    page.slug === 'how-to-play'
+      ? renderGuideDirectory({
+          id: 'game-guide-directory',
+          title: '게임별 규칙·조작 가이드',
+          intro:
+            '게임을 시작하기 전에 인원, 예상 시간, 승리 조건과 기기별 조작법을 상세 페이지에서 확인하세요.',
+          groups: DISCOVERY_GROUPS,
+          dataAttribute: 'data-game-guide-directory',
+        })
+      : page.slug === 'fairness'
+        ? renderGuideDirectory({
+            id: 'fairness-game-guides',
+            title: '판정 방식별 게임 가이드',
+            intro: '각 게임의 실제 규칙, 승리 조건과 구현상 공정성 설명을 함께 확인할 수 있습니다.',
+            groups: FAIRNESS_GROUPS,
+            dataAttribute: 'data-game-guide-directory',
+          })
+        : '';
   const body = `${renderBreadcrumb([
     { label: '홈', path: '/' },
     { label: page.title, path: page.path },
   ])}
     <header class="article-hero"><p class="content-kicker">모여PLAY 안내</p><h1>${escapeHtml(page.heading)}</h1><p class="content-lead">${escapeHtml(page.lead)}</p></header>
-    <div class="article-body">${privacyDisclosure}${operatorDisclosure}${contact}${sections}${page.effective ? `<p>시행일: <time datetime="${escapeHtml(page.effective)}">${escapeHtml(page.effective)}</time></p>` : ''}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
+    <div class="article-body">${privacyDisclosure}${operatorDisclosure}${contact}${sections}${gameGuideDirectory}${page.effective ? `<p>시행일: <time datetime="${escapeHtml(page.effective)}">${escapeHtml(page.effective)}</time></p>` : ''}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
   return renderLayout({
     outputFile,
     activeNav: page.slug,

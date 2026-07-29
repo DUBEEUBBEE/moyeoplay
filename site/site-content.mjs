@@ -1,8 +1,8 @@
 const INITIAL_CONTENT_DATE = '2026-07-19';
-const GUIDE_UPDATED = '2026-07-21';
 const TRUST_UPDATED = '2026-07-21';
 const ABOUT_UPDATED = '2026-07-22';
 const CONTACT_UPDATED = '2026-07-22';
+const SEARCH_UPDATED = '2026-07-29';
 
 export const SITE_META = Object.freeze({
   name: '모여PLAY',
@@ -13,7 +13,7 @@ export const SITE_META = Object.freeze({
   issuesUrl: 'https://github.com/DUBEEUBBEE/moyeoplay/issues',
   created: INITIAL_CONTENT_DATE,
   gameRoutePattern: '#game/{id}',
-  updated: TRUST_UPDATED,
+  updated: SEARCH_UPDATED,
 });
 
 export const GAME_CONTENT = Object.freeze([
@@ -21,11 +21,39 @@ export const GAME_CONTENT = Object.freeze([
     id: 'omok',
     slug: 'omok',
     title: '오목',
+    seo: {
+      title: '무료 2인용 웹 오목 — 규칙·조작·바로 플레이 | 모여PLAY',
+      description:
+        '설치 없이 한 기기에서 즐기는 무료 2인용 웹 오목입니다. 15×15 보드, 선공 교대, 무르기와 모바일·키보드 조작 규칙을 확인하고 바로 플레이하세요.',
+      heading: '무료 2인용 웹 오목 게임',
+      aliases: ['웹 오목', '2인용 오목', '무료 오목 게임'],
+    },
     shortDescription: '한 수 앞을 읽고 먼저 다섯 돌을 잇는 2인 보드 대결.',
     longDescription:
       '15×15 교차점 보드에서 P1은 흑돌, P2는 백돌을 맡아 차례로 돌을 놓습니다. 가로, 세로, 두 대각선 중 한 방향으로 같은 돌 5개 이상을 먼저 이으면 승리하므로, 짧은 경기에서도 수읽고 방어하는 재미를 느낄 수 있습니다.',
     bestFor:
       '빠른 손놀림보다 차분한 수읽기를 좋아하는 두 사람이 번갈아 한 수씩 고민하고 싶을 때 잘 맞습니다.',
+    useCases: [
+      '친구나 가족과 같은 화면에서 차분하게 두뇌전을 하고 싶을 때',
+      '키보드, 마우스 또는 모바일 터치로 번갈아 두는 무료 오목이 필요할 때',
+      '3분에서 8분 정도의 짧은 2인 토너먼트를 진행할 때',
+    ],
+    faq: [
+      {
+        question: '별도 설치나 회원가입이 필요한가요?',
+        answer: '아니요. 최신 브라우저에서 페이지를 열면 무료로 바로 시작할 수 있습니다.',
+      },
+      {
+        question: '금수나 렌주룰을 적용하나요?',
+        answer:
+          '현재는 흑과 백 모두 가로·세로·대각선으로 같은 돌 5개 이상을 먼저 이으면 승리하는 자유룰입니다.',
+      },
+      {
+        question: '휴대전화에서도 오목을 둘 수 있나요?',
+        answer:
+          '가능합니다. 첫 터치로 좌표를 선택한 뒤 놓기 버튼으로 확정해 작은 화면의 실수를 줄입니다.',
+      },
+    ],
     players: '2인',
     duration: '3–8분',
     genre: '두뇌전',
@@ -68,17 +96,45 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 세로 화면에서도 플레이할 수 있습니다.',
     ],
     related: ['pong', 'volleyball'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'pong',
     slug: 'pong',
     title: '탁구',
+    seo: {
+      title: '2인용 웹 탁구·핑퐁 게임 — 키보드·모바일 | 모여PLAY',
+      description:
+        '한 기기에서 둘이 즐기는 무료 웹 탁구·핑퐁 게임입니다. 키보드와 모바일 양쪽 터치로 패들을 움직이고 5·7·11점 대전을 바로 시작하세요.',
+      heading: '2인용 웹 탁구·핑퐁 게임',
+      aliases: ['웹 탁구', '핑퐁 게임', '2인용 탁구 게임'],
+    },
     shortDescription: '각도와 이동 방향을 실어 공을 받아치는 빠른 2인 랠리.',
     longDescription:
       '한 화면의 양쪽 패들을 나눠 조작하고 상대 뒤쪽 득점선으로 공을 보내는 반응 액션 게임입니다. 패들의 어느 위치에서 어떤 방향으로 움직이며 공을 맞히는지에 따라 반사 각도가 달라지고, 랠리가 이어질수록 공이 빨라집니다.',
     bestFor:
       '설명이 짧고 바로 시작할 수 있는 2인용 웹 액션 게임이나 짧은 토너먼트용 한 판이 필요할 때 어울립니다.',
+    useCases: [
+      '친구와 같은 키보드를 나눠 빠른 2인용 웹게임을 하고 싶을 때',
+      '휴대전화나 태블릿을 가로로 놓고 양쪽 터치 대전을 할 때',
+      '2분에서 4분 안에 끝나는 짧은 승부가 필요할 때',
+    ],
+    faq: [
+      {
+        question: '두 사람이 어떤 키를 사용하나요?',
+        answer: 'P1은 W/S, P2는 위/아래 방향키로 각자의 패들을 움직입니다.',
+      },
+      {
+        question: '모바일에서도 동시에 조작할 수 있나요?',
+        answer:
+          '가능합니다. 화면 양쪽의 상·하 버튼이 서로 다른 터치를 독립적으로 처리하며 가로 화면을 권장합니다.',
+      },
+      {
+        question: '공은 랠리가 길어질수록 빨라지나요?',
+        answer:
+          '네. 패들과 충돌할 때마다 속도가 조금씩 증가하지만 플레이 가능한 안전한 상한이 적용됩니다.',
+      },
+    ],
     players: '2인',
     duration: '2–4분',
     genre: '반응 액션',
@@ -116,17 +172,43 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'reaction-duel'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'volleyball',
     slug: 'volleyball',
     title: '통통 배구',
+    seo: {
+      title: '2인용 웹 배구 게임 — 키보드·모바일 점프 대전 | 모여PLAY',
+      description:
+        '설치 없이 한 화면에서 즐기는 무료 2인용 웹 배구 게임입니다. 키보드나 모바일 터치로 이동·점프해 상대 코트에 공을 떨어뜨리세요.',
+      heading: '2인용 웹 배구 게임',
+      aliases: ['2인용 배구 게임', '웹 배구', '점프 배구 게임'],
+    },
     shortDescription: '달리고 점프해 공을 상대 코트 바닥에 떨어뜨리는 2인 액션 대결.',
     longDescription:
       '한 기기의 양쪽에서 자기 캐릭터를 움직이고 점프해 공을 넘기는 점프 액션 게임입니다. 공의 낙하 위치를 예측해 먼저 자리를 잡고, 점프 타이밍과 충돌 각도로 상대 코트의 빈곳을 노립니다.',
     bestFor:
       '같은 화면에서 이동과 점프를 동시에 조작하며 예측과 타이밍을 겨루고 싶은 두 사람에게 잘 맞습니다.',
+    useCases: [
+      '둘이 같은 컴퓨터에서 이동과 점프를 함께 조작하고 싶을 때',
+      '모바일 가로 화면에서 양쪽 터치로 대전할 게임이 필요할 때',
+      '공의 낙하 지점을 예측하는 3분에서 5분짜리 액션 승부를 원할 때',
+    ],
+    faq: [
+      {
+        question: '배구공을 직접 때리는 버튼이 있나요?',
+        answer: '별도 공격 버튼 없이 이동과 점프로 캐릭터의 몸에 공을 맞혀 방향과 스핀을 바꿉니다.',
+      },
+      {
+        question: '점수는 언제 올라가나요?',
+        answer: '공이 한쪽 코트 바닥에 처음 닿는 순간 반대편 플레이어가 1점을 얻습니다.',
+      },
+      {
+        question: '휴대전화 세로 화면에서도 실행되나요?',
+        answer: '실행할 수 있지만 두 사람이 조작할 공간이 넓은 가로 화면을 권장합니다.',
+      },
+    ],
     players: '2인',
     duration: '3–5분',
     genre: '점프 액션',
@@ -167,17 +249,44 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['pong', 'pinball-drop'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'pinball-drop',
     slug: 'pinball-drop',
     title: '핀볼 늦게 떨어지기',
+    seo: {
+      title: '공 떨어지기 핀볼 게임 — 2인용 부스터 대결 | 모여PLAY',
+      description:
+        '공이 더 늦게 떨어지도록 부스터를 쓰는 무료 2인용 핀볼 게임입니다. 거울 대칭 보드에서 각자 3번의 부스터 타이밍을 겨뤄 보세요.',
+      heading: '공 떨어지기 2인용 핀볼 게임',
+      aliases: ['공떨어지기 게임', '공 떨어지기 게임', '핀볼 게임', '2인용 핀볼'],
+    },
     shortDescription: '대칭 보드에서 부스터 세 번을 아껴 더 오래 버티는 2인 타이밍 대결.',
     longDescription:
       '두 공이 거울처럼 대칭인 핀 배치에서 동시에 떨어집니다. 각 플레이어는 라운드당 세 번의 부스터로 공을 잠시 위로 밀어 올릴 수 있으며, 바닥선을 더 늦게 통과하는 쪽이 라운드를 이깁니다.',
     bestFor:
       '복잡한 키 조작 없이 같은 조건에서 부스터 세 번의 타이밍만으로 긴장감 있는 대결을 하고 싶을 때 적합합니다.',
+    useCases: [
+      '공 떨어지기 게임을 둘이 같은 조건에서 대결하고 싶을 때',
+      '키 하나 또는 터치 버튼 하나만 사용하는 쉬운 파티 게임이 필요할 때',
+      '짧은 라운드에서 세 번의 부스터 타이밍을 비교하고 싶을 때',
+    ],
+    faq: [
+      {
+        question: '공떨어지기 게임은 공을 먼저 떨어뜨리면 이기나요?',
+        answer: '아니요. 이 게임은 공이 바닥선을 더 늦게 통과한 플레이어가 라운드를 이깁니다.',
+      },
+      {
+        question: '양쪽 핀볼 보드는 같은 조건인가요?',
+        answer:
+          '네. 왼쪽 핀 배치를 오른쪽에 거울 복제하고 출발 조건과 부스터 힘도 같은 크기로 적용합니다.',
+      },
+      {
+        question: '부스터는 몇 번 사용할 수 있나요?',
+        answer: '라운드마다 각 플레이어에게 3회가 주어지며 사용 사이에는 짧은 쿨다운이 있습니다.',
+      },
+    ],
     players: '2인',
     duration: '2–4분',
     genre: '운 + 타이밍',
@@ -214,17 +323,45 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'pong'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'ladder',
     slug: 'ladder',
     title: '사다리 타기',
+    seo: {
+      title: '무료 온라인 사다리타기 — 2~8명 이름·결과 추첨 | 모여PLAY',
+      description:
+        '설치 없이 2~8명의 이름과 결과를 중복 없이 연결하는 무료 온라인 사다리타기입니다. 순서·역할·당번을 입력하고 경로를 하나씩 공개하세요.',
+      heading: '무료 온라인 사다리타기',
+      aliases: ['온라인 사다리타기', '사다리 게임', '이름 추첨'],
+    },
     shortDescription: '2–8명의 이름과 결과를 중복 없이 1:1로 배정하고 경로를 하나씩 공개합니다.',
     longDescription:
       '참가자 이름과 결과를 입력하면 브라우저 보안 난수로 모든 참가자에게 서로 다른 결과를 하나씩 배정합니다. 사다리를 생성한 후에는 내용과 매핑을 봉인하고, 한 명씩 경로를 공개하거나 전체 결과를 한 번에 확인할 수 있습니다.',
     bestFor:
       '2–8명의 순서, 역할, 간식처럼 서로 겹치지 않는 결과를 한 사람당 하나씩 배정해야 하는 모임에 적합합니다.',
+    useCases: [
+      '모임의 발표 순서, 당번 또는 역할을 중복 없이 정할 때',
+      '2명에서 8명의 이름과 서로 다른 결과를 한 명당 하나씩 배정할 때',
+      '한 사람씩 경로를 공개하며 추첨 과정을 함께 보고 싶을 때',
+    ],
+    faq: [
+      {
+        question: '같은 결과가 두 명에게 중복될 수 있나요?',
+        answer: '아니요. 각 참가자는 서로 다른 결과 하나와 1:1로 연결됩니다.',
+      },
+      {
+        question: '제자리 결과도 나올 수 있나요?',
+        answer:
+          '네. 모든 순열을 같은 확률로 허용하므로 첫 번째 참가자가 첫 번째 결과에 연결되는 경우도 정상입니다.',
+      },
+      {
+        question: '생성한 뒤 이름을 바꿀 수 있나요?',
+        answer:
+          '편집으로 돌아갈 수 있지만 기존 추첨과 공개 상태는 폐기되며 새 사다리를 생성해야 합니다.',
+      },
+    ],
     players: '2–8인',
     duration: '2–6분',
     genre: '복불복·랜덤 배정',
@@ -263,17 +400,44 @@ export const GAME_CONTENT = Object.freeze([
       '모션 감소 설정에서 선택한 경로를 즉시 공개합니다.',
     ],
     related: ['roulette', 'reaction-duel'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'reaction-duel',
     slug: 'reaction-duel',
     title: '반응속도 대결',
+    seo: {
+      title: '2인용 반응속도 테스트 — 무료 웹 반응 게임 | 모여PLAY',
+      description:
+        '한 기기에서 둘이 겨루는 무료 반응속도 테스트입니다. 신호 뒤 F·J 키나 양쪽 터치 버튼을 누르고 부정 출발 없이 먼저 3점을 얻어 보세요.',
+      heading: '2인용 반응속도 테스트',
+      aliases: ['반응속도 테스트', '2인용 반응 게임', '순발력 게임'],
+    },
     shortDescription: '신호가 켜지는 순간 먼저 누르되 성급한 부정 출발을 조심하는 2인 대결.',
     longDescription:
       '매 라운드 다른 대기 시간 뒤에 신호가 켜지면 자신의 키나 화면 영역을 누릅니다. 신호보다 먼저 누르면 상대에게 점수를 주므로, 빠른 반응만큼 기다리는 절제가 중요합니다.',
     bestFor:
       '두 사람이 같은 기기에서 순간 반응을 짧게 비교하되 부정 출발까지 포함한 명확한 승부를 원할 때 잘 맞습니다.',
+    useCases: [
+      '친구와 같은 키보드 또는 화면에서 순발력을 비교할 때',
+      '2분에서 3분 안에 끝나는 짧은 반응 게임이 필요할 때',
+      '빠른 입력뿐 아니라 부정 출발을 참는 집중력도 겨루고 싶을 때',
+    ],
+    faq: [
+      {
+        question: '신호 전에 누르면 어떻게 되나요?',
+        answer: '부정 출발로 처리되어 상대 플레이어가 1점을 얻습니다.',
+      },
+      {
+        question: '거의 동시에 누르면 누가 이기나요?',
+        answer: '반응 시간 차이가 8ms 이하이면 해당 라운드는 무승부로 처리합니다.',
+      },
+      {
+        question: '기기마다 반응속도 결과가 달라질 수 있나요?',
+        answer:
+          '네. 브라우저, 화면, 키보드와 터치 하드웨어의 지연 차이가 결과에 영향을 줄 수 있습니다.',
+      },
+    ],
     players: '2인',
     duration: '2–3분',
     genre: '순간 반응',
@@ -315,17 +479,44 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['tap-battle', 'pong'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'tap-battle',
     slug: 'tap-battle',
     title: '탭 배틀',
+    seo: {
+      title: '2인용 클릭 속도 테스트 — 탭 배틀 연타 게임 | 모여PLAY',
+      description:
+        '5·10·15초 동안 둘이 겨루는 무료 클릭 속도 테스트입니다. F·J 키나 화면 양쪽을 연타하고 탭 수와 초당 탭 수를 바로 비교하세요.',
+      heading: '2인용 클릭 속도 테스트',
+      aliases: ['클릭 속도 테스트', '탭 배틀', '2인용 연타 게임'],
+    },
     shortDescription: '정해진 시간 동안 각자의 영역을 더 많이 연타하는 2인 속도 대결.',
     longDescription:
       '5초, 10초, 15초 중 시간을 고르고 한 기기의 양쪽 영역을 나눠 연타합니다. 모든 유효한 탭은 점수에 반영되며, 탭 수·초당 탭 수·우세 게이지가 실시간으로 표시됩니다.',
     bestFor:
       '규칙 설명 없이도 바로 경쟁할 수 있는 짧고 강한 연타 대결이나 분위기 전환용 게임이 필요할 때 적합합니다.',
+    useCases: [
+      '친구와 키보드 F·J 또는 양쪽 터치로 클릭 속도를 비교할 때',
+      '5초짜리 초단기 승부부터 15초 지구력 대결까지 고르고 싶을 때',
+      '탭 수와 초당 탭 수를 바로 확인하는 연타 게임이 필요할 때',
+    ],
+    faq: [
+      {
+        question: '키를 계속 누르고 있어도 점수가 올라가나요?',
+        answer: '아니요. 키 자동 반복은 제외되므로 매 입력마다 키나 화면에서 손을 떼어야 합니다.',
+      },
+      {
+        question: '경기 시간은 어떻게 고르나요?',
+        answer: '5초, 10초, 15초 중에서 선택하며 기본 시간은 10초입니다.',
+      },
+      {
+        question: '휴대전화에서 두 사람이 동시에 탭할 수 있나요?',
+        answer:
+          '가능합니다. 서로 다른 터치를 독립적으로 처리하도록 양쪽에 큰 탭 영역을 제공합니다.',
+      },
+    ],
     players: '2인',
     duration: '라운드 5·10·15초, 설정과 재대결 포함 약 1분',
     genre: '연타 대결',
@@ -368,17 +559,45 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['reaction-duel', 'pong'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   {
     id: 'roulette',
     slug: 'roulette',
     title: '벌칙 룰렛',
+    seo: {
+      title: '무료 온라인 벌칙 룰렛 돌리기 — 랜덤 추첨 | 모여PLAY',
+      description:
+        '설치 없이 2~12개 후보를 같은 확률로 고르는 무료 온라인 벌칙 룰렛입니다. 벌칙·메뉴·순서·역할을 입력하고 룰렛을 바로 돌려 보세요.',
+      heading: '무료 온라인 벌칙 룰렛 돌리기',
+      aliases: ['벌칙 룰렛', '벌칙룰렛', '온라인 룰렛 돌리기', '랜덤 추첨기'],
+    },
     shortDescription: '2–12개의 후보나 벌칙 중 하나를 같은 확률로 선택합니다.',
     longDescription:
       '벌칙, 역할, 순서 등 2–12개 항목을 입력하고 룰렛을 돌립니다. 시작할 때 브라우저 보안 난수로 결과 index를 먼저 균등하게 고른 뒤, 바늘이 선택된 칸의 중심에 정확히 멈추도록 회전을 표시합니다.',
     bestFor:
       '여럿이 후보나 가벼운 벌칙 중 하나를 같은 확률로 빠르게 고르고 결과를 함께 확인하고 싶을 때 알맞습니다.',
+    useCases: [
+      '친구 모임에서 가벼운 벌칙이나 다음 순서를 정할 때',
+      '메뉴, 역할 또는 후보 2개에서 12개 중 하나를 고를 때',
+      '회원가입 없이 휴대전화에서 바로 룰렛 돌리기가 필요할 때',
+    ],
+    faq: [
+      {
+        question: '모든 룰렛 칸의 확률이 같은가요?',
+        answer: '네. 글자 길이나 화면의 위치와 관계없이 입력한 모든 항목을 같은 확률로 선택합니다.',
+      },
+      {
+        question: '벌칙룰렛 외에 메뉴나 순서도 정할 수 있나요?',
+        answer:
+          '가능합니다. 2~12개의 원하는 문구를 입력하므로 메뉴, 역할, 순서 추첨에도 쓸 수 있습니다.',
+      },
+      {
+        question: '회전 애니메이션이 결과를 바꾸나요?',
+        answer:
+          '아니요. 시작할 때 보안 난수로 결과를 먼저 고른 뒤 바늘이 선택된 칸 중심에 멈추도록 표시합니다.',
+      },
+    ],
     players: '2–12인',
     duration: '1–3분',
     genre: '랜덤 선택',
@@ -415,7 +634,7 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 작은 화면에서는 스크롤로 항목을 편집할 수 있습니다.',
     ],
     related: ['ladder', 'tap-battle'],
-    updated: GUIDE_UPDATED,
+    updated: SEARCH_UPDATED,
   },
 ]);
 
@@ -423,9 +642,9 @@ export const PAGE_CONTENT = Object.freeze({
   root: {
     slug: '',
     path: '/',
-    title: '모여PLAY | 한 기기에서 함께 즐기는 파티 게임',
+    title: '무료 웹게임 8가지 — 한 기기 2인·모임 게임 | 모여PLAY',
     description:
-      '로그인과 설치 없이 오목, 탁구, 배구, 핀볼, 사다리, 반응속도, 탭 배틀, 룰렛을 한 기기에서 즐겨 보세요.',
+      '로그인과 설치 없이 한 기기에서 즐기는 무료 웹게임 8가지를 만나 보세요. 2인용 오목·탁구·배구·핀볼과 모임용 사다리·벌칙 룰렛을 바로 시작할 수 있습니다.',
     eyebrow: 'LOCAL PARTY ARCADE',
     heading: '다 같이 모였다면, 바로 PLAY',
     lead: '모여PLAY는 친구, 가족, 동료가 한 대의 컴퓨터·태블릿·휴대전화를 나눠 사용하는 한국어 로컬 멀티플레이 파티 아케이드입니다.',
@@ -490,7 +709,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   about: {
     slug: 'about',
@@ -588,7 +807,8 @@ export const PAGE_CONTENT = Object.freeze({
     slug: 'how-to-play',
     path: '/how-to-play/',
     title: '플레이 방법',
-    description: '모여PLAY 게임 선택, 조작, 일시정지, 모바일 방향, 접근성 기능을 확인하세요.',
+    description:
+      '모여PLAY 무료 웹게임 8종의 선택 방법, 2인용 키보드·모바일 조작, 일시정지, 화면 방향과 접근성 기능을 한 번에 확인하세요.',
     heading: '선택하고, 나누고, 바로 플레이하세요',
     lead: '모여PLAY의 모든 게임은 한 기기에서 함께 사용하도록 만들어졌습니다. 게임별 인원과 조작법을 확인한 뒤 공통 HUD에서 시작합니다.',
     sections: [
@@ -648,13 +868,14 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   fairness: {
     slug: 'fairness',
     path: '/fairness/',
     title: '공정성과 결과 판정',
-    description: '모여PLAY의 보안 난수, 대칭 물리, 결정론적 판정, 입력 지연의 한계를 설명합니다.',
+    description:
+      '사다리·벌칙 룰렛의 보안 난수, 핀볼의 대칭 물리, 2인용 게임의 결정론적 판정과 반응속도 입력 지연 한계를 설명합니다.',
     heading: '게임마다 다른 ‘공정함’을 구체적으로 설명합니다',
     lead: '추첨 게임은 균등한 확률을, 물리 게임은 같은 조건과 안정적인 판정을, 반응 게임은 입력 시각을 공정성의 기준으로 삼습니다. 단, 브라우저 게임이 제거할 수 없는 기기·입력 하드웨어 차이도 함께 밝힙니다.',
     sections: [
@@ -736,7 +957,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: SEARCH_UPDATED,
   },
   privacy: {
     slug: 'privacy',

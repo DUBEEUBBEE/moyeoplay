@@ -266,6 +266,7 @@
 
 .static-game-card__links {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -316,6 +317,10 @@
   max-width: 860px;
 }
 
+.article-body--wide {
+  max-width: none;
+}
+
 .article-body section {
   padding: 36px 0;
   border-top: 1px solid var(--line);
@@ -352,6 +357,49 @@
 .content-link-list a {
   color: var(--cyan);
   text-underline-offset: 3px;
+}
+
+.feature-card .content-link-list {
+  display: grid;
+  margin-top: 18px;
+  gap: 8px;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--surface-raised), var(--surface));
+}
+
+.faq-item summary {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.faq-item summary::after {
+  margin-left: auto;
+  color: var(--cyan);
+  content: '＋';
+  font-size: 20px;
+}
+
+.faq-item[open] summary::after {
+  content: '−';
+}
+
+.faq-item p {
+  padding: 0 0 20px;
 }
 
 .guide-screenshot {
