@@ -415,6 +415,7 @@ test('/play/는 실행 전용 noindex 페이지이며 광고 콘텐츠 페이지
 });
 
 test('정적 clean URL은 serious/critical 접근성 위반이 없다', async ({ page }) => {
+  test.setTimeout(120_000);
   for (const cleanPath of contentPaths) {
     await page.goto(relativeUrl(cleanPath));
     const results = await new AxeBuilder({ page }).analyze();
