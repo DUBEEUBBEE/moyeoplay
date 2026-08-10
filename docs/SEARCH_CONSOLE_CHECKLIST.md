@@ -1,6 +1,6 @@
 # Google Search Console 수동 체크리스트
 
-최종 갱신: 2026-07-22
+최종 갱신: 2026-08-10
 
 Search Console 작업은 저장소 배포와 별개다. 이 문서에서 체크되지 않은 항목은 완료로 간주하지 않으며, verification token과 계정 식별 정보는 공개 저장소에 기록하지 않는다.
 
@@ -11,15 +11,17 @@ Search Console 작업은 저장소 배포와 별개다. 이 문서에서 체크�
 | custom-domain canonical·sitemap 코드    | 코드 준비   | 확인 완료 |
 | apex·`www` DNS routing                  | 외부 DNS    | 확인 완료 |
 | custom-domain TLS·HTTPS redirect        | 외부 Pages  | 확인 완료 |
-| Domain property `moyeoplay.studio` 생성 | 운영자 수동 | 미확인    |
-| DNS TXT 소유권 검증                     | 운영자 수동 | 미확인    |
-| sitemap 제출                            | 운영자 수동 | 미실행    |
-| sitemap `Success`                       | Google 결과 | 미확인    |
+| Domain property `moyeoplay.studio` 생성 | 운영자 수동 | 확인 완료 |
+| DNS TXT 소유권 검증                     | 운영자 수동 | 확인 완료 |
+| sitemap 제출                            | 운영자 수동 | 확인 완료 |
+| sitemap `Success`                       | Google 결과 | 확인 완료 |
 | URL Inspection·색인 요청                | 운영자 수동 | 미실행    |
 | Google-selected canonical               | Google 결과 | 미확인    |
-| Page indexing·Performance               | Google 결과 | 미확인    |
+| Page indexing·Performance               | Google 결과 | 관찰 완료 |
 
 저장소에는 Search Console API, Indexing API, 소유권 verification token 또는 sitemap 자동 제출 workflow가 없다. GitHub Actions 배포 성공을 Search Console 등록 성공으로 간주하지 않는다.
+
+2026-08-10 계정 화면의 최근 3개월 집계는 클릭 7회, 노출 300회, CTR 2.3%, 평균 게재순위 11.1이었다. 노출이 큰 검색어는 `벌칙 룰렛`, `무료 룰렛`, `온라인 룰렛`과 `공 떨어지기` 계열이었고, 페이지별로는 `/games/roulette/` 157회와 `/games/pinball-drop/` 99회 노출이 중심이었다. 이 자료는 편집 가이드 우선순위에만 사용하며, 수치와 색인 상태는 Google 처리에 따라 바뀌는 관찰값으로 기록한다.
 
 ## 1. 배포 전 코드 검사
 
@@ -33,8 +35,8 @@ npm run verify:dist
 npm run test:e2e:prod:run
 ```
 
-- [ ] 15개 색인 문서의 canonical, `og:url`, JSON-LD URL이 `https://moyeoplay.studio/`를 기준으로 한다.
-- [ ] `dist/sitemap.xml`에 custom-domain HTTPS URL 15개가 있고 hash URL·`/play/`·noindex URL이 없다.
+- [ ] 20개 색인 문서의 canonical, `og:url`, JSON-LD URL이 `https://moyeoplay.studio/`를 기준으로 한다.
+- [ ] `dist/sitemap.xml`에 custom-domain HTTPS URL 20개가 있고 hash URL·`/play/`·noindex URL이 없다.
 - [ ] 이전 Pages URL, example domain, placeholder token이 deployable `dist`에 없다.
 - [ ] `/play/`는 `noindex,follow`이며 robots에서 차단되지 않고 sitemap에 없다.
 - [ ] 실제 내용이 바뀐 페이지만 `dateModified`와 sitemap `lastmod`가 갱신됐다.
@@ -77,10 +79,10 @@ https://moyeoplay.studio/sitemap.xml
 - [ ] **Sitemaps** 보고서에서 위 URL을 제출한다.
 - [ ] Google이 fetch한 시각, HTTP 상태, parse 오류와 최종 status를 확인한다.
 - [ ] status가 실제 `Success`일 때만 성공으로 기록한다.
-- [ ] 로컬 예상 URL은 15개지만 Search Console의 **Discovered pages** 실제 수를 별도로 기록한다.
+- [ ] 로컬 예상 URL은 20개지만 Search Console의 **Discovered pages** 실제 수를 별도로 기록한다.
 - [ ] 오류가 있으면 fetch·parse 상세를 수정한 뒤 다시 제출한다.
 
-`Success`는 sitemap을 읽었다는 뜻이지 15개 URL의 crawl·index를 보장하지 않는다. [Google sitemap 생성·제출 안내](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
+`Success`는 sitemap을 읽었다는 뜻이지 20개 URL의 crawl·index를 보장하지 않는다. [Google sitemap 생성·제출 안내](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
 
 ## 5. URL Inspection
 

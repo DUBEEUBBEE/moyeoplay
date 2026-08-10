@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { GAME_CONTENT, PAGE_CONTENT, SITE_META } from '../site/site-content.mjs';
+import {
+  EDITORIAL_GUIDES,
+  GAME_CONTENT,
+  GAME_EXPERIENCE,
+  PAGE_CONTENT,
+  SITE_META,
+} from '../site/site-content.mjs';
 
 test('eight game guides have complete and unique search content', () => {
   assert.equal(GAME_CONTENT.length, 8);
@@ -34,7 +40,36 @@ test('eight game guides have complete and unique search content', () => {
       game.related.every((id) => ids.has(id) && id !== game.id),
       `${game.id} related`,
     );
-    assert.equal(game.updated, '2026-07-29', `${game.id} updated`);
+    assert.equal(game.updated, '2026-08-10', `${game.id} updated`);
+    const experience = GAME_EXPERIENCE[game.id];
+    assert.equal(experience.walkthrough.length, 4, `${game.id} walkthrough`);
+    assert.equal(experience.checks.length, 3, `${game.id} checks`);
+    assert.match(experience.sourcePath, new RegExp(`src/games/${game.id}/logic\\.ts$`, 'u'));
+    assert.match(experience.testPath, new RegExp(`src/games/${game.id}/logic\\.test\\.ts$`, 'u'));
+  }
+});
+
+test('editorial guides are substantial, unique, and tied to actual games', () => {
+  assert.equal(EDITORIAL_GUIDES.length, 4);
+  const slugs = new Set(EDITORIAL_GUIDES.map((guide) => guide.slug));
+  const titles = new Set(EDITORIAL_GUIDES.map((guide) => guide.title));
+  const descriptions = new Set(EDITORIAL_GUIDES.map((guide) => guide.description));
+  assert.equal(slugs.size, EDITORIAL_GUIDES.length);
+  assert.equal(titles.size, EDITORIAL_GUIDES.length);
+  assert.equal(descriptions.size, EDITORIAL_GUIDES.length);
+
+  const gameIds = new Set(GAME_CONTENT.map((game) => game.id));
+  for (const guide of EDITORIAL_GUIDES) {
+    assert.match(guide.title, /\| 모여PLAY$/u, `${guide.slug} title`);
+    assert.ok(guide.description.length >= 70, `${guide.slug} description`);
+    assert.ok(guide.description.length <= 180, `${guide.slug} description`);
+    assert.ok(guide.sections.length >= 7, `${guide.slug} sections`);
+    assert.equal(guide.faq.length, 3, `${guide.slug} FAQ`);
+    assert.ok(
+      guide.relatedGames.every((id) => gameIds.has(id)),
+      `${guide.slug} related games`,
+    );
+    assert.equal(guide.updated, '2026-08-10', `${guide.slug} updated`);
   }
 });
 
@@ -49,8 +84,9 @@ test('observed Search Console queries are represented by the matching guides', (
 });
 
 test('changed discovery pages share a truthful modification date', () => {
-  assert.equal(SITE_META.updated, '2026-07-29');
-  assert.equal(PAGE_CONTENT.root.updated, '2026-07-29');
-  assert.equal(PAGE_CONTENT['how-to-play'].updated, '2026-07-29');
-  assert.equal(PAGE_CONTENT.fairness.updated, '2026-07-29');
+  assert.equal(SITE_META.updated, '2026-08-10');
+  assert.equal(PAGE_CONTENT.root.updated, '2026-08-10');
+  assert.equal(PAGE_CONTENT.guides.updated, '2026-08-10');
+  assert.equal(PAGE_CONTENT['how-to-play'].updated, '2026-08-10');
+  assert.equal(PAGE_CONTENT.fairness.updated, '2026-08-10');
 });

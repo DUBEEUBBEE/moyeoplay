@@ -19,9 +19,17 @@ const games = [
   'tap-battle',
   'roulette',
 ] as const;
+const editorialGuides = [
+  'penalty-roulette-ideas',
+  'pinball-drop-timing',
+  'two-player-browser-games',
+  'party-game-host-guide',
+] as const;
 const indexablePaths = [
   './',
   ...games.map((game) => `./games/${game}/`),
+  './guides/',
+  ...editorialGuides.map((guide) => `./guides/${guide}/`),
   './about/',
   './how-to-play/',
   './fairness/',
@@ -32,6 +40,8 @@ const indexablePaths = [
 const adEligiblePaths = ['./', ...games.map((game) => `./games/${game}/`)] as const;
 const adExcludedPaths = [
   './404.html',
+  './guides/',
+  ...editorialGuides.map((guide) => `./guides/${guide}/`),
   './about/',
   './how-to-play/',
   './fairness/',

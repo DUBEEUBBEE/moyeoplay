@@ -7,11 +7,12 @@
 - 공개 사이트: [https://moyeoplay.studio/](https://moyeoplay.studio/)
 - 플레이 앱: [https://moyeoplay.studio/play/](https://moyeoplay.studio/play/)
 - 게임 가이드: `/games/omok/`, `/games/pong/`, `/games/volleyball/`, `/games/pinball-drop/`, `/games/ladder/`, `/games/reaction-duel/`, `/games/tap-battle/`, `/games/roulette/`
+- 편집 가이드: `/guides/`와 벌칙 룰렛·핀볼 타이밍·2인 브라우저 게임·파티 진행 가이드 4개
 - 안내 페이지: `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`
 - sitemap: [https://moyeoplay.studio/sitemap.xml](https://moyeoplay.studio/sitemap.xml)
 - 소스 저장소: [https://github.com/DUBEEUBBEE/moyeoplay](https://github.com/DUBEEUBBEE/moyeoplay)
 
-운영 빌드의 단일 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`입니다. 예전 `/#lobby`와 `/#game/<id>` 주소는 같은 상태의 `/play/` 주소로 `location.replace` 이동합니다. `/play/`는 `noindex,follow`이며 sitemap에는 15개 clean 콘텐츠 URL만 포함합니다.
+운영 빌드의 단일 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`입니다. 예전 `/#lobby`와 `/#game/<id>` 주소는 같은 상태의 `/play/` 주소로 `location.replace` 이동합니다. `/play/`는 `noindex,follow`이며 sitemap에는 20개 clean 콘텐츠 URL만 포함합니다.
 
 > 출시 상태 — 2026-07-22 점검에서 GitHub Pages 커스텀 도메인 TLS 인증서와 Enforce HTTPS가 활성화됐습니다. HTTP apex, HTTPS `www`, 이전 Pages URL은 path를 보존해 `https://moyeoplay.studio/`로 영구 redirect하며 live smoke를 통과했습니다. Search Console property·DNS 소유권·sitemap 제출과 AdSense 사이트 검증·심사 결과는 이 배포 상태와 분리해 확인합니다.
 
@@ -86,7 +87,7 @@ public/           최적화 아이콘·히어로, 실제 게임 스크린샷, OG
 docs/             아키텍처, QA, SEO·호스팅·AdSense·자산 provenance
 ```
 
-`scripts/generate-site.mjs`가 build 전에 `.generated-pages/`에 색인 문서 15개, `/play/`, branded `404.html`을 포함한 17개 HTML entry와 sitemap을 만듭니다. 각 게임은 `/play/`에서 진입할 때 동적으로 import되며 `mount → enter → start/pause/resume/reset → destroy` 생명주기를 따릅니다. 자세한 내용은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
+`scripts/generate-site.mjs`가 build 전에 `.generated-pages/`에 색인 문서 20개, `/play/`, branded `404.html`을 포함한 22개 HTML entry와 sitemap을 만듭니다. 각 게임은 `/play/`에서 진입할 때 동적으로 import되며 `mount → enter → start/pause/resume/reset → destroy` 생명주기를 따릅니다. 자세한 내용은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
 
 게임 아이콘·히어로와 OG는 저장소 master에서 다시 만들 수 있습니다. 실제 게임 화면은 production preview를 연 Playwright로 캡처합니다.
 
@@ -102,7 +103,7 @@ npm run assets:screenshots
 1. 모든 pull request에서 `npm ci`, 타입·포맷·린트 검사, 단위 테스트, custom root의 광고 off·account-meta-only·mock-ad 검사, 실제 배포 profile의 Chromium·WebKit production E2E를 실행합니다.
 2. `main` push에서는 같은 검사가 통과한 뒤 `dist`를 공식 Pages artifact로 업로드합니다.
 3. 별도 deploy job이 `pages: write`, `id-token: write`만 받아 `github-pages` environment로 배포합니다.
-4. 배포 직후 별도 live smoke job이 `https://moyeoplay.studio/`의 15개 색인 URL, `/play/`, root 파일, 메타데이터, 정적 자산과 Canvas 게임을 Chromium으로 다시 검사합니다. HTTP·`www` redirect test는 `E2E_CHECK_REDIRECTS=true`일 때 실행되며 Pages workflow는 출시 게이트로 이 값을 켭니다. TLS가 준비되지 않으면 job을 실패시켜 외부 blocker를 숨기지 않습니다.
+4. 배포 직후 별도 live smoke job이 `https://moyeoplay.studio/`의 20개 색인 URL, `/play/`, root 파일, 메타데이터, 정적 자산과 Canvas 게임을 Chromium으로 다시 검사합니다. HTTP·`www` redirect test는 `E2E_CHECK_REDIRECTS=true`일 때 실행되며 Pages workflow는 출시 게이트로 이 값을 켭니다. TLS가 준비되지 않으면 job을 실패시켜 외부 blocker를 숨기지 않습니다.
 
 workflow는 `SITE_URL`/`CUSTOM_DOMAIN`을 운영 URL의 단일 공급원으로 사용합니다. custom-domain profile은 base `/`와 PWA id·scope를 사용하고 `CNAME`, root `robots.txt`, 실제 publisher가 설정된 경우에만 root `ads.txt`를 생성합니다. GitHub Actions 방식에서는 artifact의 `CNAME`만으로 Pages custom domain이 설정되지 않으므로 **Settings → Pages의 custom domain, DNS, 인증서, Enforce HTTPS를 별도로 확인**해야 합니다. 자세한 내용은 [SEO 배포](docs/SEO_DEPLOYMENT.md)와 [호스팅·수익화](docs/HOSTING_AND_MONETIZATION.md)를 참고하세요.
 

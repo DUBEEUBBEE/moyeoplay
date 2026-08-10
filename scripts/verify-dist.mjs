@@ -1,7 +1,7 @@
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { GAME_CONTENT, PAGE_CONTENT } from '../site/site-content.mjs';
+import { EDITORIAL_GUIDES, GAME_CONTENT, PAGE_CONTENT } from '../site/site-content.mjs';
 import { resolveSiteConfig } from './site-config.mjs';
 
 const config = resolveSiteConfig();
@@ -16,6 +16,7 @@ const requiredHtml = [
   ...Object.entries(PAGE_CONTENT)
     .filter(([key]) => key !== 'root')
     .map(([, page]) => `${page.slug}/index.html`),
+  ...EDITORIAL_GUIDES.map((guide) => `guides/${guide.slug}/index.html`),
 ];
 const indexableRoutes = [
   { file: 'index.html', path: '' },
@@ -26,6 +27,10 @@ const indexableRoutes = [
   ...Object.entries(PAGE_CONTENT)
     .filter(([key]) => key !== 'root')
     .map(([, page]) => ({ file: `${page.slug}/index.html`, path: page.path.replace(/^\/+/, '') })),
+  ...EDITORIAL_GUIDES.map((guide) => ({
+    file: `guides/${guide.slug}/index.html`,
+    path: `guides/${guide.slug}/`,
+  })),
 ];
 
 async function listFiles(directory) {
@@ -246,7 +251,9 @@ for (const [label, values] of [
   ['title', titles],
   ['description', descriptions],
 ]) {
-  if (new Set(values).size !== 15) fail(errors, `Indexable ${label} values must be unique.`);
+  if (new Set(values).size !== indexableRoutes.length) {
+    fail(errors, `Indexable ${label} values must be unique.`);
+  }
 }
 
 for (const game of GAME_CONTENT) {
@@ -260,11 +267,41 @@ for (const game of GAME_CONTENT) {
   if (description.length < 70 || description.length > 160) {
     fail(errors, `${relativePath} search description must be 70-160 characters.`);
   }
-  if (!source.includes('data-game-use-cases') || faqCount !== 3) {
-    fail(errors, `${relativePath} must expose three use cases and three visible FAQ items.`);
+  if (
+    !source.includes('data-game-use-cases') ||
+    !source.includes('data-game-experience') ||
+    faqCount !== 3
+  ) {
+    fail(
+      errors,
+      `${relativePath} must expose use cases, first-hand implementation evidence, and three visible FAQ items.`,
+    );
   }
   if (source.includes('>게임 시작</a>') || source.includes('>가이드 보기</a>')) {
     fail(errors, `${relativePath} contains a generic game link label.`);
+  }
+}
+const guideHubSource = textSources.get('guides/index.html') ?? '';
+if (
+  !guideHubSource.includes('data-editorial-guide-directory') ||
+  !guideHubSource.includes('data-game-guide-directory')
+) {
+  fail(errors, 'guides/index.html must connect the editorial and game guide directories.');
+}
+for (const guide of EDITORIAL_GUIDES) {
+  const relativePath = `guides/${guide.slug}/index.html`;
+  const source = textSources.get(relativePath) ?? '';
+  const faqCount = source.match(/class="faq-item"/gu)?.length ?? 0;
+  const sectionCount = source.match(/<section(?:\s|>)/gu)?.length ?? 0;
+  if (
+    !source.includes(`<title>${guide.title}</title>`) ||
+    !source.includes('editorial-article') ||
+    !source.includes('class="content-table"') ||
+    !source.includes('직접 구현한 게임 규칙') ||
+    faqCount !== 3 ||
+    sectionCount < 10
+  ) {
+    fail(errors, `${relativePath} is missing substantial original guide content or authorship.`);
   }
 }
 
@@ -305,11 +342,14 @@ if (rootStructuredData) {
 const sitemapSource = textSources.get('sitemap.xml') ?? '';
 const sitemapUrls = [...sitemapSource.matchAll(/<loc>([^<]+)<\/loc>/gu)].map((match) => match[1]);
 if (
-  sitemapUrls.length !== 15 ||
-  new Set(sitemapUrls).size !== 15 ||
+  sitemapUrls.length !== indexableRoutes.length ||
+  new Set(sitemapUrls).size !== indexableRoutes.length ||
   sitemapUrls.some((url) => url.includes('#') || url.includes('/play/'))
 ) {
-  fail(errors, 'sitemap.xml must contain 15 unique clean indexable URLs and exclude /play/.');
+  fail(
+    errors,
+    `sitemap.xml must contain ${String(indexableRoutes.length)} unique clean indexable URLs and exclude /play/.`,
+  );
 }
 if (sitemapUrls.some((url) => !url.startsWith(config.siteUrl))) {
   fail(errors, 'sitemap.xml contains a URL outside SITE_URL.');
@@ -318,7 +358,7 @@ const expectedSitemapUrls = new Set(
   indexableRoutes.map((route) => new URL(route.path, config.siteUrl).href),
 );
 if (sitemapUrls.some((url) => !expectedSitemapUrls.has(url))) {
-  fail(errors, 'sitemap.xml does not match the expected 15 canonical routes.');
+  fail(errors, 'sitemap.xml does not match the expected canonical routes.');
 }
 
 const cnameExists = await exists(path.join(outputDirectory, 'CNAME'));
@@ -545,6 +585,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `Verified ${String(files.length)} production files, 17 HTML entries (15 indexable), 15 sitemap URLs, a noindex 404, dual-profile root rules, one responsive clay hero, and eight optimized game asset sets.`,
+    `Verified ${String(files.length)} production files, ${String(requiredHtml.length)} HTML entries (${String(indexableRoutes.length)} indexable), ${String(indexableRoutes.length)} sitemap URLs, a noindex 404, dual-profile root rules, one responsive clay hero, and eight optimized game asset sets.`,
   );
 }
