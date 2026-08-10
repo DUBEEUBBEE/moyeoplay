@@ -32,8 +32,8 @@ npm run audit:live
 
 ## 정적 콘텐츠·SEO·광고 검사
 
-- JavaScript를 끈 별도 browser context에서 루트, 8개 가이드, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
-- sitemap은 15개 clean canonical만 포함하고 `/play/`와 hash URL을 제외한다.
+- JavaScript를 끈 별도 browser context에서 루트, 8개 game guide, 5개 editorial guide, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
+- sitemap은 20개 clean canonical만 포함하고 `/play/`, 404와 hash URL을 제외한다.
 - `404.html`은 `noindex,follow`이며 canonical, JSON-LD, account meta와 광고 코드 없이 홈·게임·문의 복구 링크를 제공한다.
 - 모든 OG·Twitter image alt는 페이지당 정확히 하나이며 모든 콘텐츠 이미지에 width·height가 있다.
 - deployable `dist`의 canonical, OG/Twitter, JSON-LD, sitemap, manifest, robots sitemap과 공유 URL은 모두 `https://moyeoplay.studio/`에서 파생되어야 한다. 이전 Pages URL, example domain, placeholder AdSense ID가 하나라도 남으면 실패한다.
@@ -110,8 +110,8 @@ npm run audit:live
 ## GitHub Pages production smoke
 
 1. custom-domain 환경에서 `npm run build`, `npm run verify:dist`, `npm run test:e2e:prod:run`을 실행한다.
-2. HTTPS에서 `/`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`, 8개 `/games/<slug>/`, `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`, `/play/#lobby`를 검사한다.
-3. 15개 색인 문서는 200이고 unknown route는 404여야 한다. canonical·`og:url`은 custom domain이어야 하며 sitemap은 정확히 15개 clean HTTPS URL만 포함하고 `/play/`·hash URL을 제외해야 한다.
+2. HTTPS에서 `/`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`, 8개 `/games/<slug>/`, `/guides/`와 4개 editorial guide, `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`, `/play/#lobby`를 검사한다.
+3. 20개 색인 문서는 200이고 unknown route는 404여야 한다. canonical·`og:url`은 custom domain이어야 하며 sitemap은 정확히 20개 clean HTTPS URL만 포함하고 `/play/`·404·hash URL을 제외해야 한다.
 4. `/play/`는 `noindex,follow`이고 robots는 `/play/`를 차단하지 않아야 한다. 광고 off live 빌드는 account meta·slot·Google script·광고 요청이 0이고 `ads.txt`는 404여야 한다.
 5. favicon, manifest, apple icon, 192/512/maskable icon, 게임 아이콘·스크린샷·raster OG image가 모두 200이어야 한다. manifest `id`·`scope`는 `/`, `start_url`은 `/play/#lobby`여야 한다.
 6. 390×844 홈과 한 게임 가이드, 844×390 플레이 화면에서 horizontal overflow, 잘린 핵심 조작, console/page error가 없어야 한다.

@@ -20,9 +20,17 @@ const games = [
   'tap-battle',
   'roulette',
 ] as const;
+const editorialGuides = [
+  'penalty-roulette-ideas',
+  'pinball-drop-timing',
+  'two-player-browser-games',
+  'party-game-host-guide',
+] as const;
 const contentPaths = [
   '/',
   ...games.map((game) => `/games/${game}/`),
+  '/guides/',
+  ...editorialGuides.map((guide) => `/guides/${guide}/`),
   '/about/',
   '/how-to-play/',
   '/fairness/',
@@ -35,7 +43,7 @@ function relativeUrl(cleanPath: string): string {
   return cleanPath === '/' ? './' : `.${cleanPath}`;
 }
 
-test('15개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 제공한다', async ({
+test('20개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 제공한다', async ({
   browser,
   baseURL,
 }) => {
@@ -127,22 +135,24 @@ test('15개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 
         ? ['홈']
         : cleanPath.startsWith('/games/')
           ? ['게임']
-          : cleanPath === '/about/'
-            ? ['소개']
-            : cleanPath === '/fairness/'
-              ? ['공정성']
-              : cleanPath === '/how-to-play/'
-                ? ['도움말']
-                : [];
+          : cleanPath === '/guides/' || cleanPath.startsWith('/guides/')
+            ? ['가이드']
+            : cleanPath === '/about/'
+              ? ['소개']
+              : cleanPath === '/fairness/'
+                ? ['공정성']
+                : cleanPath === '/how-to-play/'
+                  ? ['도움말']
+                  : [];
     expect(metadata.currentNav, cleanPath).toEqual(expectedCurrentNav);
     titles.add(metadata.title);
     descriptions.add(metadata.description ?? '');
     canonicals.add(metadata.canonical ?? '');
   }
 
-  expect(titles.size).toBe(15);
-  expect(descriptions.size).toBe(15);
-  expect(canonicals.size).toBe(15);
+  expect(titles.size).toBe(contentPaths.length);
+  expect(descriptions.size).toBe(contentPaths.length);
+  expect(canonicals.size).toBe(contentPaths.length);
   await context.close();
 });
 
@@ -193,7 +203,7 @@ test('구조화 데이터는 실제 사이트·게임·breadcrumb만 설명한�
     );
     expect(videoGame?.image, game).toBe(`${expectedSiteUrl}assets/og/${game}.png`);
     expect(videoGame?.genre, game).toEqual(expect.any(String));
-    expect(videoGame?.dateModified, game).toBe('2026-07-29');
+    expect(videoGame?.dateModified, game).toBe('2026-08-10');
   }
 });
 
@@ -212,6 +222,8 @@ test('검색 의도별 탐색과 게임별 FAQ가 설명형 내부 링크로 연
       (await page.locator('meta[name="description"]').getAttribute('content')) ?? '';
     expect(description.length, game).toBeGreaterThanOrEqual(70);
     await expect(page.locator('[data-game-use-cases] li')).toHaveCount(3);
+    await expect(page.locator('[data-game-experience] li')).toHaveCount(7);
+    await expect(page.locator('[data-game-experience] a')).toHaveCount(2);
     await expect(page.locator('[data-game-faq] details')).toHaveCount(3);
     await expect(page.locator('[data-game-faq] summary').first()).not.toBeEmpty();
     const disclosureMarker = await page
@@ -231,9 +243,26 @@ test('검색 의도별 탐색과 게임별 FAQ가 설명형 내부 링크로 연
       .evaluateAll((links) => links.map((link) => (link as HTMLAnchorElement).pathname));
     expect(new Set(hrefs).size, path).toBe(8);
   }
+
+  await page.goto('./guides/');
+  await expect(page.locator('[data-editorial-guide-directory] .editorial-guide-card')).toHaveCount(
+    4,
+  );
+  await expect(page.locator('[data-game-guide-directory] a[href*="/games/"]')).toHaveCount(12);
+
+  for (const guide of editorialGuides) {
+    await page.goto(`./guides/${guide}/`);
+    expect(
+      await page.locator('.editorial-article > section').count(),
+      guide,
+    ).toBeGreaterThanOrEqual(10);
+    await expect(page.locator('[data-game-faq] details')).toHaveCount(3);
+    expect(await page.locator('.content-table').count(), guide).toBeGreaterThan(0);
+    await expect(page.locator('.guide-byline')).toContainText('직접 구현한 게임 규칙');
+  }
 });
 
-test('sitemap은 15개 canonical clean URL만 포함하고 /play/와 hash를 제외한다', async ({
+test('sitemap은 20개 canonical clean URL만 포함하고 /play/와 hash를 제외한다', async ({
   request,
 }) => {
   const response = await request.get('./sitemap.xml');
@@ -242,8 +271,8 @@ test('sitemap은 15개 canonical clean URL만 포함하고 /play/와 hash를 제
   const urls = [...source.matchAll(/<loc>([^<]+)<\/loc>/gu)]
     .map((match) => match[1])
     .filter((url): url is string => Boolean(url));
-  expect(urls).toHaveLength(15);
-  expect(new Set(urls).size).toBe(15);
+  expect(urls).toHaveLength(contentPaths.length);
+  expect(new Set(urls).size).toBe(contentPaths.length);
   expect(urls.some((url) => url.includes('#') || url.includes('/play/'))).toBe(false);
   expect(urls).toEqual(
     contentPaths.map((cleanPath) => new URL(cleanPath.replace(/^\//u, ''), expectedSiteUrl).href),
@@ -266,7 +295,9 @@ test('콘텐츠 dateModified와 sitemap lastmod는 같은 실제 갱신일을 �
       .locator('script[type="application/ld+json"]')
       .evaluate((script) => {
         const graph = JSON.parse(script.textContent) as { '@graph': Record<string, unknown>[] };
-        return graph['@graph'].find((entry) => entry['@type'] === 'WebPage')?.dateModified;
+        return graph['@graph'].find(
+          (entry) => entry['@type'] === 'WebPage' || entry['@type'] === 'Article',
+        )?.dateModified;
       });
     const canonical = new URL(cleanPath.replace(/^\//u, ''), expectedSiteUrl).href;
     expect(webPageModified, cleanPath).toBe(lastModifiedByUrl.get(canonical));

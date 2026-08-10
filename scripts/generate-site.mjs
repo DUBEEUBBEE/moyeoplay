@@ -1,7 +1,13 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GAME_CONTENT, PAGE_CONTENT, SITE_META } from '../site/site-content.mjs';
+import {
+  EDITORIAL_GUIDES,
+  GAME_CONTENT,
+  GAME_EXPERIENCE,
+  PAGE_CONTENT,
+  SITE_META,
+} from '../site/site-content.mjs';
 import { resolveSiteConfig } from './site-config.mjs';
 
 const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -76,6 +82,7 @@ const FAIRNESS_GROUPS = Object.freeze([
 const NAV_ITEMS = Object.freeze([
   { key: 'home', label: '홈', path: '/', icon: 'home' },
   { key: 'games', label: '게임', path: '/#games', icon: 'game', mobileSecondary: true },
+  { key: 'guides', label: '가이드', path: '/guides/', icon: 'guides' },
   { key: 'about', label: '소개', path: '/about/', icon: 'about' },
   { key: 'fairness', label: '공정성', path: '/fairness/', icon: 'fairness' },
   {
@@ -204,6 +211,9 @@ function renderNavIcon(icon) {
   if (icon === 'fairness') {
     return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v17M6 6h12M6 6l-3 6h6L6 6Zm12 0-3 6h6l-3-6ZM8 20h8"/></svg>';
   }
+  if (icon === 'guides') {
+    return '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v11.5H8.5A3.5 3.5 0 0 1 5 16V4.5Zm0 11.5a3.5 3.5 0 0 1 3.5-3.5H19M9 8h6"/></svg>';
+  }
   return '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.7-2.2 2-2.2 3.5M12 17h.01"/></svg>';
 }
 
@@ -229,6 +239,7 @@ function renderFooter() {
       <div><strong>모여PLAY</strong><p>게임 설정과 최근 전적은 운영 서버에 업로드하지 않고 현재 브라우저에 저장합니다.</p></div>
       <nav class="content-footer__nav" aria-label="정책 및 안내">
         <a href="${sitePath()}">게임</a>
+        <a href="${sitePath('guides/')}">가이드</a>
         <a href="${sitePath('about/')}">소개</a>
         <a href="${sitePath('how-to-play/')}">사용법</a>
         <a href="${sitePath('fairness/')}">공정성</a>
@@ -313,6 +324,24 @@ function renderStaticGameCard(game) {
     </article>`;
 }
 
+function renderEditorialGuideCard(guide) {
+  const relatedNames = guide.relatedGames
+    .map((id) => gameById.get(id)?.title)
+    .filter(Boolean)
+    .join(' · ');
+  return `<article class="feature-card editorial-guide-card">
+      <p class="content-kicker">${escapeHtml(guide.eyebrow)}</p>
+      <h3>${escapeHtml(guide.heading)}</h3>
+      <p>${escapeHtml(guide.description)}</p>
+      <p class="editorial-guide-card__meta">${escapeHtml(guide.readingTime)} · ${escapeHtml(relatedNames)}</p>
+      <a class="content-button" href="${sitePath(`guides/${guide.slug}/`)}">${escapeHtml(guide.heading)} 읽기</a>
+    </article>`;
+}
+
+function renderEditorialGuideDirectory() {
+  return `<section class="section-block" data-editorial-guide-directory><h2>플레이를 더 쉽게 만드는 실전 가이드</h2><p class="section-intro">실제 검색과 플레이 중 자주 생긴 질문을 기준으로 룰렛 항목, 공 떨어지기 타이밍, 2인 게임 선택과 모임 진행을 깊게 설명합니다.</p><div class="feature-grid editorial-guide-grid">${EDITORIAL_GUIDES.map(renderEditorialGuideCard).join('')}</div><p class="section-more"><a class="content-button" href="${sitePath('guides/')}">전체 가이드 자료실 보기</a></p></section>`;
+}
+
 function renderGuideDirectory({ id, title, intro, groups, dataAttribute }) {
   return `<section id="${escapeHtml(id)}" ${dataAttribute}><h2>${escapeHtml(title)}</h2><p class="section-intro">${escapeHtml(intro)}</p><div class="feature-grid">${groups
     .map(
@@ -375,6 +404,43 @@ function renderSection(section) {
   return `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.title)}</h2>${paragraphs}${list}${items}${note}${link}${links}</section>`;
 }
 
+function renderContentTable(table) {
+  const tableLabel = `${table.headers.join(', ')} 표, 좌우로 스크롤 가능`;
+  return `<div class="content-table-wrap" role="region" aria-label="${escapeHtml(tableLabel)}" tabindex="0"><table class="content-table"><thead><tr>${table.headers
+    .map((header) => `<th scope="col">${escapeHtml(header)}</th>`)
+    .join('')}</tr></thead><tbody>${table.rows
+    .map(
+      (row) =>
+        `<tr>${row
+          .map((cell, index) =>
+            index === 0
+              ? `<th scope="row">${escapeHtml(cell)}</th>`
+              : `<td>${escapeHtml(cell)}</td>`,
+          )
+          .join('')}</tr>`,
+    )
+    .join('')}</tbody></table></div>`;
+}
+
+function renderEditorialSection(section) {
+  const paragraphs = section.paragraphs
+    ? section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('')
+    : '';
+  const steps = section.steps
+    ? `<ol>${section.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>`
+    : '';
+  const bullets = section.bullets ? renderStringList(section.bullets) : '';
+  const items = section.items ? renderItems(section.items) : '';
+  const table = section.table ? renderContentTable(section.table) : '';
+  const note = section.note
+    ? `<aside class="article-callout"><strong>진행 메모</strong><p>${escapeHtml(section.note)}</p></aside>`
+    : '';
+  const link = section.link
+    ? `<p><a class="content-button" href="${sitePath(section.link.href)}">${escapeHtml(section.link.label)}</a></p>`
+    : '';
+  return `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.title)}</h2>${paragraphs}${items}${table}${steps}${bullets}${note}${link}</section>`;
+}
+
 function rootStructuredData() {
   return {
     '@context': 'https://schema.org',
@@ -420,6 +486,7 @@ function renderRoot(outputFile) {
       <div class="hero-art">${renderHeroPicture()}</div>
     </section>
     <section class="section-block" id="games"><h2>8가지 게임 가이드</h2><p class="section-intro">제목과 규칙을 먼저 살펴보거나 바로 게임을 열 수 있습니다. 모든 링크는 JavaScript 없이도 이동합니다.</p><div class="static-game-grid">${GAME_CONTENT.map(renderStaticGameCard).join('')}</div></section>
+    ${renderEditorialGuideDirectory()}
     ${renderDiscoveryGroups()}
     <div class="article-body">${sections}</div>
     ${renderAdSlot()}`;
@@ -503,6 +570,14 @@ function renderFaq(items) {
     .join('')}</div>`;
 }
 
+function renderGameExperience(game) {
+  const experience = GAME_EXPERIENCE[game.id];
+  if (!experience) throw new Error(`Missing first-hand guide evidence for ${game.id}.`);
+  const sourceUrl = `${SITE_META.repositoryUrl}/blob/main/${experience.sourcePath}`;
+  const testUrl = `${SITE_META.repositoryUrl}/blob/main/${experience.testPath}`;
+  return `<section data-game-experience><h2>한 판 따라하기</h2>${renderStringList(experience.walkthrough)}<h3>직접 구현하고 확인한 항목</h3>${renderStringList(experience.checks)}<p class="article-source-links"><a href="${escapeHtml(sourceUrl)}" rel="noopener noreferrer">${escapeHtml(game.title)} 판정 구현 보기</a><a href="${escapeHtml(testUrl)}" rel="noopener noreferrer">${escapeHtml(game.title)} 회귀 테스트 보기</a></p></section>`;
+}
+
 function renderGuide(game, outputFile) {
   const related = game.related.map((id) => gameById.get(id)).filter(Boolean);
   const body = `${renderBreadcrumb([
@@ -532,6 +607,7 @@ function renderGuide(game, outputFile) {
       <section><h2>규칙과 승리 조건</h2>${renderStringList(game.rules)}<div class="article-callout"><strong>승리 조건</strong><p>${escapeHtml(game.winCondition)}</p></div></section>
       <section><h2>조작 방법</h2><h3>데스크톱</h3>${renderStringList(game.controls.desktop)}<h3>모바일</h3>${renderStringList(game.controls.mobile)}</section>
       <section><h2>공정성</h2>${renderStringList(game.fairness)}<p><a class="content-button" href="${sitePath('fairness/')}">전체 공정성 설명 보기</a></p></section>
+      ${renderGameExperience(game)}
       ${renderAdSlot()}
       <section><h2>실수하기 쉬운 점과 팁</h2>${renderStringList(game.tips)}</section>
       <section><h2>접근성과 화면 방향</h2>${renderStringList(game.accessibility)}</section>
@@ -551,6 +627,81 @@ function renderGuide(game, outputFile) {
       imageAlt: `${game.title} — 모여PLAY 게임 가이드 미리보기`,
       ogType: 'article',
       structuredData: guideStructuredData(game),
+    }),
+    body,
+  });
+}
+
+function editorialGuideStructuredData(guide) {
+  const url = absoluteUrl(`guides/${guide.slug}/`);
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Article',
+        '@id': `${url}#article`,
+        headline: guide.heading,
+        description: guide.description,
+        url,
+        image: absoluteUrl('og-cover.png'),
+        inLanguage: 'ko-KR',
+        datePublished: guide.published,
+        dateModified: guide.updated,
+        author: {
+          '@type': 'Organization',
+          name: config.siteOperatorName || '모여PLAY 프로젝트',
+          url: absoluteUrl('about/'),
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: SITE_META.name,
+          url: config.siteUrl,
+        },
+        breadcrumb: { '@id': `${url}#breadcrumb` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${url}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: '홈', item: config.siteUrl },
+          { '@type': 'ListItem', position: 2, name: '가이드', item: absoluteUrl('guides/') },
+          { '@type': 'ListItem', position: 3, name: guide.heading, item: url },
+        ],
+      },
+    ],
+  };
+}
+
+function renderEditorialGuide(guide, outputFile) {
+  const related = guide.relatedGames.map((id) => gameById.get(id)).filter(Boolean);
+  const body = `${renderBreadcrumb([
+    { label: '홈', path: '/' },
+    { label: '가이드', path: '/guides/' },
+    { label: guide.heading, path: `/guides/${guide.slug}/` },
+  ])}
+    <header class="article-hero editorial-hero">
+      <p class="content-kicker">${escapeHtml(guide.eyebrow)}</p>
+      <h1>${escapeHtml(guide.heading)}</h1>
+      <p class="content-lead">${escapeHtml(guide.lead)}</p>
+      <dl class="editorial-meta"><div><dt>읽는 시간</dt><dd>${escapeHtml(guide.readingTime)}</dd></div><div><dt>대상</dt><dd>${escapeHtml(guide.audience)}</dd></div><div><dt>최종 확인</dt><dd><time datetime="${escapeHtml(guide.updated)}">${escapeHtml(guide.updated)}</time></dd></div></dl>
+    </header>
+    <div class="article-body editorial-article">
+      ${guide.sections.map(renderEditorialSection).join('')}
+      <section><h2>자주 묻는 질문</h2>${renderFaq(guide.faq)}</section>
+      <section><h2>관련 게임 직접 확인하기</h2><div class="related-grid">${related.map(renderRelatedCard).join('')}</div></section>
+      <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보와 검증 방법</h2><p>작성·운영: <a href="${sitePath('about/#operator-and-authorship')}">${escapeHtml(config.siteOperatorName || '모여PLAY 프로젝트')}</a></p><p>최초 작성·최종 확인: <time datetime="${escapeHtml(guide.updated)}">${escapeHtml(guide.updated)}</time></p><p>이 글은 모여PLAY가 직접 구현한 게임 규칙, production 화면과 공개 회귀 테스트를 기준으로 작성했습니다. 결과를 보장하는 공략이나 중요한 결정을 위한 전문 조언이 아닙니다.</p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
+      <p><a class="content-button" href="${sitePath('guides/')}">가이드 자료실로 돌아가기</a></p>
+    </div>`;
+  return renderLayout({
+    outputFile,
+    activeNav: 'guides',
+    head: renderHead({
+      title: guide.title,
+      description: guide.description,
+      canonicalPath: `guides/${guide.slug}/`,
+      ogType: 'article',
+      imageAlt: `${guide.heading} — 모여PLAY 실전 가이드`,
+      structuredData: editorialGuideStructuredData(guide),
     }),
     body,
   });
@@ -683,12 +834,24 @@ function renderContentPage(page, outputFile) {
             dataAttribute: 'data-game-guide-directory',
           })
         : '';
+  const editorialDirectory =
+    page.slug === 'guides'
+      ? `${renderEditorialGuideDirectory()}<div class="article-body article-body--wide">${renderGuideDirectory(
+          {
+            id: 'all-game-guides',
+            title: '8개 게임의 규칙·조작 가이드',
+            intro: '실제 화면, 한 판 따라하기, 승리 조건과 공개 회귀 테스트를 게임별로 확인하세요.',
+            groups: DISCOVERY_GROUPS,
+            dataAttribute: 'data-game-guide-directory',
+          },
+        )}</div>`
+      : '';
   const body = `${renderBreadcrumb([
     { label: '홈', path: '/' },
     { label: page.title, path: page.path },
   ])}
     <header class="article-hero"><p class="content-kicker">모여PLAY 안내</p><h1>${escapeHtml(page.heading)}</h1><p class="content-lead">${escapeHtml(page.lead)}</p></header>
-    <div class="article-body">${privacyDisclosure}${operatorDisclosure}${contact}${sections}${gameGuideDirectory}${page.effective ? `<p>시행일: <time datetime="${escapeHtml(page.effective)}">${escapeHtml(page.effective)}</time></p>` : ''}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>`;
+    <div class="article-body">${privacyDisclosure}${operatorDisclosure}${contact}${sections}${gameGuideDirectory}${page.effective ? `<p>시행일: <time datetime="${escapeHtml(page.effective)}">${escapeHtml(page.effective)}</time></p>` : ''}<p>최종 갱신: <time datetime="${escapeHtml(page.updated)}">${escapeHtml(page.updated)}</time></p></div>${editorialDirectory}`;
   return renderLayout({
     outputFile,
     activeNav: page.slug,
@@ -752,13 +915,18 @@ function sitemapSource() {
   const entries = [
     { path: '', updated: PAGE_CONTENT.root.updated },
     ...GAME_CONTENT.map((game) => ({ path: `games/${game.slug}/`, updated: game.updated })),
+    { path: PAGE_CONTENT.guides.path, updated: PAGE_CONTENT.guides.updated },
+    ...EDITORIAL_GUIDES.map((guide) => ({
+      path: `guides/${guide.slug}/`,
+      updated: guide.updated,
+    })),
     ...Object.entries(PAGE_CONTENT)
-      .filter(([key]) => key !== 'root')
+      .filter(([key]) => key !== 'root' && key !== 'guides')
       .map(([, page]) => ({ path: page.path, updated: page.updated })),
   ];
   const unique = new Set(entries.map((entry) => absoluteUrl(entry.path)));
-  if (unique.size !== 15 || entries.length !== 15) {
-    throw new Error('Sitemap must contain exactly 15 unique indexable clean URLs.');
+  if (unique.size !== entries.length) {
+    throw new Error('Sitemap must contain only unique indexable clean URLs.');
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries
     .map(
@@ -790,6 +958,13 @@ async function generate() {
       renderContentPage(page, path.join(generatedRoot, relativePath)),
     );
   }
+  for (const guide of EDITORIAL_GUIDES) {
+    const relativePath = `guides/${guide.slug}/index.html`;
+    await writeGenerated(
+      relativePath,
+      renderEditorialGuide(guide, path.join(generatedRoot, relativePath)),
+    );
+  }
 
   await writeGenerated('sitemap.xml', sitemapSource());
   if (config.basePath === '/') {
@@ -807,7 +982,7 @@ async function generate() {
   if (config.customDomain) await writeGenerated('CNAME', `${config.customDomain}\n`);
 
   console.log(
-    `Generated 17 HTML entries (15 indexable, /play/, and 404) for ${config.siteUrl} (${config.basePath}) with AdSense account metadata ${config.adsense.accountMetaEnabled ? 'enabled' : 'disabled'} and ads ${config.adsense.adsEnabled ? 'enabled' : 'disabled'}.`,
+    `Generated ${String(EDITORIAL_GUIDES.length + GAME_CONTENT.length + Object.keys(PAGE_CONTENT).length + 2)} HTML entries (${String(EDITORIAL_GUIDES.length + GAME_CONTENT.length + Object.keys(PAGE_CONTENT).length)} indexable, /play/, and 404) for ${config.siteUrl} (${config.basePath}) with AdSense account metadata ${config.adsense.accountMetaEnabled ? 'enabled' : 'disabled'} and ads ${config.adsense.adsEnabled ? 'enabled' : 'disabled'}.`,
   );
 }
 

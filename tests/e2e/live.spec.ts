@@ -26,9 +26,17 @@ const games = [
   'tap-battle',
   'roulette',
 ] as const;
+const editorialGuides = [
+  'penalty-roulette-ideas',
+  'pinball-drop-timing',
+  'two-player-browser-games',
+  'party-game-host-guide',
+] as const;
 const indexableRoutes = [
   { label: '홈', path: '' },
   ...games.map((game) => ({ label: game, path: `games/${game}/` })),
+  { label: '가이드 자료실', path: 'guides/' },
+  ...editorialGuides.map((guide) => ({ label: guide, path: `guides/${guide}/` })),
   { label: '소개', path: 'about/' },
   { label: '이용 방법', path: 'how-to-play/' },
   { label: '공정성', path: 'fairness/' },
@@ -159,7 +167,7 @@ test.describe('live custom-domain smoke', () => {
     }
   });
 
-  test('15 indexable routes are real custom-domain documents rather than soft 404s', async ({
+  test('20 indexable routes are real custom-domain documents rather than soft 404s', async ({
     baseURL,
     page,
   }) => {
@@ -361,7 +369,7 @@ test.describe('live custom-domain smoke', () => {
       (route) => new URL(route.path, EXPECTED_SITE).href,
     );
     expect(sitemapUrls).toEqual(expectedSitemapUrls);
-    expect(new Set(sitemapUrls).size).toBe(15);
+    expect(new Set(sitemapUrls).size).toBe(indexableRoutes.length);
     expect(sitemapUrls.some((url) => url.includes('/play/') || url.includes('#'))).toBe(false);
 
     const robotsResponse = await request.get(new URL('robots.txt', EXPECTED_SITE).href);

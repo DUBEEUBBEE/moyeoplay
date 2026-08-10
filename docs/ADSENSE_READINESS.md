@@ -1,6 +1,6 @@
 # AdSense 준비 체크리스트
 
-최종 갱신: 2026-07-26
+최종 갱신: 2026-08-10
 
 이 문서는 **코드 준비**, **운영자 수동 작업**, **Google 결과**를 구분한다. 코드와 테스트가 통과해도 AdSense 사이트 연결, 심사 또는 광고 승인을 의미하지 않는다.
 
@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-| 항목                                    | 분류          | 2026-07-26 상태                                         |
+| 항목                                    | 분류          | 2026-08-10 상태                                         |
 | --------------------------------------- | ------------- | ------------------------------------------------------- |
 | custom root production artifact         | 코드 준비     | 확인 완료                                               |
 | account meta와 광고 송출 분리           | 코드·라이브   | account-meta-only 확인 완료                             |
@@ -20,13 +20,26 @@
 | 실제 AdSense client·publisher ID        | 운영자·라이브 | 설정·형식 확인, 값은 문서·로그에 기록하지 않음          |
 | AdSense Sites에 `moyeoplay.studio` 추가 | 운영자 수동   | 완료 보고                                               |
 | 사이트 소유권 Verify                    | 운영자 수동   | 완료 보고                                               |
-| Request review                          | 운영자 수동   | 완료 보고                                               |
-| 사이트 상태 `Ready`                     | Google 결과   | 현재 계정 화면에서 직접 확인 필요                       |
+| 직전 Request review                     | 운영자 수동   | 제출 완료                                               |
+| 직전 심사 결과                          | Google 결과   | `가치가 별로 없는 콘텐츠`로 거절 확인                   |
+| 수정 후 Request review                  | 운영자 수동   | 새 콘텐츠 배포·라이브 검증 뒤 별도 실행                 |
+| 사이트 상태 `Ready`                     | Google 결과   | 미승인                                                  |
 | Google-certified CMP 연결               | 운영자 수동   | 미연결                                                  |
 | root `ads.txt` live                     | 라이브        | 200·plain text·production 형식 확인, Google 상태는 별도 |
 | 실제 광고 배치·CLS·오클릭 검토          | 운영자 수동   | 승인 후로 보류                                          |
 
 심사 중 운영 profile은 account meta `true`, 광고 송출 `false`다. 실제 AdSense 값, 운영자 실명, 이메일과 CMP를 추측하거나 placeholder로 `dist`에 배포하지 않는다.
+
+## 2026-08-10 저가치 콘텐츠 보강
+
+Search Console의 최근 3개월 실적에서 벌칙 룰렛과 공 떨어지기 관련 검색어·페이지가 가장 큰 노출 표면이었다. 이를 근거로 얇은 키워드 변형 페이지를 만들지 않고, 실제 게임 구현과 검증 가능한 사용 경험을 설명하는 다음 콘텐츠를 추가했다.
+
+- `/guides/penalty-roulette-ideas/`: 동의 기반 벌칙 32개, 항목 작성법, 중복과 확률, 진행 체크리스트
+- `/guides/pinball-drop-timing/`: 부스터 판정 구간, 타이밍 전략, 무입력 결과와 3판 2선승 구조
+- `/guides/two-player-browser-games/`: 여섯 게임의 인원·조작·소요 시간 비교와 기기별 준비법
+- `/guides/party-game-host-guide/`: 2–12명과 20·40·60분 진행표, 순환 방식, 안전 기준, 문제 해결
+
+각 8개 게임 가이드에도 한 판 실행 절차, 구현·테스트 확인 항목, 실제 소스와 테스트 파일 링크를 추가했다. 편집 가이드에는 작성·검증 주체, 업데이트 날짜, 관련 게임, Breadcrumb와 Article 구조화 데이터를 제공한다. 게임 실행용 `/play/`는 중복 색인과 광고 오클릭 위험을 줄이기 위해 계속 `noindex,follow`·무광고로 유지하고, 읽을 수 있는 20개 콘텐츠 문서만 sitemap에 싣는다.
 
 ## 환경 변수와 책임 경계
 
@@ -113,7 +126,7 @@ Google은 EEA, UK, Switzerland에서 personalized ads를 제공할 때 Google-ce
 
 ### account-meta-only
 
-- [x] 격리 로컬 profile의 색인 가능한 15개 정적 문서에 유효 account meta가 있다.
+- [x] 격리 로컬 profile의 색인 가능한 20개 정적 문서에 유효 account meta가 있다.
 - [x] 격리 로컬 profile의 `/play/`에는 meta와 slot이 없다.
 - [x] 격리 로컬 profile의 모든 페이지에서 slot, `.adsbygoogle`, Google script와 광고 request가 0이다.
 - [x] deployable production artifact에 mock ID가 없다.

@@ -25,9 +25,17 @@ const games = [
   'tap-battle',
   'roulette',
 ];
+const editorialGuides = [
+  'penalty-roulette-ideas',
+  'pinball-drop-timing',
+  'two-player-browser-games',
+  'party-game-host-guide',
+];
 const indexablePaths = [
   '',
   ...games.map((game) => `games/${game}/`),
+  'guides/',
+  ...editorialGuides.map((guide) => `guides/${guide}/`),
   'about/',
   'how-to-play/',
   'fairness/',
@@ -326,8 +334,8 @@ try {
     .filter(Boolean);
   const expectedSitemapUrls = indexablePaths.map((path) => new URL(path, EXPECTED_SITE).href);
   const sitemapExact =
-    sitemapUrls.length === 15 &&
-    new Set(sitemapUrls).size === 15 &&
+    sitemapUrls.length === indexablePaths.length &&
+    new Set(sitemapUrls).size === indexablePaths.length &&
     sitemapUrls.every((url, index) => url === expectedSitemapUrls[index]) &&
     sitemapUrls.every(
       (url) => url.startsWith(EXPECTED_SITE.href) && !url.includes('/play/') && !url.includes('#'),
