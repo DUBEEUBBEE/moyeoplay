@@ -1,4 +1,5 @@
 import { chromium } from '@playwright/test';
+import { EDITORIAL_GUIDES, GAME_CONTENT } from '../site/site-content.mjs';
 
 const EXPECTED_SITE = new URL(process.env.E2E_LIVE_URL || 'https://moyeoplay.studio/');
 EXPECTED_SITE.hash = '';
@@ -15,22 +16,8 @@ const ACCOUNT_META_EXPECTED = ACCOUNT_META_PROFILE === 'true';
 const EXPECTED_CLIENT_ID = process.env.ADSENSE_CLIENT_ID?.trim() ?? '';
 const CONFIGURED_ADS_ENABLED = ADS_PROFILE === undefined ? null : ADS_PROFILE === 'true';
 
-const games = [
-  'omok',
-  'pong',
-  'volleyball',
-  'pinball-drop',
-  'ladder',
-  'reaction-duel',
-  'tap-battle',
-  'roulette',
-];
-const editorialGuides = [
-  'penalty-roulette-ideas',
-  'pinball-drop-timing',
-  'two-player-browser-games',
-  'party-game-host-guide',
-];
+const games = GAME_CONTENT.map((game) => game.slug);
+const editorialGuides = EDITORIAL_GUIDES.map((guide) => guide.slug);
 const indexablePaths = [
   '',
   ...games.map((game) => `games/${game}/`),
@@ -168,6 +155,7 @@ const report = {
   indexablePages: [],
   sitemap: null,
   robots: null,
+  adsTxt: null,
   play: null,
   notFound: null,
   runtime: null,
@@ -201,6 +189,8 @@ try {
   });
 
   let observedAccountMeta = null;
+  const titles = new Set();
+  const descriptions = new Set();
   for (const path of indexablePaths) {
     const expectedUrl = new URL(path, EXPECTED_SITE).href;
     const response = await page.goto(expectedUrl, { waitUntil: 'load' });
@@ -230,6 +220,14 @@ try {
         const ogUrl =
           document.querySelector('meta[property="og:url"]')?.getAttribute('content') ?? '';
         return {
+          title: document.title,
+          description:
+            document.querySelector('meta[name="description"]')?.getAttribute('content') ?? '',
+          canonicalCount: document.querySelectorAll('link[rel="canonical"]').length,
+          descriptionCount: document.querySelectorAll('meta[name="description"]').length,
+          indexable: !/(?:noindex|none)/iu.test(
+            document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? '',
+          ),
           accountMetaValue,
           accountMetaCount: metas.length,
           accountMetaFormatValid:
@@ -278,6 +276,12 @@ try {
       descriptionPresent: metadata.descriptionPresent,
       h1Count: metadata.h1Count,
       canonicalMatches: metadata.canonicalMatches,
+      canonicalCount: metadata.canonicalCount,
+      descriptionCount: metadata.descriptionCount,
+      indexable:
+        metadata.indexable && !/(?:noindex|none)/iu.test(response?.headers()['x-robots-tag'] ?? ''),
+      uniqueTitle: !titles.has(metadata.title),
+      uniqueDescription: !descriptions.has(metadata.description),
       canonicalHostMatches: metadata.canonicalHostMatches,
       ogUrlMatches: metadata.ogUrlMatches,
       structuredDataValid: metadata.structuredDataValid,
@@ -291,12 +295,19 @@ try {
       adScriptCount: metadata.adScriptCount,
     };
     report.indexablePages.push(publicMetadata);
+    titles.add(metadata.title);
+    descriptions.add(metadata.description);
 
     if (status !== 200 || finalUrl !== expectedUrl)
       fail('indexable URL did not return direct 200', path);
     if (
       !metadata.titlePresent ||
       !metadata.descriptionPresent ||
+      metadata.canonicalCount !== 1 ||
+      metadata.descriptionCount !== 1 ||
+      !publicMetadata.indexable ||
+      !publicMetadata.uniqueTitle ||
+      !publicMetadata.uniqueDescription ||
       metadata.h1Count !== 1 ||
       !metadata.canonicalMatches ||
       !metadata.canonicalHostMatches ||
@@ -326,6 +337,28 @@ try {
       fail('ad DOM or script appeared during review', path || '/');
     }
   }
+
+  const adsTxtResponse = await fetchPublic(new URL('ads.txt', EXPECTED_SITE));
+  const adsTxtSource = await adsTxtResponse.text();
+  const publisher =
+    adsTxtSource.match(/^google\.com,\s*(pub-\d{16}),\s*DIRECT,\s*f08c47fec0942fa0\s*$/mu)?.[1] ??
+    '';
+  const expectedPublisher =
+    process.env.ADSENSE_PUBLISHER_ID?.trim() || observedAccountMeta?.replace(/^ca-/u, '') || '';
+  report.adsTxt = {
+    status: adsTxtResponse.status,
+    formatValid: Boolean(publisher),
+    matchesAccountMeta:
+      Boolean(publisher) && publisher === observedAccountMeta?.replace(/^ca-/u, ''),
+    matchesConfiguredPublisher: expectedPublisher ? publisher === expectedPublisher : null,
+  };
+  if (
+    adsTxtResponse.status === 200 &&
+    (!publisher || (expectedPublisher && publisher !== expectedPublisher))
+  )
+    fail('ads.txt publisher does not match account metadata or configuration');
+  if (process.env.ADSENSE_PUBLISHER_ID && adsTxtResponse.status !== 200)
+    fail('configured ads.txt is missing');
 
   const sitemapResponse = await fetchPublic(new URL('sitemap.xml', EXPECTED_SITE));
   const sitemapSource = await sitemapResponse.text();

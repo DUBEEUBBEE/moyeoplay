@@ -1,10 +1,16 @@
 # Google Search Console 수동 체크리스트
 
-최종 갱신: 2026-08-10
+최종 갱신: 2026-10-13
 
 Search Console 작업은 저장소 배포와 별개다. 이 문서에서 체크되지 않은 항목은 완료로 간주하지 않으며, verification token과 계정 식별 정보는 공개 저장소에 기록하지 않는다.
 
-## 현재 상태
+## 2026-10-13 실제 확인 범위
+
+인증된 Domain property 화면에서 2026-10-09 집계의 색인 17개·제외 4개(redirect 3·noindex 1)를 확인했다. sitemap은 성공이지만 마지막 읽기 2026-07-29·발견 15개다. `/guides/`, `/guides/pinball-drop-timing/`, `/guides/two-player-browser-games/`는 각각 URL 검사에서 Google에 알려지지 않은 URL이었다. 홈은 Google 등록 및 Google-selected canonical의 apex 일치를 확인했다. 전체 URL별 canonical과 최근 실적은 확인하지 않았다. 모바일·데스크톱 Core Web Vitals는 데이터 없음이다. 공개 HTML·HTTP 검증은 기존 20개 URL에서 통과했으며 로컬 개선안은 24개 URL이다. 배포 후 확인할 전체 URL과 검사 순서는 [감사 보고서의 URL 목록](SEO_ADSENSE_REVIEW_2026-10-12.md#6-search-console에서-검사할-url)에 정리했다. 아래 계정 화면 수치와 완료 표시는 2026-08-10 또는 명시된 날짜의 과거 기록이다.
+
+[2026-10-13 비식별 기록](evidence/2026-10-12/search-console.json)을 참고한다. 이번에는 읽기만 했으며 sitemap 재제출·색인 요청·유효성 검사·삭제는 실행하지 않았다. 배포 후 세 미발견 문서와 신규 네 문서를 우선 검사한다.
+
+## 2026-08-10 당시 상태
 
 | 항목                                    | 구분        | 상태      |
 | --------------------------------------- | ----------- | --------- |
@@ -35,8 +41,8 @@ npm run verify:dist
 npm run test:e2e:prod:run
 ```
 
-- [ ] 20개 색인 문서의 canonical, `og:url`, JSON-LD URL이 `https://moyeoplay.studio/`를 기준으로 한다.
-- [ ] `dist/sitemap.xml`에 custom-domain HTTPS URL 20개가 있고 hash URL·`/play/`·noindex URL이 없다.
+- [ ] 24개 색인 문서의 canonical, `og:url`, JSON-LD URL이 `https://moyeoplay.studio/`를 기준으로 한다.
+- [ ] `dist/sitemap.xml`에 custom-domain HTTPS URL 24개가 있고 hash URL·`/play/`·noindex URL이 없다.
 - [ ] 이전 Pages URL, example domain, placeholder token이 deployable `dist`에 없다.
 - [ ] `/play/`는 `noindex,follow`이며 robots에서 차단되지 않고 sitemap에 없다.
 - [ ] 실제 내용이 바뀐 페이지만 `dateModified`와 sitemap `lastmod`가 갱신됐다.
@@ -79,10 +85,10 @@ https://moyeoplay.studio/sitemap.xml
 - [ ] **Sitemaps** 보고서에서 위 URL을 제출한다.
 - [ ] Google이 fetch한 시각, HTTP 상태, parse 오류와 최종 status를 확인한다.
 - [ ] status가 실제 `Success`일 때만 성공으로 기록한다.
-- [ ] 로컬 예상 URL은 20개지만 Search Console의 **Discovered pages** 실제 수를 별도로 기록한다.
+- [ ] 개선안 배포 후 예상 URL은 24개지만 Search Console의 **Discovered pages** 실제 수를 별도로 기록한다.
 - [ ] 오류가 있으면 fetch·parse 상세를 수정한 뒤 다시 제출한다.
 
-`Success`는 sitemap을 읽었다는 뜻이지 20개 URL의 crawl·index를 보장하지 않는다. [Google sitemap 생성·제출 안내](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
+`Success`는 sitemap을 읽었다는 뜻이지 24개 URL의 crawl·index를 보장하지 않는다. [Google sitemap 생성·제출 안내](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
 
 ## 5. URL Inspection
 

@@ -1,6 +1,6 @@
 # SEO 배포 안내
 
-최종 갱신: 2026-07-21
+최종 갱신: 2026-10-12
 
 이 문서는 `scripts/generate-site.mjs`, `scripts/site-config.mjs`, `vite.config.ts`, `.github/workflows/pages.yml`의 운영 계약과 외부 Pages 설정을 분리해 기록한다. Search Console 소유권 확인과 sitemap 제출은 저장소에서 자동 완료할 수 없는 운영자 수동 작업이다.
 
@@ -28,7 +28,11 @@ canonical, Open Graph, Twitter image, JSON-LD, sitemap, manifest, robots sitemap
 
 `moyeoplay.example`과 mock ID는 `dist-*-test`처럼 배포되지 않는 격리 output에서만 허용한다.
 
-## 현재 운영 상태
+## 2026-10-12 개선안과 배포 상태
+
+로컬 산출물은 색인 문서 24개·HTML entry 26개다. 공개 배포본의 기존 20개 문서는 2026-10-12 HTTP·메타·sitemap 검증을 통과했으며 새 4개 URL은 아직 404다. 반영 전 `audit:live`가 새 URL과 sitemap 불일치로 실패하는 것이 예상 상태다. 반영 후 두 감사를 다시 실행해 24개 직접 200과 sitemap 일치를 확인한다. [전체 결과와 남은 설정](SEO_ADSENSE_REVIEW_2026-10-12.md)을 참고한다. 아래 외부 설정 표는 2026-07-21 당시 기록으로 인증서 만료일·계정 상태를 현재값으로 간주하지 않는다.
+
+## 2026-07-21 당시 운영 상태
 
 | 항목                         | 상태             | 근거·다음 작업                                                                                |
 | ---------------------------- | ---------------- | --------------------------------------------------------------------------------------------- |
@@ -47,8 +51,8 @@ canonical, Open Graph, Twitter image, JSON-LD, sitemap, manifest, robots sitemap
 
 ## 생성되는 검색 표면
 
-- 정적 HTML은 루트 1개, 게임 가이드 8개, 편집 가이드 허브·본문 5개, 안내·정책 페이지 6개, 게임 실행 페이지 1개와 branded 404로 총 22개 entry다.
-- `sitemap.xml`은 색인 대상 clean URL 20개만 담고 `/play/`, 404와 hash URL은 제외한다.
+- 정적 HTML은 루트 1개, 게임 가이드 8개, 편집 가이드 허브·본문 9개, 안내·정책 페이지 6개, 게임 실행 페이지 1개와 branded 404로 총 26개 entry다.
+- `sitemap.xml`은 색인 대상 clean URL 24개만 담고 `/play/`, 404와 hash URL은 제외한다.
 - `/play/`는 `noindex,follow`다. robots에서 `/play/`를 차단하지 않아 crawler가 meta robots를 읽을 수 있게 한다.
 - 색인 대상 페이지는 절대 canonical, 고유 title·description, Open Graph/Twitter image, JSON-LD와 하나의 `h1`을 제공한다.
 - 게임 가이드는 실제 구현·테스트·공정성 설명과 실제 플레이 화면 screenshot을 유지한다. 생성 icon은 장식 이미지로 빈 alt를 사용한다.
@@ -122,12 +126,12 @@ E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live
 E2E_CHECK_REDIRECTS=true E2E_LIVE_URL=https://moyeoplay.studio/ npm run test:e2e:live
 ```
 
-- [ ] `dist/index.html`, 8개 game guide, 5개 editorial guide, 6개 trust page, `dist/play/index.html`과 branded 404가 존재한다.
-- [ ] 20개 색인 문서의 canonical·OG·JSON-LD URL이 `https://moyeoplay.studio/`를 사용한다.
-- [ ] sitemap에는 정확히 20개 clean custom-domain URL이 있고 `/play/`, 404와 hash URL이 없다.
+- [ ] `dist/index.html`, 8개 game guide, 9개 editorial guide, 6개 trust page, `dist/play/index.html`과 branded 404가 존재한다.
+- [ ] 24개 색인 문서의 canonical·OG·JSON-LD URL이 `https://moyeoplay.studio/`를 사용한다.
+- [ ] sitemap에는 정확히 24개 clean custom-domain URL이 있고 `/play/`, 404와 hash URL이 없다.
 - [ ] `robots.txt`는 custom sitemap을 선언하고 `/play/`를 막지 않는다.
 - [ ] 광고 off와 account-meta-only artifact가 각각 slot·script·request 0 조건을 만족한다.
-- [ ] live 20개 색인 URL, `/play/`, manifest와 root files가 기대 status와 content type을 반환한다.
+- [ ] live 24개 색인 URL, `/play/`, manifest와 root files가 기대 status와 content type을 반환한다.
 - [ ] HTTPS 인증서가 apex와 `www`에서 유효하다.
 - [ ] HTTP→HTTPS, `www`→apex, 이전 Pages URL redirect가 path를 보존하고 loop가 없다.
 - [ ] Search Console과 AdSense 외부 작업은 각 체크리스트의 실제 증거가 있을 때만 완료 처리한다.

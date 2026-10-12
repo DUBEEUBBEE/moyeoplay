@@ -1,7 +1,9 @@
+import { DEEP_GUIDES } from './deep-guides.mjs';
+import { CONTENT_REVIEW_DATE, GUIDE_ENRICHMENTS } from './practice-content.mjs';
+
 const INITIAL_CONTENT_DATE = '2026-07-19';
-const TRUST_UPDATED = '2026-07-21';
-const ABOUT_UPDATED = '2026-07-22';
-const CONTACT_UPDATED = '2026-07-22';
+const ABOUT_UPDATED = CONTENT_REVIEW_DATE;
+const CONTACT_UPDATED = CONTENT_REVIEW_DATE;
 const SEARCH_UPDATED = '2026-08-10';
 
 export const SITE_META = Object.freeze({
@@ -13,7 +15,7 @@ export const SITE_META = Object.freeze({
   issuesUrl: 'https://github.com/DUBEEUBBEE/moyeoplay/issues',
   created: INITIAL_CONTENT_DATE,
   gameRoutePattern: '#game/{id}',
-  updated: SEARCH_UPDATED,
+  updated: CONTENT_REVIEW_DATE,
 });
 
 export const GAME_CONTENT = Object.freeze([
@@ -96,7 +98,7 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 세로 화면에서도 플레이할 수 있습니다.',
     ],
     related: ['pong', 'volleyball'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'pong',
@@ -172,7 +174,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'reaction-duel'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'volleyball',
@@ -249,7 +251,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['pong', 'pinball-drop'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'pinball-drop',
@@ -325,7 +327,7 @@ export const GAME_CONTENT = Object.freeze([
       '모바일에서 가로 방향을 권장하며, 높이 500px 이하의 작은 가로 화면은 한 화면 배치로 압축됩니다.',
     ],
     related: ['volleyball', 'pong'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'ladder',
@@ -402,7 +404,7 @@ export const GAME_CONTENT = Object.freeze([
       '모션 감소 설정에서 선택한 경로를 즉시 공개합니다.',
     ],
     related: ['roulette', 'reaction-duel'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'reaction-duel',
@@ -449,7 +451,7 @@ export const GAME_CONTENT = Object.freeze([
     ],
     rules: [
       '신호 전에 누르면 부정 출발로 처리되어 상대편이 1점을 얻습니다.',
-      '신호 후 두 입력을 12ms 동안 수집해 각 플레이어의 반응 시간을 비교합니다.',
+      '첫 유효 입력 뒤 최대 약 12ms 동안 다른 입력을 기다려 두 반응 시간을 비교합니다. 두 입력이 모이면 바로 판정합니다.',
       '두 반응 시간의 차이가 8ms 이하이면 라운드 무승부로 처리하고 점수를 주지 않습니다.',
     ],
     winCondition: '3점을 먼저 얻은 플레이어가 매치에서 승리합니다.',
@@ -481,7 +483,7 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['tap-battle', 'pong'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'tap-battle',
@@ -561,7 +563,7 @@ export const GAME_CONTENT = Object.freeze([
       '작은 가로 화면을 위한 한 화면 압축 배치가 있지만, 세로 방향 권장 안내는 표시하지 않습니다.',
     ],
     related: ['reaction-duel', 'pong'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   {
     id: 'roulette',
@@ -636,7 +638,7 @@ export const GAME_CONTENT = Object.freeze([
       '가로 방향을 필수로 하지 않으며 작은 화면에서는 스크롤로 항목을 편집할 수 있습니다.',
     ],
     related: ['ladder', 'tap-battle'],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
 ]);
 
@@ -724,7 +726,7 @@ export const GAME_EXPERIENCE = Object.freeze({
       '결과의 밀리초 값은 같은 기기 안의 상대 비교용으로 사용합니다. 다른 기기나 브라우저의 숫자를 절대 기록처럼 비교하지 않습니다.',
     ],
     checks: [
-      '이벤트 시각을 performance clock 기준으로 정규화하고 신호 뒤 12ms 수집 창 안의 두 입력을 비교합니다.',
+      '이벤트 시각을 performance clock 기준으로 정규화하고 첫 유효 입력 뒤 12ms 수집 버퍼 안의 두 입력을 비교합니다.',
       '반응 시간 차이가 8ms 이하이면 무승부, 신호 전 입력이면 상대 점수로 처리되는 경계를 단위 테스트로 확인합니다.',
       '동일 pointer의 중복 입력과 터치 뒤 compatibility click이 한 라운드에 두 번 판정되지 않는지 검사합니다.',
     ],
@@ -763,7 +765,7 @@ export const GAME_EXPERIENCE = Object.freeze({
   },
 });
 
-export const EDITORIAL_GUIDES = Object.freeze([
+const EXISTING_EDITORIAL_GUIDES = [
   {
     slug: 'penalty-roulette-ideas',
     title: '벌칙 룰렛 아이디어 32개와 안전한 항목 만드는 법 | 모여PLAY',
@@ -1002,9 +1004,9 @@ export const EDITORIAL_GUIDES = Object.freeze([
           rows: [
             [
               '보수형',
-              '상단은 관찰',
-              '중단 급강하 차단',
-              '하단 두 번 중 하나',
+              '중단 첫 급강하 차단',
+              '하단 재진입 시 사용',
+              '착지 전 마지막 급강하',
               '핀 충돌이 자주 이어지고 마지막 대응을 남기고 싶을 때',
             ],
             [
@@ -1038,7 +1040,7 @@ export const EDITORIAL_GUIDES = Object.freeze([
         title: '아무도 누르지 않아도 승부가 나는 이유',
         paragraphs: [
           '거울 대칭 보드에 완전히 같은 출발만 주면 두 공이 같은 시각에 떨어질 수 있습니다. 현재 구현은 seed에서 정한 미세 출발 변화를 한쪽에 적용하고 다음 라운드에는 반대쪽으로 교대합니다. 0.05초 이하의 초접전도 같은 방식으로 우선권을 교대해 라운드 승자를 확정합니다.',
-          '이 장치는 한쪽에게 매치 전체의 고정 우위를 주는 방식이 아닙니다. 첫 방향을 정한 뒤 라운드마다 반대로 넘어가며, 실제 플레이에서는 각자의 세 번의 부스터가 경로와 통과 시각을 더 크게 바꿀 수 있습니다.',
+          '이 장치는 한쪽에게 매치 전체의 고정 우위를 주는 방식이 아닙니다. 첫 방향을 정한 뒤 라운드마다 반대로 넘어가며, 실제 플레이에서는 각자의 세 번의 부스터가 경로와 통과 시각을 바꿀 수 있습니다.',
         ],
       },
       {
@@ -1387,6 +1389,16 @@ export const EDITORIAL_GUIDES = Object.freeze([
     ],
     relatedGames: ['ladder', 'roulette', 'tap-battle', 'reaction-duel'],
   },
+];
+
+export const EDITORIAL_GUIDES = Object.freeze([
+  ...EXISTING_EDITORIAL_GUIDES.map((guide) => ({
+    ...guide,
+    updated: CONTENT_REVIEW_DATE,
+    sources: GUIDE_ENRICHMENTS[guide.slug].sources,
+    sections: [...guide.sections, GUIDE_ENRICHMENTS[guide.slug].section],
+  })),
+  ...DEEP_GUIDES,
 ]);
 
 export const PAGE_CONTENT = Object.freeze({
@@ -1460,16 +1472,16 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   guides: {
     slug: 'guides',
     path: '/guides/',
     title: '게임 가이드 자료실',
     description:
-      '모여PLAY 8개 게임의 규칙·조작 가이드와 벌칙 룰렛 아이디어, 공 떨어지기 공략, 2인용 게임 비교, 모임 진행표를 한곳에서 확인하세요.',
-    heading: '직접 만든 게임을 직접 플레이하며 정리한 자료실',
-    lead: '게임을 실행하는 것만으로 부족할 때 필요한 설명을 모았습니다. 검색어를 반복하는 짧은 문서가 아니라 실제 규칙, 입력 방식, 구현 한계와 모임에서 바로 적용할 수 있는 예시를 함께 제공합니다.',
+      '모여PLAY 8종의 규칙·조작과 오목 방어, 핀볼 타이밍, 반응 기록, 사다리 알고리즘, 동시 입력 진단, 모임 진행 가이드를 확인하세요.',
+    heading: '규칙·상황별 연습과 구현 근거를 모은 자료실',
+    lead: '게임을 실행하는 것만으로 부족할 때 필요한 설명을 모았습니다. 기본 규칙에서 시작해 오목 방어, 부스터 타이밍, 추첨 방식과 입력 문제까지 필요한 상황의 예제를 골라 보세요.',
     sections: [
       {
         id: 'how-to-use',
@@ -1489,7 +1501,7 @@ export const PAGE_CONTENT = Object.freeze({
           },
           {
             title: '특정 게임을 더 잘하려면',
-            text: '룰렛 항목 구성과 핀볼 부스터 타이밍처럼 실제 검색과 플레이 중 반복된 질문을 별도 실전 가이드에서 다룹니다.',
+            text: '오목 위협을 좌표로 따라 두거나, 핀볼 사용 상태·반응시간 경계·사다리 배정을 사례로 확인합니다.',
           },
         ],
       },
@@ -1531,7 +1543,7 @@ export const PAGE_CONTENT = Object.freeze({
         link: { label: '문의 방법 보기', href: '/contact/' },
       },
     ],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   about: {
     slug: 'about',
@@ -1577,12 +1589,27 @@ export const PAGE_CONTENT = Object.freeze({
         ],
         links: [
           { label: '공정성 원칙', href: '/fairness/' },
+          { label: '문의와 오류 정정 방법', href: '/contact/' },
+          {
+            label: '게임·문서의 실제 변경 이력',
+            href: 'https://github.com/DUBEEUBBEE/moyeoplay/commits/main/',
+            external: true,
+          },
           {
             label: '공개 QA 기준',
             href: 'https://github.com/DUBEEUBBEE/moyeoplay/blob/main/docs/QA.md',
             external: true,
           },
         ],
+      },
+      {
+        id: 'editorial-evidence',
+        title: '가이드의 근거와 정정',
+        paragraphs: [
+          '게임별 가이드는 해당 판정 구현과 테스트 파일을, 실전 가이드는 사용한 규칙과 입력 처리 자료를 직접 연결합니다. 국면 도식, 확률 계산과 모임 편성표는 설명용 예시이며 실제 이용자의 성적이나 후기처럼 제시하지 않습니다.',
+          '문서의 최초 작성일과 최종 수정일을 나누어 표시하고, 설명이나 연결 자료를 바꾼 문서만 수정일을 갱신합니다. 화면과 설명이 다르면 문의 페이지에서 재현 순서와 해당 문단을 알려 주세요.',
+        ],
+        link: { label: '규칙과 실전 자료 찾아보기', href: '/guides/' },
       },
       {
         id: 'technology',
@@ -1721,7 +1748,7 @@ export const PAGE_CONTENT = Object.freeze({
         id: 'reaction-timing',
         title: '반응과 연타 측정',
         paragraphs: [
-          '반응속도 대결은 이벤트 시각을 performance clock으로 정규화하고, 12ms 수집 창 안에서 8ms 이하의 반응 시간 차이를 무승부로 처리합니다. 대기 시간은 Math.random()으로 변화를 주며 보안 난수로 취급하지 않습니다.',
+          '반응속도 대결은 이벤트 시각을 performance clock으로 정규화하고, 첫 유효 입력 뒤 12ms 버퍼로 다른 입력을 기다리고, 수집된 두 반응 시간 차이가 8ms 이하이면 무승부로 처리합니다. 대기 시간은 Math.random()으로 변화를 주며 보안 난수로 취급하지 않습니다.',
           '탭 배틀은 자동 키 반복과 중복 pointer 이벤트를 제외하고 모든 유효한 새 입력을 한 점으로 계산합니다. 일시정지 시간은 실제 경기 시간에서 제외됩니다.',
         ],
       },
@@ -1779,7 +1806,7 @@ export const PAGE_CONTENT = Object.freeze({
         ],
       },
     ],
-    updated: SEARCH_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   privacy: {
     slug: 'privacy',
@@ -1801,14 +1828,14 @@ export const PAGE_CONTENT = Object.freeze({
           },
           {
             title: '세션 기록',
-            text: 'localStorage 키 moyeoplay:session에 2인 게임의 P1·P2 누적 승수와 최근 최대 8개 경기의 게임 id, 승자, 선택적 숫자 점수, 시각을 저장할 수 있습니다.',
+            text: 'localStorage 키 moyeoplay:session에 P1·P2 누적 승수와 최근 최대 8개 완료 게임의 id, 승자, 선택적 숫자 점수, 시각을 저장할 수 있습니다. 사다리·룰렛도 게임 id와 시각은 기록하며 비대결 승자는 0으로 저장하고 결과 원문은 저장하지 않습니다.',
           },
           {
             title: '그룹 게임',
             text: '사다리의 이름·결과 원문과 룰렛 항목은 최근 경기 기록에 저장하지 않습니다.',
           },
         ],
-        note: '별도 만료일을 두지 않으며 최근 경기 수만 최대 8개로 제한합니다. 앱의 전적 초기화와 브라우저의 사이트 데이터 삭제 기능으로 지울 수 있습니다. 저장소 접근이 실패하면 앱은 메모리의 기본 상태로 계속 실행될 수 있습니다.',
+        note: '별도 만료일을 두지 않으며 최근 경기 수만 최대 8개로 제한합니다. 앱의 전적 초기화는 경기 기록과 누적 승수만 초기화하며 이름·사운드·모션 설정은 남습니다. 이름과 설정까지 지우려면 브라우저의 해당 사이트 데이터 삭제 기능을 사용합니다. 저장소 접근이 실패하면 앱은 메모리의 기본 상태로 계속 실행될 수 있습니다.',
       },
       {
         id: 'browser-apis',
@@ -1876,7 +1903,7 @@ export const PAGE_CONTENT = Object.freeze({
         link: { label: '개인정보 관련 문의 방법', href: '/contact/' },
       },
     ],
-    updated: TRUST_UPDATED,
+    updated: CONTENT_REVIEW_DATE,
   },
   terms: {
     slug: 'terms',
@@ -2013,6 +2040,28 @@ export const PAGE_CONTENT = Object.freeze({
         paragraphs: [
           'GitHub Issues는 공개 공간입니다. 스크린샷과 로그에 실명, 연락처, 계정 토큰, 비밀번호 같은 민감한 정보가 포함되지 않았는지 확인하세요.',
           '이메일이 표시되는 경우에도 필요한 범위를 넘는 개인정보나 인증 정보를 보내지 마세요.',
+        ],
+      },
+      {
+        id: 'report-template',
+        title: '복사해서 채울 제보 항목',
+        steps: [
+          '페이지 주소와 게임 이름:',
+          '기기·운영체제·브라우저 버전:',
+          '화면 방향·크기, 키보드 또는 터치:',
+          '시작 상태와 누른 버튼 순서:',
+          '기대한 동작과 실제 동작:',
+          '다시 시도해도 생기는지, 내용 오류라면 해당 문단:',
+        ],
+        paragraphs: [
+          'GitHub Issues 작성에는 GitHub 로그인이 필요합니다. 기존 이슈를 먼저 확인하고 공개해도 되는 정보만 작성해 주세요. 접수·응답 시점을 보장하는 자동 상담 서비스는 제공하지 않습니다.',
+        ],
+        links: [
+          {
+            label: '새 GitHub 제보 작성하기',
+            href: 'https://github.com/DUBEEUBBEE/moyeoplay/issues/new',
+            external: true,
+          },
         ],
       },
     ],

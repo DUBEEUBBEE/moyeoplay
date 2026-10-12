@@ -26,14 +26,15 @@ npm run test:e2e:prod
 npm run test:e2e:root
 npm audit --omit=dev
 npm run audit:live
+npm run audit:rendered
 ```
 
 운영 profile의 기준은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`이다. `test:e2e:prod`는 실제 광고 off 배포 profile의 `dist`를 다시 만든 뒤 `vite preview`를 검사한다. `test:e2e:root`는 배포되지 않는 `dist-meta-test`와 `dist-ads-test`에 base `/`와 mock ID를 적용해 AdSense account-meta-only, mock ad-on과 CMP adapter를 Chromium·WebKit에서 검사한다. 테스트 placeholder는 `dist`에 들어가면 안 된다. 빠른 개발 서버 확인이 필요할 때만 `npm run test:e2e:dev`를 사용한다.
 
 ## 정적 콘텐츠·SEO·광고 검사
 
-- JavaScript를 끈 별도 browser context에서 루트, 8개 game guide, 5개 editorial guide, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
-- sitemap은 20개 clean canonical만 포함하고 `/play/`, 404와 hash URL을 제외한다.
+- JavaScript를 끈 별도 browser context에서 루트, 8개 game guide, 9개 editorial guide, 6개 trust URL의 HTTP 200, 한국어 h1, 고유 title·description·canonical, JSON-LD를 검사한다.
+- sitemap은 24개 clean canonical만 포함하고 `/play/`, 404와 hash URL을 제외한다.
 - `404.html`은 `noindex,follow`이며 canonical, JSON-LD, account meta와 광고 코드 없이 홈·게임·문의 복구 링크를 제공한다.
 - 모든 OG·Twitter image alt는 페이지당 정확히 하나이며 모든 콘텐츠 이미지에 width·height가 있다.
 - deployable `dist`의 canonical, OG/Twitter, JSON-LD, sitemap, manifest, robots sitemap과 공유 URL은 모두 `https://moyeoplay.studio/`에서 파생되어야 한다. 이전 Pages URL, example domain, placeholder AdSense ID가 하나라도 남으면 실패한다.
@@ -42,6 +43,16 @@ npm run audit:live
 - mock ad-on profile은 홈과 8개 가이드에만 slot을 두고 `/play/`, About, 사용법, 공정성, Privacy, Terms, Contact에는 slot을 두지 않는다. consent 전, denied, withdrawn, CMP unavailable/error에서 script와 request는 0이어야 하며 test mode의 granted도 외부 요청을 만들지 않는다.
 - 아이콘은 320×320 AVIF·WebP·PNG, OG는 1200×630, 실제 화면은 1280×720이어야 하고 각 AVIF·WebP는 40KiB 이하여야 한다.
 - Chromium 성능 budget은 정적 루트의 LCP, CLS, TBT 대체 지표와 JS·이미지 전송량을 수집한다. Axe serious/critical 0과 SEO 구조 검사는 별도 hard assertion으로 유지한다.
+
+24개 문서는 390×844, 844×390, 768×1024, 1440×900에서 주요 본문 일치·수평 overflow·전체 이미지 decode를 확인한다. 실전 문서의 최초 작성/최종 수정일과 Article 날짜가 같고, 자료 출처 및 키보드 목차 이동이 동작해야 한다. 설명용 오목 국면·사다리 도식·반응시간 계산은 `src/content-evidence.test.ts`로 실제 판정 함수와 대조한다.
+
+`audit:rendered`의 LCP·CLS·TBT와 짧은 Event Timing 표본은 비스로틀 Chromium lab 관찰이다. 실제 모바일 하드웨어, 28일 field INP 또는 Core Web Vitals 합격을 뜻하지 않는다. 로컬 production preview에서는 다음처럼 canonical origin을 명시한다.
+
+```bash
+E2E_LIVE_URL=http://127.0.0.1:4174/ \
+AUDIT_CANONICAL_URL=https://moyeoplay.studio/ \
+npm run audit:rendered
+```
 
 ## 공정성 설계
 
@@ -111,7 +122,7 @@ npm run audit:live
 
 1. custom-domain 환경에서 `npm run build`, `npm run verify:dist`, `npm run test:e2e:prod:run`을 실행한다.
 2. HTTPS에서 `/`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`, 8개 `/games/<slug>/`, `/guides/`와 4개 editorial guide, `/about/`, `/how-to-play/`, `/fairness/`, `/privacy/`, `/terms/`, `/contact/`, `/play/#lobby`를 검사한다.
-3. 20개 색인 문서는 200이고 unknown route는 404여야 한다. canonical·`og:url`은 custom domain이어야 하며 sitemap은 정확히 20개 clean HTTPS URL만 포함하고 `/play/`·404·hash URL을 제외해야 한다.
+3. 24개 색인 문서는 200이고 unknown route는 404여야 한다. canonical·`og:url`은 custom domain이어야 하며 sitemap은 정확히 24개 clean HTTPS URL만 포함하고 `/play/`·404·hash URL을 제외해야 한다.
 4. `/play/`는 `noindex,follow`이고 robots는 `/play/`를 차단하지 않아야 한다. 광고 off live 빌드는 account meta·slot·Google script·광고 요청이 0이고 `ads.txt`는 404여야 한다.
 5. favicon, manifest, apple icon, 192/512/maskable icon, 게임 아이콘·스크린샷·raster OG image가 모두 200이어야 한다. manifest `id`·`scope`는 `/`, `start_url`은 `/play/#lobby`여야 한다.
 6. 390×844 홈과 한 게임 가이드, 844×390 플레이 화면에서 horizontal overflow, 잘린 핵심 조작, console/page error가 없어야 한다.

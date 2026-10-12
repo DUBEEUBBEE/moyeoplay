@@ -1,0 +1,60 @@
+{
+  "completedDate": "2026-10-13",
+  "timeZone": "Asia/Seoul",
+  "check": {
+    "passed": true,
+    "vitestTestsPassed": 102,
+    "nodeTestsPassed": 11,
+    "productionBuildPassed": true
+  },
+  "e2e": {
+    "passed": 160,
+    "skipped": 20,
+    "flaky": 0,
+    "failed": 0,
+    "engines": ["Chromium", "WebKit"]
+  },
+  "rootProfiles": {
+    "metaOnly": {
+      "passed": 34,
+      "skipped": 6
+    },
+    "isolatedMockAds": {
+      "passed": 38,
+      "skipped": 2
+    },
+    "flaky": 0,
+    "failed": 0
+  },
+  "viewports": [
+    [390, 844],
+    [844, 390],
+    [768, 1024],
+    [1440, 900]
+  ],
+  "productionDependencyVulnerabilities": 0,
+  "freshProductionOutput": {
+    "directory": "dist-review-20261013",
+    "verified": true,
+    "files": 119,
+    "htmlEntries": 26,
+    "indexablePages": 24
+  },
+  "allDevelopmentDependencyVulnerabilities": {
+    "moderate": 4,
+    "high": 4
+  },
+  "liveAudit": {
+    "baseline20RoutesPassed": true,
+    "currentCheckoutExpectedRoutes": 24,
+    "currentlyDeployedRoutes": 20,
+    "newRoute404s": 4,
+    "expectedPreDeploymentFailure": true
+  },
+  "limitations": [
+    "Viewport emulation is not physical-device testing.",
+    "Conditional profile and live tests are skipped when not applicable.",
+    "Field INP is unavailable.",
+    "AdSense approval and real ad placement are not tested."
+  ]
+}

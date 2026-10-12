@@ -529,6 +529,59 @@
   background: var(--surface);
 }
 
+.guide-media {
+  margin: 16px 0 40px;
+}
+
+.guide-media .guide-screenshot {
+  display: block;
+  margin: 0 0 12px;
+}
+
+.guide-media figcaption,
+.guide-diagram figcaption {
+  color: var(--muted);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.guide-diagram {
+  max-width: 560px;
+  margin: 24px auto;
+}
+
+.guide-diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 12px;
+}
+
+.article-contents {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.article-contents a {
+  display: inline-block;
+  padding-block: 8px;
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+
+.article-contents ul {
+  margin-bottom: 0;
+}
+
+/* The existing header has two rows only between these theme breakpoints. */
+@media (min-width: 821px) and (max-width: 900px) {
+  .article-body section[id] {
+    scroll-margin-top: 72px;
+  }
+}
+
 .ad-slot {
   min-height: 120px;
   margin: 42px 0;

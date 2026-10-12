@@ -1,0 +1,19 @@
+{
+  "baseCommit": "2f5f5eb116c6ef0ea99daaa51489f772d5b93598",
+  "protectedAreas": [
+    "src/games",
+    "src/core",
+    "src/app",
+    "src/components",
+    "src/static-site.ts",
+    "src/ads-consent.ts",
+    "src/styles/clay-theme.css",
+    "src/styles/tokens.css",
+    "public",
+    "design"
+  ],
+  "trackedFileCount": 114,
+  "changedFiles": [],
+  "unchanged": true,
+  "aggregateSha256": "d0f5d9021f468d2eb9a3873e8c281ee7593c16520deaa403b2ed2dea7129e201"
+}

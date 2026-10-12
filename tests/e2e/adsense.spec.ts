@@ -24,6 +24,10 @@ const editorialGuides = [
   'pinball-drop-timing',
   'two-player-browser-games',
   'party-game-host-guide',
+  'omok-threats-and-defense',
+  'reaction-time-and-input-delay',
+  'ladder-permutation-explained',
+  'local-multiplayer-input-check',
 ] as const;
 const indexablePaths = [
   './',

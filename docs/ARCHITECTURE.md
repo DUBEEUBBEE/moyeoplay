@@ -2,10 +2,10 @@
 
 ## 경계
 
-모여PLAY는 서버가 없는 Vite 정적 MPA다. `site/site-content.mjs`의 한국어 콘텐츠에서 루트, 8개 게임 가이드, 편집 가이드 허브·본문 5개, 6개 신뢰 페이지를 build time에 만들고, 실제 게임 앱만 `/play/`에서 실행한다. 앱 셸은 라우팅·설정·세션·공통 HUD만 소유하고 게임 코드는 `src/games/<id>`의 동적 chunk로 분리한다.
+모여PLAY는 서버가 없는 Vite 정적 MPA다. `site/site-content.mjs`의 한국어 콘텐츠에서 루트, 8개 게임 가이드, 편집 가이드 허브·본문 9개, 6개 신뢰 페이지를 build time에 만들고, 실제 게임 앱만 `/play/`에서 실행한다. 앱 셸은 라우팅·설정·세션·공통 HUD만 소유하고 게임 코드는 `src/games/<id>`의 동적 chunk로 분리한다.
 
 ```text
-site-content ── generate-site ── 20개 indexable HTML + sitemap
+site-content ── generate-site ── 24개 indexable HTML + sitemap
                                   └─ /play/index.html
                                             ↓ hash route
                                          AppShell ─── SettingsStore / SessionStore
@@ -98,6 +98,6 @@ Web Audio context는 사용자 조작 이후에만 만들어진다. 모든 게�
 
 운영 build의 단일 profile은 `CUSTOM_DOMAIN=moyeoplay.studio`, `SITE_URL=https://moyeoplay.studio/`, `PAGES_BASE_PATH=/`다. generator가 canonical, Open Graph·Twitter, JSON-LD, sitemap, robots sitemap과 공유 URL을 이 config에서 만들고, Vite manifest 단계가 PWA `id`·`scope`를 `/`, `start_url`을 `/play/#lobby`로 고정한다. 프로덕션 source map, 이전 Pages URL, example domain과 placeholder ID는 deployable `dist`에 남길 수 없다.
 
-CI는 격리된 root `/` 광고 off·account-meta-only·AdSense mock profile을 검사하고, 실제 custom-domain `dist`를 `vite preview`에서 Chromium·WebKit으로 검사한다. `main` 배포 뒤 live smoke는 20개 색인 URL, root files, `/play/`, custom canonical, overflow, console error와 Canvas 시작을 확인한다. redirect test는 `E2E_CHECK_REDIRECTS=true`에서 동작하고 Pages workflow는 이를 출시 게이트로 켜 둔다. 품질 job은 읽기 권한만, 배포 job은 `pages: write`와 `id-token: write`만 사용한다.
+CI는 격리된 root `/` 광고 off·account-meta-only·AdSense mock profile을 검사하고, 실제 custom-domain `dist`를 `vite preview`에서 Chromium·WebKit으로 검사한다. `main` 배포 뒤 live smoke는 24개 색인 URL, root files, `/play/`, custom canonical, overflow, console error와 Canvas 시작을 확인한다. redirect test는 `E2E_CHECK_REDIRECTS=true`에서 동작하고 Pages workflow는 이를 출시 게이트로 켜 둔다. 품질 job은 읽기 권한만, 배포 job은 `pages: write`와 `id-token: write`만 사용한다.
 
 GitHub Actions custom workflow에서는 artifact의 `CNAME`이 Pages custom domain을 설정하지 않는다. Settings → Pages, DNS, custom TLS와 Enforce HTTPS는 build artifact 바깥의 운영 상태다. 2026-07-21 재검증에서 DNS, 승인된 apex·`www` 인증서, HTTPS enforcement와 redirect 출시 게이트가 통과했다.

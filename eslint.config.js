@@ -9,8 +9,8 @@ export default tseslint.config(
       'dist-*',
       '.generated-pages',
       'coverage',
-      'playwright-report',
-      'test-results',
+      'playwright-report*',
+      'test-results*',
       'output',
       '.playwright-cli',
     ],
@@ -34,7 +34,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ['eslint.config.js', 'scripts/**/*.mjs', 'scripts/**/*.d.mts', 'site/**/*.mjs'],
+    files: [
+      'eslint.config.js',
+      'scripts/**/*.mjs',
+      'scripts/**/*.d.mts',
+      'site/**/*.mjs',
+      'site/**/*.d.mts',
+    ],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       globals: {

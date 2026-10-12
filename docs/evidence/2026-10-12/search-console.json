@@ -1,0 +1,75 @@
+{
+  "observedDate": "2026-10-13",
+  "timeZone": "Asia/Seoul",
+  "source": "Authenticated Google Search Console UI, sc-domain:moyeoplay.studio; manual read-only observations, not API export",
+  "indexReportLastUpdated": "2026-10-09",
+  "indexedCount": 17,
+  "excludedCount": 4,
+  "excludedReasons": [
+    {
+      "reason": "Page with redirect",
+      "count": 3,
+      "urls": [
+        "https://www.moyeoplay.studio/",
+        "http://www.moyeoplay.studio/",
+        "http://moyeoplay.studio/"
+      ],
+      "validationStatus": "Failed",
+      "validationFailedDate": "2026-10-05"
+    },
+    {
+      "reason": "Excluded by NOINDEX tag",
+      "count": 1,
+      "urls": ["https://moyeoplay.studio/play/"]
+    }
+  ],
+  "sitemap": {
+    "url": "https://moyeoplay.studio/sitemap.xml",
+    "status": "Success",
+    "submittedDate": "2026-07-29",
+    "lastReadDate": "2026-07-29",
+    "discoveredPages": 15
+  },
+  "urlInspectionUnknown": [
+    "https://moyeoplay.studio/guides/",
+    "https://moyeoplay.studio/guides/pinball-drop-timing/",
+    "https://moyeoplay.studio/guides/two-player-browser-games/"
+  ],
+  "unknownDetails": {
+    "googleMessage": "URL is unknown to Google",
+    "referringSitemap": "None detected",
+    "referringPage": "None detected",
+    "lastCrawl": null,
+    "googleSelectedCanonical": null
+  },
+  "homepageInspection": {
+    "url": "https://moyeoplay.studio/",
+    "indexed": true,
+    "lastCrawlDate": "2026-10-06",
+    "crawler": "Googlebot Smartphone",
+    "fetch": "Success",
+    "crawlAllowed": true,
+    "indexingAllowed": true,
+    "userDeclaredCanonical": "https://moyeoplay.studio/",
+    "googleSelectedCanonical": "Inspected URL"
+  },
+  "coreWebVitals": {
+    "mobile": "No data",
+    "desktop": "No data"
+  },
+  "actionsTaken": ["Read-only index, sitemap and URL-inspection reports"],
+  "actionsNotTaken": ["Sitemap resubmission", "Request indexing", "Validate fix", "URL removal"],
+  "privacy": "No account name, email, publisher ID, verification token, private inspection link or traffic statistics recorded.",
+  "playInspection": {
+    "url": "https://moyeoplay.studio/play/",
+    "indexed": false,
+    "reason": "Excluded by NOINDEX tag",
+    "lastCrawlDate": "2026-07-23",
+    "crawler": "Googlebot Smartphone",
+    "fetch": "Success",
+    "crawlAllowed": true,
+    "indexingAllowed": false,
+    "userDeclaredCanonical": "https://moyeoplay.studio/play/",
+    "googleSelectedCanonical": "Inspected URL"
+  }
+}

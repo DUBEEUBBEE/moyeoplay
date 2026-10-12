@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { existsSync } from 'node:fs';
+import { GAME_PRACTICE } from '../site/practice-content.mjs';
 import {
   EDITORIAL_GUIDES,
   GAME_CONTENT,
@@ -40,7 +42,7 @@ test('eight game guides have complete and unique search content', () => {
       game.related.every((id) => ids.has(id) && id !== game.id),
       `${game.id} related`,
     );
-    assert.equal(game.updated, '2026-08-10', `${game.id} updated`);
+    assert.equal(game.updated, '2026-10-12', `${game.id} updated`);
     const experience = GAME_EXPERIENCE[game.id];
     assert.equal(experience.walkthrough.length, 4, `${game.id} walkthrough`);
     assert.equal(experience.checks.length, 3, `${game.id} checks`);
@@ -50,7 +52,7 @@ test('eight game guides have complete and unique search content', () => {
 });
 
 test('editorial guides are substantial, unique, and tied to actual games', () => {
-  assert.equal(EDITORIAL_GUIDES.length, 4);
+  assert.equal(EDITORIAL_GUIDES.length, 8);
   const slugs = new Set(EDITORIAL_GUIDES.map((guide) => guide.slug));
   const titles = new Set(EDITORIAL_GUIDES.map((guide) => guide.title));
   const descriptions = new Set(EDITORIAL_GUIDES.map((guide) => guide.description));
@@ -69,7 +71,7 @@ test('editorial guides are substantial, unique, and tied to actual games', () =>
       guide.relatedGames.every((id) => gameIds.has(id)),
       `${guide.slug} related games`,
     );
-    assert.equal(guide.updated, '2026-08-10', `${guide.slug} updated`);
+    assert.equal(guide.updated, '2026-10-12', `${guide.slug} updated`);
   }
 });
 
@@ -84,9 +86,30 @@ test('observed Search Console queries are represented by the matching guides', (
 });
 
 test('changed discovery pages share a truthful modification date', () => {
-  assert.equal(SITE_META.updated, '2026-08-10');
-  assert.equal(PAGE_CONTENT.root.updated, '2026-08-10');
-  assert.equal(PAGE_CONTENT.guides.updated, '2026-08-10');
+  assert.equal(SITE_META.updated, '2026-10-12');
+  assert.equal(PAGE_CONTENT.root.updated, '2026-10-12');
+  assert.equal(PAGE_CONTENT.guides.updated, '2026-10-12');
   assert.equal(PAGE_CONTENT['how-to-play'].updated, '2026-08-10');
-  assert.equal(PAGE_CONTENT.fairness.updated, '2026-08-10');
+  assert.equal(PAGE_CONTENT.fairness.updated, '2026-10-12');
+});
+
+test('examples cite real files and retain their first publication dates', () => {
+  const guideSlugs = new Set(EDITORIAL_GUIDES.map((guide) => guide.slug));
+  for (const game of GAME_CONTENT) {
+    const practice = GAME_PRACTICE[game.id];
+    assert.ok(practice.action && practice.caption, game.id);
+    assert.equal(practice.rows.length, 3, game.id);
+    for (const slug of practice.guides) assert.ok(guideSlugs.has(slug), slug);
+  }
+  for (const [index, guide] of EDITORIAL_GUIDES.entries()) {
+    assert.equal(guide.published, index < 4 ? '2026-08-10' : '2026-10-12', guide.slug);
+    assert.ok(guide.sources.length >= 2, guide.slug);
+    assert.ok(new Set(guide.sections.map((section) => section.id)).size === guide.sections.length);
+    for (const source of guide.sources) {
+      assert.ok(existsSync(new URL(`../${source.path}`, import.meta.url)), source.path);
+    }
+    for (const slug of guide.relatedGuides ?? []) assert.ok(guideSlugs.has(slug), slug);
+  }
+  assert.equal(PAGE_CONTENT.terms.updated, '2026-07-19');
+  assert.equal(PAGE_CONTENT['how-to-play'].updated, '2026-08-10');
 });

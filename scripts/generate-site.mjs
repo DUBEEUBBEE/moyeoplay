@@ -9,6 +9,8 @@ import {
   SITE_META,
 } from '../site/site-content.mjs';
 import { resolveSiteConfig } from './site-config.mjs';
+import { GAME_PRACTICE } from '../site/practice-content.mjs';
+import { renderGuideDiagram } from '../site/guide-diagrams.mjs';
 
 const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = resolveSiteConfig();
@@ -339,7 +341,26 @@ function renderEditorialGuideCard(guide) {
 }
 
 function renderEditorialGuideDirectory() {
-  return `<section class="section-block" data-editorial-guide-directory><h2>플레이를 더 쉽게 만드는 실전 가이드</h2><p class="section-intro">실제 검색과 플레이 중 자주 생긴 질문을 기준으로 룰렛 항목, 공 떨어지기 타이밍, 2인 게임 선택과 모임 진행을 깊게 설명합니다.</p><div class="feature-grid editorial-guide-grid">${EDITORIAL_GUIDES.map(renderEditorialGuideCard).join('')}</div><p class="section-more"><a class="content-button" href="${sitePath('guides/')}">전체 가이드 자료실 보기</a></p></section>`;
+  return `<section class="section-block" data-editorial-guide-directory><h2>플레이를 더 쉽게 만드는 실전 가이드</h2><p class="section-intro">처음 고르는 게임부터 한 수 방어, 부스터 사용, 반응 기록과 추첨 과정까지 상황에 맞는 설명과 연습을 찾아보세요.</p><div class="feature-grid editorial-guide-grid">${EDITORIAL_GUIDES.map(renderEditorialGuideCard).join('')}</div><p class="section-more"><a class="content-button" href="${sitePath('guides/')}">전체 가이드 자료실 보기</a></p></section>`;
+}
+
+function renderArticleContents(sections) {
+  return `<nav class="article-contents" aria-label="이 글의 목차"><strong>필요한 부분으로 이동</strong><ul>${sections.map((section) => `<li><a href="#${escapeHtml(section.id)}">${escapeHtml(section.title)}</a></li>`).join('')}<li><a href="#guide-sources">자료 출처와 작성 정보</a></li></ul></nav>`;
+}
+
+function renderGuideSources(guide) {
+  return `<ul class="content-link-list" data-guide-sources>${guide.sources.map((source) => `<li><a href="${escapeHtml(`${SITE_META.repositoryUrl}/blob/main/${source.path}`)}" rel="noopener noreferrer">${escapeHtml(source.label)}</a></li>`).join('')}</ul>`;
+}
+
+function renderRelatedGuides(slugs) {
+  const guides = slugs.map((slug) => EDITORIAL_GUIDES.find((guide) => guide.slug === slug));
+  if (guides.some((guide) => !guide)) throw new Error('Related editorial guide does not exist.');
+  return `<section data-related-guides><h2>이 상황을 더 자세히</h2><ul class="content-link-list">${guides.map((guide) => `<li><a href="${sitePath(`guides/${guide.slug}/`)}">${escapeHtml(guide.heading)}</a></li>`).join('')}</ul></section>`;
+}
+
+function renderGamePractice(game) {
+  const practice = GAME_PRACTICE[game.id];
+  return `<section id="practice" data-game-practice><h2>${escapeHtml(practice.question)}</h2>${renderContentTable({ headers: ['상황', '다음 행동', '판단 근거'], rows: practice.rows })}<p>${escapeHtml(practice.action)}</p><a class="content-button" href="${sitePath(`play/#game/${game.id}`)}">${escapeHtml(game.title)}에서 직접 확인하기</a></section>${renderRelatedGuides(practice.guides)}`;
 }
 
 function renderGuideDirectory({ id, title, intro, groups, dataAttribute }) {
@@ -438,7 +459,10 @@ function renderEditorialSection(section) {
   const link = section.link
     ? `<p><a class="content-button" href="${sitePath(section.link.href)}">${escapeHtml(section.link.label)}</a></p>`
     : '';
-  return `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.title)}</h2>${paragraphs}${items}${table}${steps}${bullets}${note}${link}</section>`;
+  const diagram = section.diagram
+    ? `<figure class="guide-diagram">${renderGuideDiagram(section.diagram)}<figcaption>${escapeHtml(section.caption)}</figcaption></figure>`
+    : '';
+  return `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.title)}</h2>${diagram}${paragraphs}${items}${table}${steps}${bullets}${note}${link}</section>`;
 }
 
 function rootStructuredData() {
@@ -600,7 +624,7 @@ function renderGuide(game, outputFile) {
       <article class="fact-card"><strong>장르</strong><p>${escapeHtml(game.genre)}</p></article>
       <article class="fact-card"><strong>지원 기기</strong><p>데스크톱·모바일 웹</p></article>
     </div>
-    <img class="guide-screenshot" src="${sitePath(`assets/screenshots/${game.id}.webp`)}" width="1280" height="720" loading="lazy" decoding="async" alt="${escapeHtml(`${game.title} 실제 게임 화면`)}" />
+    <figure class="guide-media"><img class="guide-screenshot" src="${sitePath(`assets/screenshots/${game.id}.webp`)}" width="1280" height="720" loading="lazy" decoding="async" alt="${escapeHtml(`${game.title} 실제 게임 화면`)}" /><figcaption>${escapeHtml(GAME_PRACTICE[game.id].caption)}</figcaption></figure>
     <div class="article-body">
       <section data-game-use-cases><h2>이런 때 추천합니다</h2><p>${escapeHtml(game.bestFor)}</p>${renderStringList(game.useCases)}</section>
       <section><h2>시작 전 준비</h2>${renderStringList(game.setup)}</section>
@@ -608,6 +632,7 @@ function renderGuide(game, outputFile) {
       <section><h2>조작 방법</h2><h3>데스크톱</h3>${renderStringList(game.controls.desktop)}<h3>모바일</h3>${renderStringList(game.controls.mobile)}</section>
       <section><h2>공정성</h2>${renderStringList(game.fairness)}<p><a class="content-button" href="${sitePath('fairness/')}">전체 공정성 설명 보기</a></p></section>
       ${renderGameExperience(game)}
+      ${renderGamePractice(game)}
       ${renderAdSlot()}
       <section><h2>실수하기 쉬운 점과 팁</h2>${renderStringList(game.tips)}</section>
       <section><h2>접근성과 화면 방향</h2>${renderStringList(game.accessibility)}</section>
@@ -684,12 +709,15 @@ function renderEditorialGuide(guide, outputFile) {
       <h1>${escapeHtml(guide.heading)}</h1>
       <p class="content-lead">${escapeHtml(guide.lead)}</p>
       <dl class="editorial-meta"><div><dt>읽는 시간</dt><dd>${escapeHtml(guide.readingTime)}</dd></div><div><dt>대상</dt><dd>${escapeHtml(guide.audience)}</dd></div><div><dt>최종 확인</dt><dd><time datetime="${escapeHtml(guide.updated)}">${escapeHtml(guide.updated)}</time></dd></div></dl>
+      <p><a class="content-button content-button--primary" href="${sitePath(`play/#game/${related[0].id}`)}">${escapeHtml(related[0].title)} 직접 열기</a></p>
     </header>
     <div class="article-body editorial-article">
+      ${renderArticleContents(guide.sections)}
       ${guide.sections.map(renderEditorialSection).join('')}
       <section><h2>자주 묻는 질문</h2>${renderFaq(guide.faq)}</section>
       <section><h2>관련 게임 직접 확인하기</h2><div class="related-grid">${related.map(renderRelatedCard).join('')}</div></section>
-      <section class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보와 검증 방법</h2><p>작성·운영: <a href="${sitePath('about/#operator-and-authorship')}">${escapeHtml(config.siteOperatorName || '모여PLAY 프로젝트')}</a></p><p>최초 작성·최종 확인: <time datetime="${escapeHtml(guide.updated)}">${escapeHtml(guide.updated)}</time></p><p>이 글은 모여PLAY가 직접 구현한 게임 규칙, production 화면과 공개 회귀 테스트를 기준으로 작성했습니다. 결과를 보장하는 공략이나 중요한 결정을 위한 전문 조언이 아닙니다.</p><p><a href="${escapeHtml(SITE_META.repositoryUrl)}" rel="noopener noreferrer">공개 저장소에서 구현과 변경 이력 보기</a></p></section>
+      ${guide.relatedGuides ? renderRelatedGuides(guide.relatedGuides) : ''}
+      <section id="guide-sources" class="guide-byline" aria-label="문서 작성 정보"><h2>문서 정보와 검증 방법</h2><p>작성·운영: <a href="${sitePath('about/#operator-and-authorship')}">${escapeHtml(config.siteOperatorName || '모여PLAY 프로젝트')}</a></p><p>최초 작성: <time datetime="${escapeHtml(guide.published)}">${escapeHtml(guide.published)}</time> · 최종 수정: <time datetime="${escapeHtml(guide.updated)}">${escapeHtml(guide.updated)}</time></p><p>이 글은 모여PLAY가 직접 구현한 게임 규칙과 공개 회귀 테스트를 기준으로 작성했습니다. 설명용 국면·계산·진행표는 이용자 기록이나 측정 성적이 아닙니다.</p>${renderGuideSources(guide)}<p><a href="${escapeHtml(`${SITE_META.repositoryUrl}/commits/main/site/`)}" rel="noopener noreferrer">가이드 변경 이력 보기</a></p></section>
       <p><a class="content-button" href="${sitePath('guides/')}">가이드 자료실로 돌아가기</a></p>
     </div>`;
   return renderLayout({
@@ -742,7 +770,7 @@ function renderContactChannels(page) {
   const repository = page.channels.repository;
   const readinessNote = config.publicContactEmail
     ? ''
-    : '<aside class="article-callout"><strong>문의 방법</strong><p>현재 문의는 GitHub Issues에서 접수합니다. 공개 공간이므로 계정 정보, 연락처, 비밀번호 같은 민감한 내용은 남기지 마세요.</p></aside>';
+    : '<aside class="article-callout"><strong>문의 방법</strong><p>현재 문의는 GitHub Issues에서 접수합니다. 별도의 비공개 문의 채널은 현재 제공하지 않습니다. 공개 공간이므로 계정 정보, 연락처, 비밀번호 같은 민감한 내용은 남기지 마세요.</p></aside>';
   return `<section><h2>문의 채널</h2>${readinessNote}<div class="feature-grid">${email}<article class="feature-card"><strong>${escapeHtml(fallback.label)}</strong><p>${escapeHtml(fallback.description)}</p><a class="content-button" href="${escapeHtml(fallback.href)}" rel="noopener noreferrer">GitHub Issues 열기</a></article><article class="feature-card"><strong>${escapeHtml(repository.label)}</strong><p>${escapeHtml(repository.description)}</p><a class="content-button" href="${escapeHtml(repository.href)}" rel="noopener noreferrer">저장소 열기</a></article></div></section>`;
 }
 

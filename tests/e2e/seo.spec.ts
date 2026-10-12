@@ -25,6 +25,10 @@ const editorialGuides = [
   'pinball-drop-timing',
   'two-player-browser-games',
   'party-game-host-guide',
+  'omok-threats-and-defense',
+  'reaction-time-and-input-delay',
+  'ladder-permutation-explained',
+  'local-multiplayer-input-check',
 ] as const;
 const contentPaths = [
   '/',
@@ -43,7 +47,7 @@ function relativeUrl(cleanPath: string): string {
   return cleanPath === '/' ? './' : `.${cleanPath}`;
 }
 
-test('20개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 제공한다', async ({
+test('24개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 제공한다', async ({
   browser,
   baseURL,
 }) => {
@@ -64,6 +68,8 @@ test('20개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 
         title: document.title,
         description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content,
         canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
+        canonicalCount: document.querySelectorAll('link[rel="canonical"]').length,
+        descriptionCount: document.querySelectorAll('meta[name="description"]').length,
         openGraphUrl: document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.content,
         openGraphImage: document.querySelector<HTMLMetaElement>('meta[property="og:image"]')
           ?.content,
@@ -102,6 +108,8 @@ test('20개 clean URL은 JavaScript 없이 고유 콘텐츠와 SEO 데이터를 
     expect(metadata.title.length, cleanPath).toBeGreaterThan(10);
     expect(metadata.description?.length ?? 0, cleanPath).toBeGreaterThan(30);
     expect(metadata.canonical, cleanPath).toBeTruthy();
+    expect(metadata.canonicalCount, cleanPath).toBe(1);
+    expect(metadata.descriptionCount, cleanPath).toBe(1);
     expect(metadata.openGraphUrl, cleanPath).toBe(metadata.canonical);
     expect(metadata.openGraphImage?.startsWith(expectedSiteUrl), cleanPath).toBe(true);
     expect(metadata.twitterImage, cleanPath).toBe(metadata.openGraphImage);
@@ -203,7 +211,7 @@ test('구조화 데이터는 실제 사이트·게임·breadcrumb만 설명한�
     );
     expect(videoGame?.image, game).toBe(`${expectedSiteUrl}assets/og/${game}.png`);
     expect(videoGame?.genre, game).toEqual(expect.any(String));
-    expect(videoGame?.dateModified, game).toBe('2026-08-10');
+    expect(videoGame?.dateModified, game).toBe('2026-10-12');
   }
 });
 
@@ -246,7 +254,7 @@ test('검색 의도별 탐색과 게임별 FAQ가 설명형 내부 링크로 연
 
   await page.goto('./guides/');
   await expect(page.locator('[data-editorial-guide-directory] .editorial-guide-card')).toHaveCount(
-    4,
+    editorialGuides.length,
   );
   await expect(page.locator('[data-game-guide-directory] a[href*="/games/"]')).toHaveCount(12);
 
@@ -262,7 +270,7 @@ test('검색 의도별 탐색과 게임별 FAQ가 설명형 내부 링크로 연
   }
 });
 
-test('sitemap은 20개 canonical clean URL만 포함하고 /play/와 hash를 제외한다', async ({
+test('sitemap은 24개 canonical clean URL만 포함하고 /play/와 hash를 제외한다', async ({
   request,
 }) => {
   const response = await request.get('./sitemap.xml');
@@ -303,11 +311,11 @@ test('콘텐츠 dateModified와 sitemap lastmod는 같은 실제 갱신일을 �
     expect(webPageModified, cleanPath).toBe(lastModifiedByUrl.get(canonical));
   }
 
-  const routesUpdatedOnJuly22 = [...lastModifiedByUrl.entries()]
-    .filter(([, updated]) => updated === '2026-07-22')
-    .map(([url]) => new URL(url).pathname)
-    .sort();
-  expect(routesUpdatedOnJuly22).toEqual(['/about/', '/contact/']);
+  // Content left unchanged by this review retains its previous modification date.
+  expect(lastModifiedByUrl.get(`${expectedSiteUrl}terms/`)).toBe('2026-07-19');
+  expect(lastModifiedByUrl.get(`${expectedSiteUrl}how-to-play/`)).toBe('2026-08-10');
+  expect(lastModifiedByUrl.get(`${expectedSiteUrl}about/`)).toBe('2026-10-12');
+  expect(lastModifiedByUrl.get(`${expectedSiteUrl}contact/`)).toBe('2026-10-12');
 });
 
 test('가이드 작성 정보와 About·Contact 신뢰 안내가 방문자용 문구로 연결된다', async ({ page }) => {
@@ -351,19 +359,117 @@ test('hero와 게임 이미지가 생성 일러스트와 실제 screenshot을 �
   await expect(page.locator('.guide-screenshot')).toHaveAttribute('alt', /실제 게임 화면/u);
 });
 
-test('정적 홈과 가이드는 390x844 및 844x390에서 horizontal overflow가 없다', async ({ page }) => {
-  for (const target of [
-    { path: './', width: 390, height: 844 },
-    { path: './games/omok/', width: 844, height: 390 },
+test('24개 문서의 본문·이미지와 네 화면 크기의 콘텐츠가 일치한다', async ({ page }) => {
+  test.setTimeout(120_000);
+  for (const cleanPath of contentPaths) {
+    let expectedText = '';
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+      { width: 768, height: 1024 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(relativeUrl(cleanPath));
+      const text = (await page.locator('main').textContent())?.replace(/\s+/gu, ' ').trim() ?? '';
+      expectedText ||= text;
+      expect(text, `${cleanPath} ${String(viewport.width)}`).toBe(expectedText);
+      const overflow = await page.evaluate(() => ({
+        body: document.body.scrollWidth - document.body.clientWidth,
+        document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      }));
+      expect(overflow.body, cleanPath).toBeLessThanOrEqual(1);
+      expect(overflow.document, cleanPath).toBeLessThanOrEqual(1);
+    }
+    // Exercise every lazy image too; an off-screen broken screenshot is still a content defect.
+    await page.locator('main img').evaluateAll((images) => {
+      for (const image of images) (image as HTMLImageElement).loading = 'eager';
+    });
+    await expect
+      .poll(
+        async () =>
+          page
+            .locator('main img')
+            .evaluateAll((images) =>
+              images.every(
+                (image) =>
+                  image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+              ),
+            ),
+        { message: `${cleanPath} images must decode` },
+      )
+      .toBe(true);
+  }
+});
+
+test('실전 문서의 작성일·수정일·자료 출처와 목차를 실제 본문에서 확인한다', async ({ page }) => {
+  for (const [index, guide] of editorialGuides.entries()) {
+    await page.goto(`./guides/${guide}/`);
+    const dates = await page
+      .locator('.guide-byline time')
+      .evaluateAll((times) => times.map((time) => time.getAttribute('datetime')));
+    expect(dates, guide).toEqual([index < 4 ? '2026-08-10' : '2026-10-12', '2026-10-12']);
+    const articleDates = await page
+      .locator('script[type="application/ld+json"]')
+      .evaluate((script) => {
+        const data = JSON.parse(script.textContent) as {
+          '@graph': { '@type': string; datePublished?: string; dateModified?: string }[];
+        };
+        const article = data['@graph'].find((entry) => entry['@type'] === 'Article');
+        return [article?.datePublished, article?.dateModified];
+      });
+    expect(articleDates, guide).toEqual(dates);
+    expect(await page.locator('[data-guide-sources] a').count(), guide).toBeGreaterThanOrEqual(2);
+    await expect(page.locator('.editorial-hero a[href*="/play/#game/"]')).toHaveCount(1);
+    const contentsLink = page
+      .getByRole('navigation', { name: '이 글의 목차' })
+      .getByRole('link')
+      .last();
+    // Put the link on screen before focusing it so focus-scroll cannot race fragment-scroll.
+    await contentsLink.scrollIntoViewIfNeeded();
+    await contentsLink.focus();
+    await expect(contentsLink).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/#guide-sources$/u);
+    await expect(page.locator('#guide-sources')).toBeInViewport();
+  }
+  for (const game of games) {
+    await page.goto(`./games/${game}/`);
+    await expect(page.locator('[data-game-practice] .content-table tbody tr')).toHaveCount(3);
+    await expect(page.locator('[data-related-guides] a').first()).toHaveAttribute(
+      'href',
+      /\/guides\//u,
+    );
+    await expect(page.locator('.guide-media figcaption')).not.toBeEmpty();
+  }
+});
+
+test('네 화면 크기에서 목차로 이동한 제목이 고정 헤더에 가리지 않는다', async ({ page }) => {
+  // Assert the final layout rather than an intermediate frame of smooth scrolling.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
   ]) {
-    await page.setViewportSize({ width: target.width, height: target.height });
-    await page.goto(target.path);
-    const overflow = await page.evaluate(() => ({
-      body: document.body.scrollWidth - document.body.clientWidth,
-      document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    }));
-    expect(overflow.body, target.path).toBeLessThanOrEqual(1);
-    expect(overflow.document, target.path).toBeLessThanOrEqual(1);
+    await page.setViewportSize(viewport);
+    await page.goto('./guides/local-multiplayer-input-check/');
+    const link = page.locator('.article-contents a[href="#keyboard"]');
+    await link.scrollIntoViewIfNeeded();
+    await link.focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/#keyboard$/u);
+    await expect(page.locator('#keyboard h2')).toBeInViewport();
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const heading = document.querySelector('#keyboard h2')?.getBoundingClientRect();
+          const header = document.querySelector('.content-header')?.getBoundingClientRect();
+          return heading && header ? heading.top - header.bottom : -1;
+        }),
+      )
+      .toBeGreaterThanOrEqual(0);
   }
 });
 
@@ -373,10 +479,15 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
 }) => {
   const internalUrls = new Set<string>();
   const fragmentUrls = new Set<string>();
+  const documentIds = new Map<string, Set<string>>();
   let previewOrigin = '';
   for (const cleanPath of contentPaths) {
     await page.goto(relativeUrl(cleanPath));
     previewOrigin ||= new URL(page.url()).origin;
+    documentIds.set(
+      page.url(),
+      new Set(await page.locator('[id]').evaluateAll((elements) => elements.map((el) => el.id))),
+    );
     const links = await page
       .locator('a[href]')
       .evaluateAll((anchors) => anchors.map((anchor) => (anchor as HTMLAnchorElement).href));
@@ -395,11 +506,8 @@ test('콘텐츠 페이지의 모든 내부 문서 링크는 실제 200 응답을
     const url = new URL(href);
     const fragmentId = decodeURIComponent(url.hash.slice(1));
     url.hash = '';
-    await page.goto(url.href);
-    expect(
-      await page.evaluate((id) => Boolean(document.getElementById(id)), fragmentId),
-      href,
-    ).toBe(true);
+    // Check every target against its rendered document once, rather than loading it per fragment.
+    expect(documentIds.get(url.href)?.has(fragmentId), href).toBe(true);
   }
 });
 

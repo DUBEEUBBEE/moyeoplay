@@ -34,6 +34,7 @@
     "test:e2e:root": "npm run test:e2e:root:meta && npm run test:e2e:root:ads",
     "test:e2e:live": "E2E_MODE=live playwright test tests/e2e/live.spec.ts --project=chromium-mobile",
     "audit:live": "node scripts/audit-live.mjs",
+    "audit:rendered": "node scripts/audit-rendered.mjs",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "devDependencies": {

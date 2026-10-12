@@ -1,7 +1,7 @@
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { EDITORIAL_GUIDES, GAME_CONTENT, PAGE_CONTENT } from '../site/site-content.mjs';
+import { EDITORIAL_GUIDES, GAME_CONTENT, PAGE_CONTENT, SITE_META } from '../site/site-content.mjs';
 import { resolveSiteConfig } from './site-config.mjs';
 
 const config = resolveSiteConfig();
@@ -205,10 +205,24 @@ for (const route of indexableRoutes) {
   const title = source.match(/<title>([^<]+)<\/title>/u)?.[1];
   const description = source.match(/<meta name="description" content="([^"]+)"/u)?.[1];
   const h1Count = source.match(/<h1(?:\s|>)/gu)?.length ?? 0;
+  const canonicalCount = source.match(/<link rel="canonical"/gu)?.length ?? 0;
+  const titleCount = source.match(/<title>/gu)?.length ?? 0;
+  const descriptionCount = source.match(/<meta name="description"/gu)?.length ?? 0;
   const expectedCanonical = new URL(route.path, config.siteUrl).href;
-  if (!canonical || !title || !description || h1Count !== 1) {
+  if (
+    !canonical ||
+    !title ||
+    !description ||
+    h1Count !== 1 ||
+    canonicalCount !== 1 ||
+    titleCount !== 1 ||
+    descriptionCount !== 1
+  ) {
     fail(errors, `${relativePath} is missing canonical, title, description, or h1.`);
     continue;
+  }
+  if (!source.includes('content="index,follow,max-image-preview:large"')) {
+    fail(errors, `${relativePath} is not explicitly indexable.`);
   }
   if (canonical !== expectedCanonical || openGraphUrl !== expectedCanonical) {
     fail(errors, `${relativePath} canonical and og:url must equal ${expectedCanonical}.`);
@@ -270,6 +284,8 @@ for (const game of GAME_CONTENT) {
   if (
     !source.includes('data-game-use-cases') ||
     !source.includes('data-game-experience') ||
+    !source.includes('data-game-practice') ||
+    !source.includes('data-related-guides') ||
     faqCount !== 3
   ) {
     fail(
@@ -298,10 +314,18 @@ for (const guide of EDITORIAL_GUIDES) {
     !source.includes('editorial-article') ||
     !source.includes('class="content-table"') ||
     !source.includes('직접 구현한 게임 규칙') ||
+    !source.includes('data-guide-sources') ||
+    !source.includes(`datetime="${guide.published}"`) ||
+    !source.includes(`datetime="${guide.updated}"`) ||
     faqCount !== 3 ||
     sectionCount < 10
   ) {
     fail(errors, `${relativePath} is missing substantial original guide content or authorship.`);
+  }
+  for (const evidence of guide.sources) {
+    if (!source.includes(`${SITE_META.repositoryUrl}/blob/main/${evidence.path}`)) {
+      fail(errors, `${relativePath} is missing its source ${evidence.path}.`);
+    }
   }
 }
 

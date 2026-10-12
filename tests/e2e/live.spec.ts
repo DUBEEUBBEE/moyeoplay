@@ -31,6 +31,10 @@ const editorialGuides = [
   'pinball-drop-timing',
   'two-player-browser-games',
   'party-game-host-guide',
+  'omok-threats-and-defense',
+  'reaction-time-and-input-delay',
+  'ladder-permutation-explained',
+  'local-multiplayer-input-check',
 ] as const;
 const indexableRoutes = [
   { label: '홈', path: '' },
@@ -167,7 +171,7 @@ test.describe('live custom-domain smoke', () => {
     }
   });
 
-  test('20 indexable routes are real custom-domain documents rather than soft 404s', async ({
+  test('24 indexable routes are real custom-domain documents rather than soft 404s', async ({
     baseURL,
     page,
   }) => {
